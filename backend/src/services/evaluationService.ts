@@ -81,7 +81,7 @@ export const evaluationService = {
     let totalBaseRisk = 0
 
     for (const scenario of MUMBAI_TEST_SCENARIOS) {
-      const rawRoutes = multimodalService.generateRoutes({
+      const rawRoutes = await multimodalService.generateRoutes({
         origin: scenario.origin,
         destination: scenario.destination,
       })

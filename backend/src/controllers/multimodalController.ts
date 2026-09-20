@@ -18,7 +18,7 @@ import type { EnrichedRoute } from "../types/intelligence"
 export async function calculateMultimodalRoute(req: Request, res: Response, next: NextFunction) {
   try {
     const body = req.body as MultimodalRequest
-    const routes = multimodalService.generateRoutes(body)
+    const routes = await multimodalService.generateRoutes(body)
 
     if (routes.length === 0) {
       throw new AppError(
@@ -215,4 +215,3 @@ export async function getNearbyTransit(req: Request, res: Response, next: NextFu
     next(err)
   }
 }
-

@@ -14,7 +14,7 @@ async function runPipelineTest() {
   const destination = { name: "Ghatkopar Metro Station", latitude: 19.0863, longitude: 72.9082 }
 
   console.log("\n[1] Generating Candidate Multimodal Routes...")
-  const rawRoutes = multimodalService.generateRoutes({ origin, destination })
+  const rawRoutes = await multimodalService.generateRoutes({ origin, destination })
   console.log(`✓ Found ${rawRoutes.length} candidate multimodal routes.`)
 
   if (rawRoutes.length === 0) {
