@@ -1,5 +1,6 @@
 export interface User {
   _id: string
+  id?: string
   name: string
   email: string
   // Problem 23 — admin role, set only server-side (JWT-derived). Never trust or
@@ -17,9 +18,12 @@ export interface User {
       walking: number
       reliability: number
       accessibility: number
+      crowd?: number
+      weather?: number
     }
   }
   createdAt: string
+  updatedAt?: string
 }
 
 export type AccessibilityProfile =

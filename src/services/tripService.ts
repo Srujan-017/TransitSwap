@@ -1,6 +1,15 @@
 import api from "./api"
 import type { GeoLocation } from "../types/map"
-import type { MultimodalRoute } from "../types/multimodal"
+import type {
+  AccessibilityEvaluation,
+  ConfidenceInterval,
+  MissedConnectionRisk,
+  MultimodalRoute,
+  ReliabilityAnalysis,
+  RouteCrowdSummary,
+  RouteSegment,
+  WeatherImpact,
+} from "../types/multimodal"
 
 export interface JourneyFeedback {
   rating: number
@@ -11,11 +20,33 @@ export interface JourneyFeedback {
   createdAt?: string
 }
 
+export interface JourneyRouteSnapshot {
+  routeId: string
+  label: string
+  summary: string
+  segments: RouteSegment[]
+  totalDistanceMeters: number
+  totalDurationSeconds: number
+  totalWalkingMeters: number
+  totalFare: number
+  transferCount: number
+  modes: string[]
+  weatherImpact?: WeatherImpact
+  accessibility?: AccessibilityEvaluation
+  crowd?: RouteCrowdSummary
+  reliability?: ReliabilityAnalysis
+  confidenceInterval?: ConfidenceInterval
+  missedConnectionRisk?: MissedConnectionRisk
+  whyRecommended?: string[]
+  sustainabilityScore?: number
+  sustainabilitySummary?: string
+}
+
 export interface JourneyRecord {
   _id: string
   origin: GeoLocation
   destination: GeoLocation
-  selectedRoute: MultimodalRoute
+  selectedRoute: JourneyRouteSnapshot
   routeSegments: MultimodalRoute["segments"]
   transportModes: string[]
   totalDistanceMeters: number

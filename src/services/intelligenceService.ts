@@ -1,4 +1,5 @@
 import api from "./api"
+import type { User, UserPreferences } from "../types"
 import type { CrowdLevel } from "../types/multimodal"
 import type { JourneyRecord } from "./tripService"
 
@@ -81,18 +82,18 @@ export const intelligenceService = {
     return data.data
   },
 
-  async updateProfile(profileData: { name?: string; accessibilityProfile?: string }): Promise<any> {
-    const { data } = await api.put("/auth/profile", profileData)
+  async updateProfile(profileData: { name?: string; accessibilityProfile?: string }): Promise<User> {
+    const { data } = await api.put<{ success: boolean; data: User }>("/auth/profile", profileData)
     return data.data
   },
 
-  async updatePreferences(preferences: Record<string, any>): Promise<any> {
-    const { data } = await api.put("/auth/preferences", preferences)
+  async updatePreferences(preferences: Partial<UserPreferences>): Promise<User> {
+    const { data } = await api.put<{ success: boolean; data: User }>("/auth/preferences", preferences)
     return data.data
   },
 
-  async resetTransitDna(): Promise<any> {
-    const { data } = await api.post("/auth/transitdna/reset")
+  async resetTransitDna(): Promise<User> {
+    const { data } = await api.post<{ success: boolean; data: User }>("/auth/transitdna/reset")
     return data.data
   },
 
@@ -119,4 +120,3 @@ export const intelligenceService = {
     }
   },
 }
-
