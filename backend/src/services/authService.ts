@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 import { User, type IUser } from "../models/User"
 import { env } from "../config/env"
 import { AppError } from "../middleware/errorHandler"
@@ -9,8 +10,15 @@ function signToken(user: IUser): string {
   } as jwt.SignOptions)
 }
 
+function ensureDb() {
+  if (mongoose.connection.readyState !== 1) {
+    throw new AppError("Database is not connected. Configure MONGODB_URI to use authentication features.", 503)
+  }
+}
+
 export const authService = {
   async register(name: string, email: string, password: string, accessibilityProfile = "standard") {
+    ensureDb()
     const existing = await User.findOne({ email })
     if (existing) throw new AppError("Email already registered. Please sign in instead.", 409)
 
@@ -20,6 +28,7 @@ export const authService = {
   },
 
   async login(email: string, password: string) {
+    ensureDb()
     const user = await User.findOne({ email }).select("+password")
     if (!user) throw new AppError("Invalid email or password.", 401)
 
@@ -31,12 +40,14 @@ export const authService = {
   },
 
   async getById(userId: string) {
+    ensureDb()
     const user = await User.findById(userId)
     if (!user) throw new AppError("User not found.", 404)
     return user
   },
 
   async updateProfile(userId: string, data: { name?: string; accessibilityProfile?: string }) {
+    ensureDb()
     const user = await User.findById(userId)
     if (!user) throw new AppError("User not found.", 404)
     if (data.name) user.name = data.name
@@ -46,6 +57,7 @@ export const authService = {
   },
 
   async updatePreferences(userId: string, preferences: Partial<IUser["preferences"]>) {
+    ensureDb()
     const user = await User.findById(userId)
     if (!user) throw new AppError("User not found.", 404)
     user.preferences = { ...user.preferences, ...preferences }
@@ -54,6 +66,7 @@ export const authService = {
   },
 
   async resetTransitDna(userId: string) {
+    ensureDb()
     const user = await User.findById(userId)
     if (!user) throw new AppError("User not found.", 404)
     user.transitDNA = {

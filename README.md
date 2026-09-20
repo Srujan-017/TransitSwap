@@ -278,9 +278,10 @@ Navigate to **http://localhost:5173** and use demo mode (no API keys required).
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `PORT` | No (default: 5000) | Express server port |
-| `MONGODB_URI` | Optional | MongoDB connection string. If absent, journeys saved to memory only |
+| `MONGODB_URI` | Optional for route demos; required for authentication, profiles, saved journeys, saved destinations, saved routes, feedback, and user reports. If absent, database-backed endpoints return clear 503 errors while route intelligence continues on demo/fallback data |
 | `JWT_SECRET` | **Yes** | Secret for JWT signing. Change in production |
 | `OPENWEATHER_API_KEY` | Optional | Free OpenWeatherMap key. If absent, demo weather data is used |
+| `OSRM_API_URL` | No (default: `http://router.project-osrm.org`) | Optional OSRM routing server override |
 | `FRONTEND_URL` | No (default: `http://localhost:5173`) | Exact frontend origin trusted by production CORS. In development, any `localhost`/`127.0.0.1` origin is also allowed automatically |
 | `NODE_ENV` | No (default: `development`) | Set to `production` on your hosting platform — enforces a real `JWT_SECRET` and strict CORS |
 
@@ -332,7 +333,7 @@ Navigate to **http://localhost:5173** and use demo mode (no API keys required).
 | Crowd levels | `source: "DEMO_DATA"` — historical pattern estimates |
 | Transit routes | Mumbai Metro Line 1 (Versova ↔ Ghatkopar) + BEST bus routes |
 | Accessibility | `verificationSource: "Demo Accessibility Dataset"` |
-| MongoDB | Journeys stored in-memory (not persisted across restarts) |
+| MongoDB | If absent, database-backed features return clear 503 errors; routing, weather fallback, accessibility, crowd estimates, reliability, TransitDNA scoring, and evaluation remain available where they do not require persistence |
 
 > ⚠️ **Academic integrity note**: All demo data is clearly labelled as simulated. No fabricated user studies or accuracy claims appear in the codebase or documentation.
 
@@ -655,7 +656,7 @@ The backend only trusts the exact `FRONTEND_URL` origin in production (see [Sect
 `GET /api/health` is the deployment health-check endpoint. It returns immediately (no database queries or ML computation) with a status, timestamp, and database connectivity flag — point your hosting platform's health check at this path.
 
 ### 25.9 Demo mode / API fallbacks
-If `MONGODB_URI` or `OPENWEATHER_API_KEY` are not configured, the platform keeps running on clearly-labelled demo data (see [Section 10 — Demo Mode](#10-demo-mode)) instead of failing — this is intentional for demonstrations, not a bug to "fix" by hard-coding fallback credentials.
+If `OPENWEATHER_API_KEY` is not configured, the platform keeps weather on clearly-labelled demo data (see [Section 10 — Demo Mode](#10-demo-mode)). If `MONGODB_URI` is not configured, non-persistent route intelligence still runs, while authentication, saved journeys, saved destinations, saved routes, feedback, and user-submitted reports return controlled 503 errors instead of pretending to persist data.
 
 ### 25.10 Pre-deployment checklist
 - [ ] `.env` / `.env.local` are not committed (already `.gitignore`d)
