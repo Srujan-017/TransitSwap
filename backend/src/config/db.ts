@@ -1,8 +1,6 @@
 import mongoose from "mongoose"
-import dns from "dns"
 import { env } from "./env"
 
-dns.setServers(["1.1.1.1", "8.8.8.8"])
 export async function connectDB(): Promise<void> {
   if (!env.MONGODB_URI) {
     console.warn("⚠️  Skipping DB connection — MONGODB_URI not configured. Auth, journey history, and reports will not work until it is set.")
