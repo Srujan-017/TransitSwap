@@ -1,9 +1,8 @@
 import mongoose from "mongoose"
-import bcrypt from "bcryptjs"
 import { User } from "../models/User"
 
 const DEMO_EMAIL = "demo@transitswap.app"
-const DEMO_PASSWORD = "Demo@1234"
+const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD || "Demo@1234"
 const DEMO_NAME = "Demo User"
 
 /**
@@ -11,6 +10,15 @@ const DEMO_NAME = "Demo User"
  * If MongoDB is not connected, this is a no-op (demo mode still works without auth).
  * If the account already exists, it is not modified.
  * The demo password is hashed — it is never stored in plain text.
+ *
+ * Phase 4 fix (B1) — this used to pre-hash DEMO_PASSWORD with bcrypt.hash()
+ * and pass the resulting digest to User.create(). userSchema.pre("save")
+ * (models/User.ts) then hashed THAT digest again, so the stored password was
+ * bcrypt(bcrypt(plaintext)) — comparePassword(plaintext, stored) could never
+ * succeed and the seeded demo account was unusable. Passing the plaintext
+ * password straight to User.create() and letting the model's own pre-save
+ * hook hash it exactly once (the same pattern already used correctly by
+ * utils/seedAdmin.ts) fixes this.
  */
 export async function seedDemoUser(): Promise<void> {
   if (mongoose.connection.readyState !== 1) {
@@ -25,12 +33,12 @@ export async function seedDemoUser(): Promise<void> {
       return
     }
 
-    // Create demo account
-    const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 12)
+    // Create demo account — plaintext password; userSchema.pre("save") hashes
+    // it once before it's ever written to the database.
     await User.create({
       name: DEMO_NAME,
       email: DEMO_EMAIL,
-      password: hashedPassword,
+      password: DEMO_PASSWORD,
       accessibilityProfile: "standard",
       preferences: {
         preferredMode: "any",
