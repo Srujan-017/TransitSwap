@@ -7,9 +7,70 @@ import {
   PairwiseLogisticRegression,
   TrainingSample,
 } from "./logisticRegression"
+import { seededShuffle } from "./seededRandom"
 import type { EnrichedRoute } from "../../types/intelligence"
 import type { UserPreferences } from "../../types"
 import { getPreferenceAdjustedWeights, calculatePreferenceAdjustment } from "../transitDnaService"
+
+// Phase 8 — fixed seed for the train/test split so re-running training on the
+// same stored samples always reproduces the same split (and therefore the
+// same reported accuracy), rather than a fresh random split every retrain.
+const TRAIN_TEST_SPLIT_SEED = 42
+
+export interface PairwiseDocInput {
+  userId: string
+  originName: string
+  destinationName: string
+  chosenRouteId: string
+  rejectedRouteId: string
+  chosenFeatures: RouteFeatureVector["features"]
+  rejectedFeatures: RouteFeatureVector["features"]
+  deltaX: number[]
+  label: 0 | 1
+  source: "USER_CHOICE" | "USER_FEEDBACK" | "DEMO_SYNTHETIC_DATA"
+}
+
+/**
+ * Phase 8 fix — builds BOTH directions of each pairwise comparison:
+ * {chosen - rejected, label: 1} AND its mirror {rejected - chosen, label: 0}.
+ * Previously only the first was stored, so every real training sample had
+ * label 1 — a single-class dataset on which a constant "always predict 1"
+ * classifier trivially scores 100%, making the reported accuracy meaningless.
+ * chosenRouteId/chosenFeatures always describe the real-world chosen route
+ * regardless of which direction a given deltaX/label row represents, so the
+ * ground truth stays legible; only deltaX and label flip for the mirror.
+ * Pulled out as a pure, DB-free function so it can be unit tested directly.
+ */
+export function buildPairwiseDocs(
+  userId: string,
+  chosenRoute: EnrichedRoute,
+  chosenVector: RouteFeatureVector,
+  alternativeVectors: RouteFeatureVector[],
+  source: "USER_CHOICE" | "USER_FEEDBACK" | "DEMO_SYNTHETIC_DATA",
+): PairwiseDocInput[] {
+  const docs: PairwiseDocInput[] = []
+
+  for (const altVector of alternativeVectors) {
+    const base = {
+      userId,
+      originName: chosenRoute.segments[0]?.from?.name ?? "Origin",
+      destinationName: chosenRoute.segments[chosenRoute.segments.length - 1]?.to?.name ?? "Destination",
+      chosenRouteId: chosenRoute.id,
+      rejectedRouteId: altVector.routeId,
+      chosenFeatures: chosenVector.features,
+      rejectedFeatures: altVector.features,
+      source,
+    }
+
+    const chosenMinusRejected = chosenVector.featureArray.map((val, idx) => val - altVector.featureArray[idx])
+    const rejectedMinusChosen = chosenMinusRejected.map((val) => -val)
+
+    docs.push({ ...base, deltaX: chosenMinusRejected, label: 1 })
+    docs.push({ ...base, deltaX: rejectedMinusChosen, label: 0 })
+  }
+
+  return docs
+}
 
 export interface MLStatusResponse {
   isPersonalized: boolean
@@ -92,29 +153,17 @@ export const mlPreferenceService = {
 
     let pairsCreated = 0
 
+    // Phase 8 — each alternative now yields 2 documents (chosen>rejected,
+    // label 1, AND its mirror rejected>chosen, label 0), not 1.
+    const docs = buildPairwiseDocs(userId, chosenRoute, chosenVector, alternativeVectors, source)
+
     if (mongoose.connection.readyState === 1 && userId) {
       try {
-        const docs = alternativeVectors.map((altVector) => {
-          const deltaX = chosenVector.featureArray.map((val, idx) => val - altVector.featureArray[idx])
-          return {
-            userId,
-            originName: chosenRoute.segments[0]?.from?.name ?? "Origin",
-            destinationName: chosenRoute.segments[chosenRoute.segments.length - 1]?.to?.name ?? "Destination",
-            chosenRouteId: chosenRoute.id,
-            rejectedRouteId: altVector.routeId,
-            chosenFeatures: chosenVector.features,
-            rejectedFeatures: altVector.features,
-            deltaX,
-            label: 1,
-            source,
-          }
-        })
-
         // Problem 8 hardening — insert with ordered:false so a retry of the same
         // journey-save operation (which re-sends identical chosen/rejected route
         // ids) hits the unique index on (userId, chosenRouteId, rejectedRouteId,
-        // source) and is silently skipped as a duplicate, rather than creating a
-        // second pairwise sample or aborting the whole batch.
+        // source, label) and is silently skipped as a duplicate, rather than
+        // creating a second pairwise sample or aborting the whole batch.
         try {
           const result = await PairwisePreference.insertMany(docs, { ordered: false })
           pairsCreated = result.length
@@ -134,9 +183,9 @@ export const mlPreferenceService = {
     } else {
       // Offline / Unauthenticated fallback cache
       const cached = memoryModelCache.get(userId) ?? { weights: { ...DEFAULT_WEIGHTS }, sampleCount: 0 }
-      cached.sampleCount += alternativeVectors.length
+      cached.sampleCount += docs.length
       memoryModelCache.set(userId, cached)
-      pairsCreated = alternativeVectors.length
+      pairsCreated = docs.length
     }
 
     // Retrain model if sample threshold met
@@ -170,13 +219,22 @@ export const mlPreferenceService = {
         label: doc.label,
       }))
 
+      // Phase 8 — shuffle (seeded, so retraining on the same stored samples
+      // always reproduces the same split) before splitting. The samples were
+      // fetched sorted by createdAt, so an unshuffled positional slice would
+      // put the newest choices entirely into one side of the split, and
+      // Phase 8's mirrored {label:1}/{label:0} pair for the same alternative
+      // is always inserted adjacently — an unshuffled split could put both
+      // halves of the same mirrored pair on the same side every time.
+      const shuffled = seededShuffle(samples, TRAIN_TEST_SPLIT_SEED)
+
       // Train-test split (80/20) if enough samples exist
-      let trainSamples = samples
+      let trainSamples = shuffled
       let testSamples: TrainingSample[] = []
-      if (samples.length >= 10) {
-        const splitIdx = Math.floor(samples.length * 0.8)
-        trainSamples = samples.slice(0, splitIdx)
-        testSamples = samples.slice(splitIdx)
+      if (shuffled.length >= 10) {
+        const splitIdx = Math.floor(shuffled.length * 0.8)
+        trainSamples = shuffled.slice(0, splitIdx)
+        testSamples = shuffled.slice(splitIdx)
       }
 
       const model = new PairwiseLogisticRegression()

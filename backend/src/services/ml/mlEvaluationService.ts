@@ -1,10 +1,5 @@
-import { PairwisePreference } from "../../models/PreferencePair"
-import { extractRouteFeatures } from "./featureExtractor"
 import { PairwiseLogisticRegression, type LogisticModelWeights } from "./logisticRegression"
-import { mlPreferenceService } from "./mlPreferenceService"
-import { multimodalService } from "../multimodalService"
-import { reliabilityService } from "../reliabilityService"
-import type { EnrichedRoute } from "../../types/intelligence"
+import { createSeededRandom, seededGaussianNoise, seededShuffle } from "./seededRandom"
 
 export interface MLEvaluationReport {
   isSimulatedBenchmark: true
@@ -20,31 +15,45 @@ export interface MLEvaluationReport {
   evaluatedAt: string
 }
 
+interface SyntheticSample {
+  deltaX: number[]
+  label: number
+  archetype: string
+}
+
+// Phase 8 — fixed seed so the synthetic dataset and its split are
+// reproducible: the same seed always yields the same noisy samples and the
+// same train/test partition, so the reported numbers don't drift between runs.
+const BENCHMARK_SEED = 7
+const NOISE_SCALE = 0.3
+const SAMPLES_PER_ARCHETYPE = 20
+const TRAIN_RATIO = 0.8
+
 export const mlEvaluationService = {
   /**
    * Generates a reproducible synthetic pairwise dataset for demo & benchmark comparison,
    * trains both Pairwise Logistic Regression and measures baseline rule agreement.
+   * isSimulatedBenchmark — this evaluates learning dynamics on synthetic archetypes,
+   * NOT real user behavior; see the disclaimer field on the returned report.
    */
-  async runMLEvaluation(userId?: string): Promise<MLEvaluationReport> {
-    // Collect training data from database if user has active preference choices
-    let userSamplesCount = 0
-    if (userId) {
-      const status = await mlPreferenceService.getModelStatus(userId)
-      userSamplesCount = status.sampleCount
-    }
-
-    // Generate reproducible synthetic choice scenarios (Simulated Commuter Archetypes)
+  async runMLEvaluation(): Promise<MLEvaluationReport> {
     const syntheticSamples = this.generateSyntheticPreferenceDataset()
     const totalSamples = syntheticSamples.length
 
-    // 80/20 Train-Test Split
-    const trainCount = Math.floor(totalSamples * 0.8)
-    const trainSamples = syntheticSamples.slice(0, trainCount)
-    const testSamples = syntheticSamples.slice(trainCount)
+    // Phase 8 fix — the previous positional 80/20 slice was taken from an
+    // unshuffled, archetype-ordered list, so the test set (the last 20%) was
+    // drawn entirely from whichever archetype happened to be generated last —
+    // never a mix of all 3. A stratified split guarantees every archetype (and
+    // both labels) appears in both the train and test sets.
+    const { train: trainSamples, test: testSamples } = stratifiedSplit(syntheticSamples, TRAIN_RATIO, BENCHMARK_SEED)
 
     // 1. Train Proposed Pairwise Logistic Regression Model
     const mlModel = new PairwiseLogisticRegression()
     const trainResult = mlModel.train(trainSamples)
+    // Phase 8 — accuracy is reported from the held-out test set only;
+    // trainResult.pairwiseAccuracy (computed on the training data itself) is
+    // intentionally not surfaced here, since a model's fit to its own
+    // training data says nothing about whether it generalizes.
     const mlTestAccuracy = mlModel.evaluateAccuracy(testSamples)
 
     // 2. Evaluate Baseline Rule-Based Model on the exact same Test Set
@@ -63,74 +72,71 @@ export const mlEvaluationService = {
       logLoss: trainResult.finalLoss,
       learnedWeights: trainResult.weights,
       disclaimer:
-        "PROTOTYPE RESEARCH EVALUATION — Evaluated using 80/20 train/test split on synthetic commuter choice pairs. Demonstrates data-driven Pairwise Logistic Regression learning-to-rank optimization over fixed baseline rules.",
+        "PROTOTYPE RESEARCH EVALUATION — Evaluated using a stratified 80/20 train/test split on synthetic, noisy, two-class (balanced) commuter choice pairs. Both accuracy figures are measured on the held-out test set only. Demonstrates data-driven Pairwise Logistic Regression learning-to-rank optimization over fixed baseline rules; it is NOT a measurement of real user behavior.",
       evaluatedAt: new Date().toISOString(),
     }
   },
 
   /**
-   * Generates reproducible synthetic pairwise training data representing 3 distinct commuter archetypes:
+   * Generates reproducible, noisy, two-class synthetic pairwise training data
+   * representing 3 distinct commuter archetypes:
    * 1. Budget Commuter (prefers low cost)
-   * 2. Hurry/Speed Commuter (prefers low duration & high reliability)
+   * 2. Hurry/Speed/Reliability Commuter (prefers low duration & high reliability & low risk)
    * 3. Accessible/Comfort Commuter (prefers low walking & high accessibility)
+   *
+   * Phase 8 fix — previously every sample had label 1 (chosen > rejected) and
+   * an exact, noise-free deltaX per archetype, so the dataset was single-class
+   * (a constant "always predict 1" classifier scored 100%) and unrealistically
+   * clean. Each archetype's base vector now gets independent Gaussian noise
+   * per sample ("noisy, varied"), and is mirrored into its {rejected-chosen,
+   * label:0} counterpart ("two-class"), exactly like real recorded choices
+   * are now stored (see mlPreferenceService.buildPairwiseDocs).
    */
-  generateSyntheticPreferenceDataset() {
-    const samples: Array<{ deltaX: number[]; label: number }> = []
+  generateSyntheticPreferenceDataset(): SyntheticSample[] {
+    const rand = createSeededRandom(BENCHMARK_SEED)
 
-    // Archetype 1: Cost sensitive (weight ~ cost=0.45, time=0.15, walking=0.15...)
-    for (let i = 0; i < 20; i++) {
-      // Route A (Cheaper, slightly slower): delta_cost > 0, delta_time < 0
-      const deltaX = [
-        -0.2, // time (A is slower)
-        0.5,  // cost (A is cheaper)
-        0.1,  // walking
-        0.0,  // reliability
-        0.0,  // accessibility
-        0.1,  // crowd
-        0.0,  // weather
-      ]
-      samples.push({ deltaX, label: 1 })
-    }
+    // 9-D base vectors: [time, cost, walking, reliability, accessibility, crowd, weather, connectionRisk, transfers]
+    const archetypes: Array<{ name: string; base: number[] }> = [
+      {
+        name: "cost_sensitive",
+        // Route A (cheaper, slightly slower, one more transfer): delta_cost > 0, delta_time < 0
+        base: [-0.2, 0.5, 0.1, 0.0, 0.0, 0.1, 0.0, 0.0, -0.1],
+      },
+      {
+        name: "speed_reliability_sensitive",
+        // Route B (faster, more reliable, lower risk, pricier): delta_time > 0, delta_rel > 0, delta_cost < 0
+        base: [0.4, -0.3, 0.0, 0.4, 0.0, 0.1, 0.1, 0.3, 0.1],
+      },
+      {
+        name: "walking_accessibility_sensitive",
+        // Route C (less walking, accessible, fewer transfers)
+        base: [0.0, -0.1, 0.5, 0.1, 0.4, 0.1, 0.2, 0.05, 0.15],
+      },
+    ]
 
-    // Archetype 2: Speed & Reliability sensitive (weight ~ time=0.40, reliability=0.35...)
-    for (let i = 0; i < 20; i++) {
-      // Route B (Faster, more reliable, more expensive): delta_time > 0, delta_rel > 0, delta_cost < 0
-      const deltaX = [
-        0.4,  // time (B is faster)
-        -0.3, // cost (B is pricier)
-        0.0,  // walking
-        0.4,  // reliability (B is more reliable)
-        0.0,  // accessibility
-        0.1,  // crowd
-        0.1,  // weather
-      ]
-      samples.push({ deltaX, label: 1 })
-    }
-
-    // Archetype 3: Walking & Accessibility sensitive (weight ~ walking=0.40, accessibility=0.30...)
-    for (let i = 0; i < 20; i++) {
-      const deltaX = [
-        0.0,  // time
-        -0.1, // cost
-        0.5,  // walking (C has less walking)
-        0.1,  // reliability
-        0.4,  // accessibility (C has elevator/ramps)
-        0.1,  // crowd
-        0.2,  // weather
-      ]
-      samples.push({ deltaX, label: 1 })
+    const samples: SyntheticSample[] = []
+    for (const archetype of archetypes) {
+      for (let i = 0; i < SAMPLES_PER_ARCHETYPE; i++) {
+        const deltaX = archetype.base.map((value) =>
+          Number(Math.max(-1, Math.min(1, value + seededGaussianNoise(rand, NOISE_SCALE))).toFixed(4)),
+        )
+        samples.push({ deltaX, label: 1, archetype: archetype.name })
+        samples.push({ deltaX: deltaX.map((v) => -v), label: 0, archetype: archetype.name })
+      }
     }
 
     return samples
   },
 
   /**
-   * Measures fixed rule-based baseline accuracy on test samples
+   * Measures fixed rule-based baseline accuracy on test samples, using the
+   * same 9-feature standard-profile weights as transitDnaService.DEFAULT_WEIGHTS.
    */
   evaluateBaselineAccuracy(samples: Array<{ deltaX: number[]; label: number }>): number {
     if (samples.length === 0) return 0
-    // Fixed baseline weights: time 0.25, cost 0.15, walking 0.20, reliability 0.25, acc 0.15
-    const baselineWeights = [0.25, 0.15, 0.20, 0.25, 0.15, 0.10, 0.10]
+    // Fixed baseline weights, matching mlPreferenceService's DEFAULT_WEIGHTS order:
+    // time, cost, walking, reliability, accessibility, crowd, weather, connectionRisk, transfers
+    const baselineWeights = [0.25, 0.15, 0.20, 0.25, 0.15, 0.10, 0.10, 0.15, 0.10]
     let correct = 0
 
     for (const sample of samples) {
@@ -143,4 +149,40 @@ export const mlEvaluationService = {
 
     return Number(((correct / samples.length) * 100).toFixed(1))
   },
+}
+
+/**
+ * Phase 8 — splits samples into train/test while guaranteeing every
+ * (archetype, label) group is represented in both sets (when it has ≥2
+ * members), rather than a positional slice that can starve the test set of
+ * whole archetypes or labels entirely.
+ */
+export function stratifiedSplit<T extends { archetype: string; label: number }>(
+  samples: T[],
+  trainRatio: number,
+  seed: number,
+): { train: T[]; test: T[] } {
+  const groups = new Map<string, T[]>()
+  for (const sample of samples) {
+    const key = `${sample.archetype}:${sample.label}`
+    const group = groups.get(key) ?? []
+    group.push(sample)
+    groups.set(key, group)
+  }
+
+  const train: T[] = []
+  const test: T[] = []
+  let groupIndex = 0
+  for (const group of groups.values()) {
+    const shuffled = seededShuffle(group, seed + groupIndex)
+    groupIndex += 1
+    const splitIdx = group.length >= 2 ? Math.max(1, Math.round(group.length * trainRatio)) : group.length
+    train.push(...shuffled.slice(0, splitIdx))
+    test.push(...shuffled.slice(splitIdx))
+  }
+
+  return {
+    train: seededShuffle(train, seed + 1000),
+    test: seededShuffle(test, seed + 2000),
+  }
 }

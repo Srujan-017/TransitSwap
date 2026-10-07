@@ -30,6 +30,7 @@ const ENTRIES = [
   "src/__tests__/reliability.test.ts",
   "src/__tests__/multimodalRouting.test.ts",
   "src/__tests__/userPreferences.test.ts",
+  "src/__tests__/mlValidity.test.ts",
   "src/__tests__/preferenceEndToEnd.test.ts",
   "src/__tests__/authPreferencePersistence.test.ts",
   "src/__tests__/feedback.test.ts",

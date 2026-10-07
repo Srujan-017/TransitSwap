@@ -18,10 +18,11 @@ export async function getEvaluationMetrics(_req: Request, res: Response, next: N
   }
 }
 
-export async function getMLEvaluation(req: Request, res: Response, next: NextFunction) {
+export async function getMLEvaluation(_req: Request, res: Response, next: NextFunction) {
   try {
-    const authUserId = (req as unknown as { user?: { userId: string } }).user?.userId
-    const report = await mlEvaluationService.runMLEvaluation(authUserId)
+    // Phase 8 — runMLEvaluation() evaluates a synthetic benchmark, not this
+    // user's own data (that's getMLStatus() below), so it takes no userId.
+    const report = await mlEvaluationService.runMLEvaluation()
     sendSuccess(
       res,
       report,
