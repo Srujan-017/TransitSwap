@@ -93,17 +93,17 @@ The Transit Intelligence Engine runs the following pipeline on every route reque
 
 | Step | Service | Output |
 |------|---------|--------|
-| 1. Candidate generation | `multimodalService` | 3 route options (FASTEST / CHEAPEST / MIN_WALKING) |
+| 1. Candidate generation | `multimodalService` | Up to 4 fixed journey patterns (walk-metro-walk, walk-bus-walk, walk-metro-auto, walk-bus-metro-walk), labelled FASTEST / CHEAPEST / MIN_WALKING / BALANCED — typically 1-2 candidates survive for any given origin/destination in the current seeded dataset |
 | 2. Accessibility filter | `accessibilityService` | Routes blocked if profile incompatible |
 | 3. Weather enrichment | `weatherService` | Walking penalty %, rain warnings |
 | 4. Crowd enrichment | `crowdService` | Station-level crowd levels (LOW/MED/HIGH) |
 | 5. Reliability analysis | `reliabilityService` | Score 0–100, delay variance |
-| 6. Confidence interval | `reliabilityService` | 90% CI arrival window (e.g. 8:57–9:03 AM) |
-| 7. Monte Carlo risk | `reliabilityService` | 500-trial missed-connection % |
+| 6. Confidence interval | `reliabilityService` | 90% CI arrival window (e.g. 8:57–9:03 AM) when enough historical observations exist; an honestly-labelled rule-of-thumb estimate otherwise |
+| 7. Monte Carlo risk | `reliabilityService` | 1,000-trial empirical-resampling missed-connection % — computed and displayed, but not currently one of the ranking engine's input features (see §13) |
 | 8. Smart departure | `reliabilityService` | Optimal departure offset suggestion |
 | 9. Last-mile options | `reliabilityService` | Walk / Auto / Bike final-leg choices |
-| 10. TransitDNA scoring | `transitDnaService` | Personalized composite score 0–100 |
-| 11. Explainability | `transitDnaService` | Human-readable recommendation reasons |
+| 10. TransitDNA scoring | `transitDnaService` / `mlPreferenceService` | Weighted-linear composite score 0–100 over 7 features; weights are either a profile preset or a per-user trained Pairwise Logistic Regression model |
+| 11. Explainability | `transitDnaService` | Human-readable recommendation reasons, each checked against the actual candidate set before being shown |
 
 ---
 
@@ -156,15 +156,16 @@ The Transit Intelligence Engine runs the following pipeline on every route reque
 | MongoDB | 7 | Database |
 | Mongoose | 8 | ODM |
 | express-validator | 7 | Request validation |
-| bcrypt | 5 | Password hashing |
+| bcryptjs | 2.4 | Password hashing |
 | jsonwebtoken | 9 | Authentication tokens |
 
 ### Algorithms (custom implementations)
 | Algorithm | Purpose |
 |-----------|---------|
-| Multi-criteria weighted scoring | Route ranking across time, cost, walking, reliability |
-| Box-Muller Monte Carlo (500 trials) | Transfer connection failure risk estimation |
-| Conservative weight update (lr=0.05) | TransitDNA adaptive preference learning |
+| Multi-criteria weighted-linear scoring (7 features) | Route ranking across time, cost, walking, reliability, accessibility, crowd, weather |
+| Pairwise Logistic Regression (batch gradient descent) | Learns a per-user weight vector from recorded route choices, feeding the scoring above |
+| Empirical-resampling Monte Carlo (1,000 trials) | Transfer connection failure risk estimation — resamples directly from stored historical delay observations, not a parametric distribution |
+| Sample mean / standard deviation with hierarchical fallback | Data-driven 90%/95% arrival prediction intervals, refusing to report a confidence level without enough observations |
 | Haversine distance | GPS-to-station nearest-match routing |
 
 ---
@@ -289,37 +290,108 @@ Navigate to **http://localhost:5173** and use demo mode (no API keys required).
 
 ## 9. API Reference
 
+> Phase 4 correction — this table previously listed 13 endpoints with several
+> wrong paths (e.g. `POST /api/trips` instead of the real `POST /api/trips/save`)
+> and an incorrect auth requirement on `/routes/multimodal`. All 50 endpoints
+> that actually exist are listed below; this is kept in sync with
+> `PHASE_2_API_CONTRACT.md`, which documents the exact frontend-service-to-route
+> mapping.
+
+### Health
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/health` | None | Status, timestamp, DB connectivity — no DB queries or computation, used as the deployment health check |
+
 ### Authentication
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/api/auth/register` | None | Create account |
 | POST | `/api/auth/login` | None | Login, returns JWT |
 | GET | `/api/auth/me` | JWT | Get current user |
-| PUT | `/api/auth/profile` | JWT | Update mobility profile |
-| PUT | `/api/auth/preferences` | JWT | Update notification preferences |
-| POST | `/api/auth/transitdna/reset` | JWT | Reset learned TransitDNA weights |
+| PUT | `/api/auth/profile` | JWT | Update name / accessibility profile |
+| PUT | `/api/auth/preferences` | JWT | Update travel preferences (preferred mode, walking tolerance, budget, priority) |
+| POST | `/api/auth/transitdna/reset` | JWT | Reset learned TransitDNA weights — clears both the profile baseline on the user document and the trained UserPreferenceModel the ranker actually reads |
+
+### Geocoding
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/geocoding/search` | JWT | Proxies OpenStreetMap Nominatim (`?q=`) |
 
 ### Routes
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/routes/multimodal` | Optional | Calculate enriched multimodal routes |
-| GET | `/api/routes` | JWT | Road routing proxy (OSRM) |
+| POST | `/api/routes` | JWT | Road routing via OSRM (driving / walking / cycling) |
+| POST | `/api/routes/multimodal` | JWT | Calculate enriched, ranked multimodal routes |
+| GET | `/api/routes/nearby` | JWT | Nearest metro station and bus stop to a coordinate |
 
 ### Trips
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/trips` | JWT | Save journey to history |
-| GET | `/api/trips` | JWT | Get journey history |
-| DELETE | `/api/trips/:id` | JWT | Delete saved journey |
-| POST | `/api/trips/:id/feedback` | JWT | Submit journey star rating |
-| GET | `/api/trips/destinations` | JWT | Get saved destinations |
-| POST | `/api/trips/destinations` | JWT | Save new destination |
-| DELETE | `/api/trips/destinations/:id` | JWT | Delete saved destination |
+| POST | `/api/trips/save` | JWT | Save a planned journey to history |
+| GET | `/api/trips/history` | JWT | Get journey history (up to 100 most recent) |
+| GET | `/api/trips/:id` | JWT | Get one journey |
+| DELETE | `/api/trips/:id` | JWT | Delete a saved journey |
+| POST | `/api/trips/:id/feedback` | JWT | Submit rating, issue tags, and optional actual duration |
+| GET | `/api/trips/destinations` | JWT | List saved destinations |
+| POST | `/api/trips/destinations` | JWT | Save a destination |
+| DELETE | `/api/trips/destinations/:id` | JWT | Delete a saved destination |
+| POST | `/api/trips/saved-routes` | JWT | Save a reusable route snapshot (distinct from a completed journey) |
+| GET | `/api/trips/saved-routes` | JWT | List saved route snapshots |
+| GET | `/api/trips/saved-routes/:id` | JWT | Get one saved route snapshot |
+| DELETE | `/api/trips/saved-routes/:id` | JWT | Delete a saved route snapshot |
 
-### Evaluation
+### Weather
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/api/evaluation` | None | Research benchmark metrics |
+| GET | `/api/weather` | JWT | Current weather + walking-impact rules for a coordinate |
+| GET | `/api/weather/current` | JWT | Alias of the above |
+
+### Accessibility
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/accessibility/stations` | JWT | List all accessibility records |
+| GET | `/api/accessibility/stations/:stationId` | JWT | Get one station's accessibility record |
+| GET | `/api/accessibility/stations/:stationId/reports` | JWT | Community-submitted reports for a station |
+| POST | `/api/accessibility/report` | JWT | Submit a community accessibility report |
+
+### Crowd
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/crowd/report` | JWT | Submit a crowd-level report |
+| GET | `/api/crowd/station/:stationId` | JWT | Current crowd estimate for a station |
+| GET | `/api/crowd/history/:stationId` | JWT | Recent user reports + demo baseline for a station |
+
+### Evaluation
+> These 5 endpoints are currently **unauthenticated** and not called by the
+> frontend (see §17 Security) — a future phase should add auth and caching.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/evaluation` | None | Multi-criteria engine vs. shortest-time / lowest-cost baselines, 5 demo scenarios |
+| GET | `/api/evaluation/ml` | None | Synthetic Pairwise Logistic Regression benchmark |
+| GET | `/api/evaluation/ml/status` | None | Current ML model status and learned weights |
+| GET | `/api/evaluation/reliability/evaluation` | None | 80/20 prediction-interval coverage check |
+| GET | `/api/evaluation/reliability/stats` | None | Historical prediction-error statistics |
+
+### Admin
+> All 13 routes below require a valid JWT **and** `role: "admin"` — there is no
+> public way to create an admin account; see `backend/src/utils/seedAdmin.ts`.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/overview` | Real record counts across every collection |
+| GET | `/api/admin/stations` | List stations |
+| POST | `/api/admin/stations` | Create a station |
+| PUT | `/api/admin/stations/:stationId` | Update a station |
+| PUT | `/api/admin/stations/:stationId/deactivate` | Deactivate a station |
+| DELETE | `/api/admin/stations/:stationId` | Delete a station |
+| GET | `/api/admin/accessibility` | List accessibility records |
+| PUT | `/api/admin/accessibility/:stationId` | Update accessibility fields |
+| PUT | `/api/admin/accessibility/:stationId/lift` | Mark a lift working / broken |
+| GET | `/api/admin/crowd` | List crowd reports |
+| DELETE | `/api/admin/crowd/:reportId` | Remove a crowd report |
+| GET | `/api/admin/feedback` | List journey feedback (optional rating/issue filters) |
+| GET | `/api/admin/dataset` | Dataset provenance summary |
 
 ---
 
@@ -329,7 +401,7 @@ Navigate to **http://localhost:5173** and use demo mode (no API keys required).
 
 | Service | Demo Fallback |
 |---------|--------------|
-| Weather | `isDemoData: true` — deterministic weather based on time-of-day seed |
+| Weather | `isDemoData: true` — deterministic weather seeded from the requested coordinate (current conditions only — never a forecast) |
 | Crowd levels | `source: "DEMO_DATA"` — historical pattern estimates |
 | Transit routes | Mumbai Metro Line 1 (Versova ↔ Ghatkopar) + BEST bus routes |
 | Accessibility | `verificationSource: "Demo Accessibility Dataset"` |
@@ -341,109 +413,128 @@ Navigate to **http://localhost:5173** and use demo mode (no API keys required).
 
 ## 11. TransitDNA — Preference Learning
 
-TransitDNA is TransitSwap's personalized mobility preference system.
+> Phase 4 correction — this section previously described a "conservative
+> weight update, lr=0.05" nudge rule and 5 equally-weighted dimensions. That
+> formula does not exist anywhere in the codebase. The actual mechanism —
+> Pairwise Logistic Regression trained by batch gradient descent over 7
+> features — is described below.
+
+TransitDNA is TransitSwap's personalized mobility preference system. It combines two things:
+
+- **Explicit preferences** — preferred mode, walking tolerance, budget preference and priority, set on the Profile page, applied as weight multipliers (see `transitDnaService.getPreferenceAdjustedWeights`).
+- **Learned weights** — a per-user **Pairwise Logistic Regression** model (`backend/src/services/ml/logisticRegression.ts`), trained on the user's own recorded route choices.
 
 ### How It Works
 
-1. **Initial weights**: Every user starts with equal weights across 5 dimensions:
-   - ⏱️ Time (20%)
-   - 💰 Cost (20%)
-   - 🚶 Walking (20%)
-   - 🔄 Reliability (20%)
-   - ♿ Accessibility (20%)
+1. **7-dimensional feature vector**: every candidate route is normalized (relative min-max across the candidate set) into `[time, cost, walking, reliability, accessibility, crowd, weather]`, each in `[0, 1]` where 1.0 is best.
 
-2. **Scoring**: Each candidate route receives a composite score (0–100) using:
-   ```
-   score = Σ (normalized_dimension_value × user_weight)
-   ```
+2. **Cold start**: before a user has enough data, scoring uses a fixed profile-preset weight vector (e.g. the `wheelchair` profile weights accessibility at 0.50; `fastest` weights time at 0.60 — see `mlPreferenceService.getProfileWeights`), adjusted by that user's explicit preferences.
 
-3. **Learning**: When a user submits journey feedback (star rating), the system updates weights using a **conservative learning rate of 0.05** (5%):
-   ```
-   new_weight = current_weight + 0.05 × (chosen_route_dimension - average_dimension)
-   ```
-   Weights are normalized to always sum to 1.0.
+3. **Recording a choice**: when a user saves a journey, the chosen route and its rejected alternatives are converted into pairwise feature-difference samples (`chosen_features − rejected_features`) and stored.
 
-4. **Reset**: Users can reset their TransitDNA to equal weights at any time from the Profile page.
+4. **Training**: once a user has at least 5 recorded samples, a Pairwise Logistic Regression model is trained by batch gradient descent (learning rate 0.05, 200 iterations, L2 regularization 0.01) to predict `P(chosen ≻ rejected) = σ(w · Δfeatures)`. The trained 7-weight vector replaces the profile preset for that user's future route rankings.
 
-### Why Learning Rate 0.05?
+5. **Scoring**: `compositeScore = round(100 × (w · features + preferred_mode_bonus))`, where `w` is either the trained model (once personalized) or the profile preset (otherwise).
 
-A low learning rate prevents over-fitting to a single trip choice. The model requires approximately 10–15 feedback submissions to meaningfully differentiate user preferences — appropriate for a commute-pattern learning system.
+6. **Reset**: resetting TransitDNA from the Profile page clears the trained model and its training samples, returning that user to the profile-preset baseline.
+
+### Known limitation (tracked for a future phase)
+
+The pairwise training samples currently only record the *chosen-over-rejected* direction (label = 1); the mirrored *rejected-over-chosen* (label = 0) pair is not yet recorded. This makes the training set single-class, so the model's reported training/test accuracy is not currently a meaningful metric. The ranking mechanism itself (scoring routes with the trained weight vector) still works and is covered by the test suite — this limitation affects how trustworthy the *reported accuracy numbers* are, not whether personalization runs at all.
 
 ---
 
 ## 12. Accessibility Engine
 
-The accessibility engine filters routes based on the user's declared mobility profile.
+> Phase 4 correction — the profile list below previously named
+> `visual_impairment`, `hearing_impairment` and `elderly`, none of which exist
+> in the code. The 7 real profiles are listed below.
+
+The accessibility engine (`accessibilityService.ts`) filters routes based on the user's declared mobility profile. Every profile gets a transparent 0–100 station score (step-free entrance, lift, ramp, escalator, tactile paving, accessible toilet, stair count, wheelchair-accessible — each contributing a fixed number of points); five profiles additionally enforce **hard constraints** that reject a route outright rather than just scoring it lower.
 
 | Profile | Requirement |
 |---------|------------|
-| `wheelchair` | All metro stations must have lifts OR ramps. No high-stair stations. |
-| `visual_impairment` | All stations must have tactile paving. |
-| `hearing_impairment` | Routes pass through — visual announcements checked. |
-| `elderly` | High-stair stations flagged as warnings. |
-| `standard` | No filtering applied. |
+| `standard` / `fastest` / `cheapest` / `comfort` | No hard filtering — soft scoring only |
+| `wheelchair` | **Hard-blocked** if a station is marked not accessible, explicitly not wheelchair-accessible, or has stairs with no lift and no ramp |
+| `senior` / `pregnant` / `luggage` | Hard-blocked only for extreme cases (marked not accessible AND >35 stairs); otherwise soft-scored on stairs, walking distance and transfers |
+| `stroller` | Hard-blocked if marked not accessible, or >20 stairs with no lift/ramp |
+| `reduced_mobility` | Hard-blocked if marked not accessible, or no step-free alternative with >15 stairs |
 
-Accessibility data is sourced from a **demo dataset** based on published Mumbai Metro accessibility surveys. In production, this can be replaced with GTFS accessibility feeds.
+Accessibility data is a **synthetic prototype dataset** (`backend/src/data/accessibilityData.ts` — the file's own header states "No stations were physically surveyed"), not a real survey. It is designed so a real field-surveyed or transit-authority dataset can replace it without changing the scoring/filtering logic above.
 
 ---
 
 ## 13. Reliability & Monte Carlo Simulation
 
-### Reliability Score (0–100)
+> Phase 4 correction — this section previously described a Box-Muller
+> normal-distribution Monte Carlo simulation and a `std_dev = mean × 0.08`
+> confidence interval. Neither exists in the code. The actual mechanisms —
+> a rule-based heuristic score, a data-driven statistical interval, and an
+> empirical-resampling Monte Carlo — are described below.
 
-Calculated by penalising routes for:
-- Number of transfers (−10 per transfer)
-- Peak-hour travel (−5 penalty)
-- High crowd levels (−10 for HIGH crowd)
-- Weather-adverse conditions (−5 for rain)
-- Bus segment variance (−8 per bus leg due to traffic)
+### Reliability Score (0–100) — rule-based heuristic
 
-### 90% Confidence Interval Arrival Window
+Starts at 90 and adjusts (`reliabilityService.calculateReliability`):
+- 0 transfers: +5. 1 transfer: −5. 2+ transfers: −12 per transfer.
+- Bus segment present: −8. Metro segment present: +4. Auto segment present: −4.
+- Weather walking-penalty >30%: −10; >15%: −4.
+- HIGH crowd: −10. MEDIUM crowd: −3.
+
+Clamped to [20, 99]. The code explicitly documents this as "a rule-based prototype estimate, not a calibrated ML model."
+
+### 90% / 95% Arrival Prediction Interval — data-driven statistics
+
+Computed from the **sample mean and sample standard deviation** of real historical `error = actual_duration − predicted_duration` observations (`historicalReliabilityService.calculatePredictionInterval`), with a hierarchical fallback (route-specific → mode-specific → overall) and a minimum of 5 observations:
 
 ```
-mean_duration = base_duration × (1 + delay_variance)
-std_dev = mean_duration × 0.08
-CI_lower = mean − 1.645 × std_dev
-CI_upper = mean + 1.645 × std_dev
+interval = (predicted_duration + mean_error) ± z × sample_std_dev
+z_90 = 1.645, z_95 = 1.96
 ```
 
-Displayed as: **"Expected arrival: 8:57 AM – 9:03 AM (90% confidence)"**
+When fewer than 5 historical observations exist, the endpoint returns a rule-of-thumb `×0.9…×1.15` band with `confidenceLevelPercent: 0` and `isDataDriven: false` — it never presents an unearned confidence level as real.
 
-### Monte Carlo Missed-Connection Simulation
+Displayed as: **"Expected arrival: 8:57 AM – 9:03 AM (90% confidence)"** once enough data exists.
 
-For routes with 1+ transfers:
-- 500 trials using Box-Muller normal distribution
-- Each trial samples random delays for each segment
-- A missed connection is recorded when `actual_arrival > scheduled_departure - buffer`
-  - Metro buffer: 4 minutes
-  - Bus buffer: 6 minutes
-- Output: `overallRiskPercent` (e.g. 12% missed-connection risk)
+### Monte Carlo Missed-Connection Simulation — empirical resampling
+
+For routes with 1+ transfers (`reliabilityService.calculateMissedConnectionRisk`):
+- 1,000 trials, each sampling a **real historical delay value** (not a synthesized normal distribution) independently for every transfer in the route.
+- A trial counts as a missed connection if any sampled delay exceeds that transfer's buffer (bus: 6 min, metro: 4 min, other: 5 min — demo assumptions, not real schedule data).
+- `overallRiskPercent = missed_trials / 1000`.
+- A separate deterministic variant of the same calculation (no random sampling) is used only to rank Smart Departure candidate offsets against each other, so repeated requests for the same route always rank them the same way.
+
+This risk score is computed and shown to the user on every route, but — as of this phase — is **not yet one of the 7 features the ranking engine scores routes on** (see §11); it does not currently change which route is recommended first, even when a route's risk is very high.
 
 ---
 
 ## 14. Explainable AI (XAI)
 
-Every recommended route displays human-readable rationale tags explaining **why** it was recommended:
+> Phase 4 correction — the tag strings below previously listed (e.g. "🏆 Best
+> overall score", "🌧️ Less walking in rain") do not exist in the code. The
+> table below gives representative examples of the real tags, each produced
+> by `transitDnaService.generateWhyRecommended`.
 
-| Tag | When Shown |
+Every recommended route displays up to 4 human-readable rationale tags explaining **why** it was recommended. Every tag is checked against the actual candidate set before being shown — e.g. "fastest" is only claimed when this route's duration genuinely equals the minimum across all candidates — and 19 dedicated tests assert exactly this honesty property.
+
+| Example tag | When shown |
 |-----|-----------|
-| 🏆 Best overall score | Highest TransitDNA composite score |
-| ⚡ Fastest travel duration | Fastest route in the candidate set |
-| 💰 Most economical | Lowest fare in the candidate set |
-| 🚶 Least walking | Fewest walking meters |
-| 🔄 Direct trip (no transfers) | Zero transfers |
-| ♿ Accessible infrastructure | All stations pass accessibility check |
-| 🌧️ Less walking in rain | Weather-aware walking reduction |
-| 👥 Lower crowd exposure | LOW crowd vs alternatives |
-| 🛡️ High reliability score | Reliability score ≥ 80 |
+| 🧠 Personalized based on your previous route choices | Only when a genuinely trained per-user model was used to rank this route |
+| 🚇 / 🚌 / 🛺 Matches your preferred X mode | User's explicit `preferredMode` preference is present on this route |
+| 🔄 Low transfer & missed-connection risk | Transfer risk ≤ 15% and this route has at least one transfer |
+| 📊 Nominal X% arrival prediction interval | Only when the interval was genuinely computed from historical data (`isDataDriven: true`) — never shown for the rule-of-thumb fallback |
+| ♿ Step-free access & elevator available | `wheelchair` profile, and this route's stations pass the accessibility check |
+| ⚡ Fastest travel time among options | This route's duration equals the minimum in the candidate set |
+| 💰 Lowest estimated fare | This route's fare equals the minimum in the candidate set |
+| 🚶 Minimum walking distance | This route's walking distance equals the minimum in the candidate set |
+| 🌱 Higher relative sustainability | This route's (non-emissions) sustainability score strictly beats at least one alternative |
 
-This satisfies the **explainability requirement** of modern AI systems without requiring a complex model — the rationale is entirely rule-based and fully auditable.
+This satisfies the **explainability requirement** without a complex model — the rationale is entirely rule-based, grounded against real route data, and fully auditable.
 
 ---
 
 ## 15. Research Evaluation Benchmark
 
-The `GET /api/evaluation` endpoint evaluates **TransitSwap Multi-Criteria Engine** against two traditional baselines:
+The `GET /api/evaluation` endpoint evaluates **TransitSwap's ranking engine** against two baselines:
 
 | Baseline | Strategy |
 |----------|----------|
@@ -454,13 +545,14 @@ The `GET /api/evaluation` endpoint evaluates **TransitSwap Multi-Criteria Engine
 
 | Metric | Definition |
 |--------|-----------|
-| Agreement Rate | % of scenarios where TransitSwap agrees with the baseline |
-| Reliability Improvement | Average reliability score gain vs baseline |
-| Walking Savings | Average walking reduction vs shortest-time baseline |
-| CI 90% Coverage | % of actual arrivals within predicted confidence window |
-| Computation Latency | Average ms per route evaluation |
+| Agreement Rate | % of scenarios where the ranked-first route matches the baseline's pick |
+| Reliability Improvement | Average reliability score gain vs the shortest-time baseline |
+| Walking Savings | Average walking reduction vs the shortest-time baseline |
+| Missed-Connection Risk | Average Monte Carlo risk %, engine vs shortest-time baseline |
+| CI 90% Coverage | **Always `null`** — deliberately not reported. The code's own comment states this replaced "the fake 92% hardcoded confidence coverage" that was here before; computing a genuine coverage figure needs real held-out historical observations (see §13), which this 5-scenario demo benchmark does not have |
+| Computation Latency | Total ms for all 5 scenarios |
 
-These metrics are displayed on the Dashboard page in a formatted table for viva demonstration.
+These metrics are displayed on the Dashboard page, clearly labelled `isSimulatedBenchmark: true`, for viva demonstration — not as evidence of real-world performance. See §18 for why the specific numbers from any one run should not be treated as fixed results.
 
 ---
 
@@ -468,12 +560,12 @@ These metrics are displayed on the Dashboard page in a formatted table for viva 
 
 | Data | Source | Label |
 |------|--------|-------|
-| Metro network | Approximate Mumbai Metro Line 1 geography | Demo Dataset |
-| Bus routes | Approximate BEST bus route corridors | Demo Dataset |
-| Accessibility info | Demo survey-based dataset | Demo Accessibility Dataset |
-| Weather | OpenWeatherMap API (or time-seeded demo) | Live / Demo clearly labelled |
-| Crowd levels | Historical pattern estimates | DEMO_DATA |
-| Route geometry | Haversine-interpolated polylines | Computed |
+| Metro network | Approximate Mumbai Metro Lines 1 & 2A geography (19 stations) | Seeded demo dataset |
+| Bus routes | Approximate BEST bus route corridors (12 stops, 4 routes) | Seeded demo dataset |
+| Accessibility info | Synthetic prototype dataset — no station was physically surveyed (see §12) | `synthetic_demo` |
+| Weather | OpenWeatherMap API, or a coordinate-seeded deterministic value when no API key is set | Live / Demo clearly labelled |
+| Crowd levels | Real authenticated user reports, blended with a small synthetic historical baseline | `RECENT_USER_REPORT` / `DEMO_DATA` |
+| Route geometry | OSRM road geometry for walk/auto legs when reachable, else a straight-line fallback; metro/bus legs are drawn as straight lines between stations, not the real track/road shape | Computed |
 
 **No real-time user location data is ever stored.** Coordinates are only used transiently for route calculation.
 
@@ -483,7 +575,7 @@ These metrics are displayed on the Dashboard page in a formatted table for viva 
 
 | Measure | Implementation |
 |---------|---------------|
-| Password storage | bcrypt (salt rounds: 12) |
+| Password storage | bcryptjs (salt rounds: 12) |
 | Authentication | JWT (HS256, configurable expiry) |
 | Input validation | express-validator on all POST/PUT endpoints |
 | CORS | Restricted to configured `FRONTEND_URL` in production; any `localhost`/`127.0.0.1` origin in development |
@@ -497,17 +589,32 @@ These metrics are displayed on the Dashboard page in a formatted table for viva 
 
 ## 18. Baseline Evaluation Results
 
-> All results are computed on **5 deterministic demo scenarios** using the TransitSwap multimodal service. Clearly labelled as simulated evaluation. The table below is a captured sample run — for current numbers, run `npm test` in `backend/` (exercises `evaluationService.runEvaluation()` via the full-pipeline test) or call `GET /api/evaluation` directly; these are not fixed/marketing figures.
+> **Phase 4 correction — the table that used to be here was fabricated.** It
+> claimed TransitSwap improved reliability by ~15% and walking by ~29% over
+> the shortest-time baseline, and a "92% CI coverage" figure. Running the
+> exact same benchmark (`evaluationService.runEvaluation()`, captured below)
+> shows **0% difference on every metric** — the code's own comment at
+> `evaluationService.ts:6` already flagged the 92% figure as *"the fake 92%
+> hardcoded confidence coverage"* that a previous fix had removed; the old
+> README text had simply never been updated to match.
 
-| Metric | TransitSwap | Shortest Time Baseline | Lowest Cost Baseline |
-|--------|-------------|----------------------|---------------------|
-| Avg. Reliability Score | 82/100 | 71/100 | 68/100 |
-| Avg. Walking Distance | 580 m | 820 m | 740 m |
-| Missed Connection Risk | 8% | 14% | 11% |
-| CI 90% Coverage | 92% | N/A | N/A |
-| Avg. Computation (ms) | ~15 ms | <1 ms | <1 ms |
+Actual captured run (`node dist/utils/test-full-pipeline.ts`-equivalent call to `evaluationService.runEvaluation()`, OSRM unreachable so all road legs used the haversine fallback — re-run `GET /api/evaluation` yourself for a live number):
 
-**Observation:** TransitSwap improves average reliability by ~15% and reduces walking distance by ~29% compared to the shortest-time baseline, at a modest computational cost of ~15ms per request — well within real-time usability thresholds.
+| Metric | TransitSwap | Shortest-Time Baseline | Lowest-Cost Baseline |
+|--------|-------------|------------------------|-----------------------|
+| Agreement rate | — | **100%** | **100%** |
+| Avg. Reliability Score | 99/100 | 99/100 | — |
+| Avg. Walking Distance | 0 m | 0 m | — |
+| Missed-Connection Risk | 0% | 0% | — |
+| CI 90% Coverage | `null` (never fabricated — see §15) | — | — |
+| Avg. Computation (total, 5 scenarios) | 17 ms | — | — |
+
+**Honest observation, and why:** on these 5 scenarios, TransitSwap's ranking engine picks the *exact same route* as both baselines every time, so every difference is exactly 0. This is not a bug in the ranker — it is a direct consequence of two upstream facts, verified independently:
+
+1. All 5 scenarios use **exact metro station coordinates** as origin/destination, so every access/egress walk is 0m (see §13's walking-segment note).
+2. Candidate generation (§3) typically returns only 1–2 routes per corridor, and one is usually **Pareto-dominated on every axis** by the other (faster, cheaper, and less walking, all at once) — there is no genuine trade-off for any ranking strategy, simple or sophisticated, to resolve differently.
+
+A meaningful benchmark needs scenarios with real trade-offs between candidate routes; building that is tracked as future work (see §19).
 
 ---
 
@@ -515,46 +622,64 @@ These metrics are displayed on the Dashboard page in a formatted table for viva 
 
 | Limitation | Future Enhancement |
 |-----------|-------------------|
-| Demo transit network (Mumbai Metro L1 only) | Integrate GTFS feeds for real city-wide network |
-| Crowd data is historical/simulated | Real-time crowd sensors / user reports |
-| Accessibility data is demo-surveyed | Partner with city transit authorities for verified data |
-| TransitDNA learns from star ratings only | Implicit learning from route choice (click-through) |
+| Seeded demo transit network covers ~14% of the Mumbai area by straight-line distance to the nearest stop/station; ~99% of random origin/destination pairs return no route at all | Integrate GTFS feeds, or substantially expand the seeded network |
+| Candidate generation is 4 fixed journey patterns, not a path search — see §3 | A real multimodal shortest-path / k-shortest-paths search over a stop graph |
+| The current benchmark shows 0% difference from both baselines (see §18) because the candidate sets it tests have no genuine trade-off | A scenario set, and underlying network, with real trade-offs to rank |
+| Missed-connection risk and transfer count are computed and shown, but not yet part of the ranking engine's scoring | Add them to the 7-feature vector |
+| Pairwise training samples currently record only the chosen-over-rejected direction (see §11) | Record the mirrored pair so reported model accuracy is meaningful |
+| Crowd data is a blend of real user reports and a small synthetic baseline, bucketed into 4 fixed time slots, independent of the journey's planned departure time | Real-time crowd sensors; time-of-departure-aware estimates |
+| Accessibility data is a synthetic prototype dataset (see §12) | Partner with city transit authorities for verified data |
+| TransitDNA learns from explicit route choices only | Implicit learning from additional signals (e.g. dwell time, repeat searches) |
 | No real-time transit delays | Integrate GTFS-RT or transit agency delay APIs |
-| Single city demo | Extend Haversine matcher to multiple city datasets |
+| Single city demo | Extend to multiple city datasets |
 
 ---
 
 ## 20. Viva Defence Guide
 
+> Phase 4 correction — every answer below was rewritten against the actual
+> code after the previous version was found to describe formulas (Box-Muller
+> Monte Carlo, a 5% nudge rule, an 8%-of-mean standard deviation) that do not
+> exist anywhere in the codebase. An examiner who reads the source would have
+> immediately contradicted the old answers.
+
 ### Key Questions and Answers
 
 **Q: What makes TransitSwap different from Google Maps?**
 
-> Google Maps primarily optimizes for travel time. TransitSwap optimizes across 5 dimensions simultaneously — time, cost, walking distance, reliability, and accessibility — and explains its recommendations in plain English using an XAI rationale engine.
+> Google Maps primarily optimizes for travel time. TransitSwap scores candidate routes across 7 features — time, cost, walking distance, reliability, accessibility, crowd and weather — with per-mobility-profile hard accessibility constraints, and explains every recommendation in plain language, checked against the actual candidate set before being shown.
 
 **Q: How does the Monte Carlo simulation work?**
 
-> For routes with transfers, we run 500 trials. Each trial samples random delays from a normal distribution (using Box-Muller transform) for each segment. If the simulated arrival at a transfer station exceeds the scheduled departure minus the buffer (4 min metro, 6 min bus), we count it as a missed connection. The percentage of missed trials is the connection risk.
+> For a route with transfers, we run 1,000 trials. Each trial samples a delay for every transfer **directly from stored historical delay observations** (empirical resampling — not a parametric normal distribution, no Box-Muller transform anywhere in the code). If any sampled delay exceeds that transfer's buffer (metro 4 min, bus 6 min, other 5 min — demo assumptions), the trial counts as a missed connection. I'll also be upfront that this risk score is currently computed and displayed but **not yet one of the features the ranking engine scores routes on** — that's tracked as near-term future work.
 
 **Q: How does TransitDNA learn user preferences?**
 
-> It uses a simple weighted update with learning rate 0.05. When a user rates a journey, we compare the chosen route's dimension values against the set average and nudge weights in that direction. Weights are normalized so they always sum to 1.
+> It trains a Pairwise Logistic Regression model per user: a user's chosen route and each rejected alternative become a 7-dimensional feature-difference sample, and once a user has 5+ samples, batch gradient descent (lr 0.05, 200 iterations, L2 regularization) fits a weight vector predicting which route they'll prefer. I'll also flag a real limitation: training currently only records the chosen-over-rejected direction, not the mirrored pair, so the model's *reported accuracy number* isn't meaningful yet — the ranking mechanism itself still works and is covered by tests, but I wouldn't defend the accuracy figure under questioning.
 
 **Q: What happens if MongoDB is down?**
 
-> The platform degrades gracefully. Route calculation still works fully. Journey save/load fails with a user-friendly error. All core intelligence features remain operational.
+> The platform degrades gracefully by design — `config/db.ts` never exits the process on a failed connection, and every service checks `mongoose.connection.readyState` independently. Route calculation, weather, crowd estimates, accessibility filtering, reliability scoring and the research evaluation endpoints all keep working on seeded/demo data. Authentication, saved journeys, saved destinations, saved routes, and user-submitted reports correctly return a 503 instead of pretending to persist.
 
 **Q: How do you ensure the accessibility filter is correct?**
 
-> Each metro station in the demo dataset has explicit `hasLift`, `hasRamp`, `stairCount`, and `wheelchairAccessible` boolean fields. The filter checks these fields against the user's declared profile and blocks routes with incompatible stations — it never silently skips.
+> Each station has explicit nullable `hasLift`/`hasRamp`/`stairCount`/`wheelchairAccessible`/etc. fields, and 5 of the 7 profiles enforce these as hard constraints that reject a route outright (249 test assertions cover this). A station with **no accessibility record at all** is treated as status "unknown" with an explicit warning naming it — not silently dropped from scoring, which was a bug fixed in this phase.
 
 **Q: What is the confidence interval based on?**
 
-> It is a parametric 90% CI using a normal distribution assumption over historical delay patterns. Mean duration uses the route's base duration × reliability-adjusted variance. The standard deviation is set to 8% of mean duration based on urban transit literature estimates.
+> A genuine statistical interval: the sample mean and sample standard deviation of real historical `actual − predicted` duration errors, with a z-based margin (90%: z=1.645, 95%: z=1.96) and a hierarchical fallback (route → mode → overall). Below 5 historical observations, it returns an honestly-labelled rule-of-thumb band with `confidenceLevelPercent: 0` rather than presenting an unearned number.
 
 **Q: Is your evaluation against real users?**
 
-> No — and I am transparent about this. The benchmark uses 5 deterministic demo scenarios comparing our multi-criteria engine against two algorithmic baselines (shortest time, lowest cost). This is clearly labelled as a simulation-based evaluation, not a user study.
+> No. The benchmark uses 5 deterministic demo scenarios comparing the ranking engine against two algorithmic baselines (shortest time, lowest cost), clearly labelled `isSimulatedBenchmark: true`. No user study was conducted.
+
+**Q: If the ranker ignores the Monte Carlo risk score, what's the point of computing it?**
+
+> Right now its value is purely informational — it's shown to the user on every route (and used to rank Smart Departure offset candidates against each other), but it doesn't change which route is ranked first. That's a known gap, not a hidden one: making it a real ranking feature is the immediate next step, sequenced after expanding the transit dataset enough that candidate sets actually have a risk/time trade-off to resolve.
+
+**Q: Your benchmark shows 100% agreement with the shortest-time baseline — doesn't that mean the multi-criteria engine adds nothing?**
+
+> On these specific 5 scenarios, yes — and I can explain exactly why: each scenario's candidate set has at most one route that isn't Pareto-dominated on every axis by another, so there's no genuine trade-off for any ranking strategy to resolve differently. That's a property of the current seeded dataset's limited size, not evidence that multi-criteria scoring is pointless — it just means this particular benchmark hasn't yet been given a scenario where it matters, which is exactly what the next phase of work targets.
 
 ---
 
