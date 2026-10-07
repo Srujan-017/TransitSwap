@@ -367,7 +367,7 @@ Navigate to **http://localhost:5173** and use demo mode (no API keys required).
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/api/evaluation` | None | Multi-criteria engine vs. shortest-time / lowest-cost baselines, 5 demo scenarios |
+| GET | `/api/evaluation` | None | Multi-criteria engine vs. 5 baselines (shortest-time, lowest-cost, least-walking, fewest-transfers, random) + 6-feature ablation, 22 demo scenarios |
 | GET | `/api/evaluation/ml` | None | Synthetic Pairwise Logistic Regression benchmark |
 | GET | `/api/evaluation/ml/status` | None | Current ML model status and learned weights |
 | GET | `/api/evaluation/reliability/evaluation` | None | 80/20 prediction-interval coverage check |
@@ -534,23 +534,35 @@ This satisfies the **explainability requirement** without a complex model — th
 
 ## 15. Research Evaluation Benchmark
 
-The `GET /api/evaluation` endpoint evaluates **TransitSwap's ranking engine** against two baselines:
+> **Phase 9 rebuild** — the original 5-scenario, 2-baseline version of this
+> benchmark used exact station coordinates for every scenario (every walk
+> segment was the 0m degenerate case — see §13), so it reported 100%
+> agreement with the shortest-time baseline on every run. That was a property
+> of the scenario set, not evidence the ranking engine added nothing. Phase 9
+> rebuilt the scenario set and the benchmark itself; see §18 for the current
+> real numbers and PHASE_9_VERIFICATION.md for the full writeup.
+
+The `GET /api/evaluation` endpoint evaluates **TransitSwap's ranking engine** against **5 baselines**:
 
 | Baseline | Strategy |
 |----------|----------|
 | Shortest Travel Time | Always picks the route with minimum `totalDurationSeconds` |
 | Lowest Cost | Always picks the route with minimum `totalFare` |
+| Least Walking | Always picks the route with minimum `totalWalkingMeters` |
+| Fewest Transfers | Always picks the route with minimum `transferCount` |
+| Random | A seeded-random pick among the candidates (reproducible, not cherry-picked) |
 
 ### Metrics Reported
 
 | Metric | Definition |
 |--------|-----------|
-| Agreement Rate | % of scenarios where the ranked-first route matches the baseline's pick |
+| Agreement Rate (×5) | % of scenarios where the ranked-first route matches each baseline's pick |
 | Reliability Improvement | Average reliability score gain vs the shortest-time baseline |
 | Walking Savings | Average walking reduction vs the shortest-time baseline |
 | Missed-Connection Risk | Average Monte Carlo risk %, engine vs shortest-time baseline |
-| CI 90% Coverage | **Always `null`** — deliberately not reported. The code's own comment states this replaced "the fake 92% hardcoded confidence coverage" that was here before; computing a genuine coverage figure needs real held-out historical observations (see §13), which this 5-scenario demo benchmark does not have |
-| Computation Latency | Total ms for all 5 scenarios |
+| CI 90% Coverage | **Always `null`** on this benchmark — deliberately not reported here (it would need real held-out historical observations, not demo scenarios). See §13's `historicalReliabilityService.calculateCoverageEvaluation()`, which Phase 9 made real-data-aware: it computes coverage on actual stored `JourneyObservation` records when ≥10 exist, and only falls back to a clearly-labelled synthetic dataset otherwise |
+| Ablation (6 features) | % of scenarios where zeroing one feature's weight (reliability / accessibility / crowd / weather / connectionRisk / transfers) changes the full model's top pick |
+| Computation Latency | Mean, p50, and p95 ms across all 22 scenarios |
 
 These metrics are displayed on the Dashboard page, clearly labelled `isSimulatedBenchmark: true`, for viva demonstration — not as evidence of real-world performance. See §18 for why the specific numbers from any one run should not be treated as fixed results.
 
@@ -589,31 +601,55 @@ These metrics are displayed on the Dashboard page, clearly labelled `isSimulated
 
 ## 18. Baseline Evaluation Results
 
-> **Phase 4 correction, re-verified in Phase 5 after the Bengaluru data
-> migration** — this table previously (before Phase 4) showed a fabricated
-> ~15%/~29%/92% improvement. Phase 4 replaced it with a real captured run on
-> the (then Mumbai-based) network, which showed 0% difference on every
-> metric. Phase 5 migrated the network to Bengaluru and substantially
-> expanded it; the numbers below are a fresh real captured run on the new
-> network — re-run `GET /api/evaluation` yourself for a live number.
+> **Phase 9 rebuild.** Phases 4-5 replaced a fabricated ~15%/~29%/92%
+> improvement with a real captured run; Phase 5 then migrated the network to
+> Bengaluru. But every scenario through Phase 8 still used *exact* metro
+> station coordinates for origin and destination, so every walk segment was
+> the 0m degenerate case (§13) and candidate generation was still 4 fixed
+> patterns (fixed in Phase 6) — both of which meant the benchmark could only
+> ever report near-100% agreement with the shortest-time baseline, regardless
+> of network size. Phase 9 rebuilt the scenario set (22 scenarios, offset
+> ~180-390m from real named stations/stops — a "nearby address," not the
+> station entrance) and the benchmark itself (3 new baselines, a 6-feature
+> ablation study, p50/p95 latency). The numbers below are a real captured run
+> — re-run `GET /api/evaluation` yourself for a live number; the harness's
+> own determinism is enforced by a test, not assumed (see
+> `evaluationHarness.test.ts`).
 
 Actual captured run (`evaluationService.runEvaluation()`, OSRM unreachable so all road legs used the haversine fallback):
 
-| Metric | TransitSwap | Shortest-Time Baseline | Lowest-Cost Baseline |
-|--------|-------------|------------------------|-----------------------|
-| Agreement rate | — | **100%** | **60%** (was 100% pre-Phase-5) |
-| Avg. Reliability Score | 99/100 | 99/100 | — |
-| Avg. Walking Distance | 0 m | 0 m | — |
-| Missed-Connection Risk | 0% | 0% | — |
-| CI 90% Coverage | `null` (never fabricated — see §15) | — | — |
-| Avg. Computation (total, 5 scenarios) | 16 ms | — | — |
+| Baseline | Agreement Rate |
+|----------|-----------------|
+| Shortest Travel Time | **86%** |
+| Lowest Cost | **32%** |
+| Least Walking | **45%** |
+| Fewest Transfers | **73%** |
+| Random (seeded) | **41%** |
 
-**Honest observation, and why:** TransitSwap still agrees with the shortest-time baseline on every one of these 5 scenarios (duration, walking and reliability differences are all exactly 0). It now **disagrees with the lowest-cost baseline on 2 of 5** (Majestic→Vidhana Soudha and Silk Board→Electronic City, where the cheapest candidate isn't the one TransitSwap/shortest-time pick) — a genuinely new, non-fabricated signal that the larger Phase 5 network has started producing real cost/speed trade-offs, where the pre-Phase-5 network had none at all. The underlying cause of the *remaining* 100% agreement with shortest-time is the same as before Phase 5, just less severe:
+| Metric | TransitSwap | Shortest-Time Baseline |
+|--------|-------------|------------------------|
+| Avg. Reliability Score | 90/100 | 88/100 |
+| Avg. Walking Distance | 482 m | 420 m |
+| Missed-Connection Risk | 0%* | 0%* |
+| CI 90% Coverage | `null` (never fabricated — see §15) | — |
+| Avg. Computation (mean / p50 / p95, 22 scenarios) | 569 ms / 457 ms / 1034 ms | — |
 
-1. These 5 scenarios use exact metro station coordinates as origin/destination, so access/egress walks are 0m (see §13's walking-segment note) — unchanged by Phase 5.
-2. Candidate generation (§3) is still 4 fixed patterns, not a path search, so most corridors still produce only 1-2 candidates, often Pareto-dominated — Phase 5 only expanded the *data* those patterns run against, not the pattern-generation logic itself (that's Phase 6).
+\* 0% here reflects insufficient stored journey-observation data to compute a real Monte Carlo risk in this demo environment (no `MONGODB_URI` configured), not a claim that transfers are risk-free — see §13.
 
-A benchmark scenario set deliberately chosen for genuine trade-offs (rather than this demonstration set, inherited from the original Mumbai seed) is tracked as future work (see §19).
+**Ablation study** (% of scenarios where zeroing this one feature's weight changes the full model's top pick):
+
+| Feature removed | Decision-change rate |
+|---|---|
+| reliability | 41% |
+| connectionRisk | 27% |
+| accessibility | 23% |
+| weather | 23% |
+| transfers | 18% |
+| crowd | 14% |
+
+**Honest observation, and why:** TransitSwap now **genuinely disagrees with every baseline on a meaningful fraction of scenarios** — most notably 68% disagreement with lowest-cost and 59% with the seeded-random baseline — which is the real signal this benchmark exists to produce, and was structurally impossible to observe before Phase 9 regardless of how large the network grew. The ablation study adds a second, independent confirmation: every one of the 6 intelligence features (not just reliability) measurably changes the top-ranked route on at least 14% of scenarios, so the ranking engine is using all of them, not just time/cost/walking. Agreement with shortest-time (86%) remains the highest of the 5 — expected, since duration dominates the default "standard" weight profile (§10) — but is no longer 100%: 3 of 22 scenarios now diverge.
+
+**Sensitivity sweep** (`npm run sweep:sensitivity` from `backend/`): perturbing each of the 9 routing cost-model constants (§13) by ±20% and re-running every scenario's full candidate generation + ranking shows the top-ranked route changes on **at most 1 of 22 scenarios (5%) per constant**, and 0% for most. Read plainly: this demo network's rankings are fairly robust to ±20% changes in these specific assumptions — not evidence the constants don't matter at all, but a real, measured answer to "are these numbers arbitrary?" rather than a guess. Full per-constant, per-direction results in PHASE_9_VERIFICATION.md.
 
 ---
 
@@ -621,11 +657,11 @@ A benchmark scenario set deliberately chosen for genuine trade-offs (rather than
 
 | Limitation | Future Enhancement |
 |-----------|-------------------|
-| Seeded demo transit network covers ~30% of the Bengaluru area by straight-line distance to the nearest stop/station (up from ~14% pre-Phase-5, over a 2x improvement); ~93% of random origin/destination pairs still return no route | Integrate GTFS feeds, or substantially expand the seeded network further — closing the remaining gap by hand-authored data alone would need 50-100+ more stations |
-| Candidate generation is 4 fixed journey patterns, not a path search — see §3 | A real multimodal shortest-path / k-shortest-paths search over a stop graph |
-| The current benchmark shows 0% difference from both baselines (see §18) because the candidate sets it tests have no genuine trade-off | A scenario set, and underlying network, with real trade-offs to rank |
-| Missed-connection risk and transfer count are computed and shown, but not yet part of the ranking engine's scoring | Add them to the 7-feature vector |
-| Pairwise training samples currently record only the chosen-over-rejected direction (see §11) | Record the mirrored pair so reported model accuracy is meaningful |
+| Seeded demo transit network covers ~30% of the Bengaluru area by straight-line distance to the nearest stop/station (up from ~14% pre-Phase-5, over a 2x improvement); most random origin/destination pairs still return no route | Integrate GTFS feeds, or substantially expand the seeded network further — closing the remaining gap by hand-authored data alone would need 50-100+ more stations |
+| ~~Candidate generation is 4 fixed journey patterns, not a path search~~ — **resolved in Phase 6**: a bounded multi-criteria graph search now runs alongside the 4 patterns, with an exact Pareto-dominance filter as the correctness backstop (see §3) | A full k-shortest-paths / RAPTOR implementation remains future work — the current search is explicitly bounded, not exact |
+| ~~The benchmark showed 0% difference from both baselines~~ — **resolved in Phase 9**: a rebuilt 22-scenario benchmark now shows genuine disagreement with every baseline (see §18) | Expand the scenario set further (≥50) and curate it against real reported trip pairs rather than hand-picked station names |
+| ~~Missed-connection risk and transfer count were computed but not part of the ranking engine's scoring~~ — **resolved in Phase 7**: both are now 2 of the ranking engine's 9 weighted features | — |
+| ~~Pairwise training samples recorded only the chosen-over-rejected direction~~ — **resolved in Phase 8**: every real choice now stores both directions (balanced 2-class labels); the Phase 8 synthetic benchmark's own accuracy is honestly measured at 87.5% held-out (down from a meaningless fake 100%) | Collect enough *real* user choices to retrain and re-report accuracy on genuine (not synthetic) held-out data |
 | Crowd data is a blend of real user reports and a small synthetic baseline, bucketed into 4 fixed time slots, independent of the journey's planned departure time | Real-time crowd sensors; time-of-departure-aware estimates |
 | Accessibility data is a synthetic prototype dataset (see §12) | Partner with city transit authorities for verified data |
 | TransitDNA learns from explicit route choices only | Implicit learning from additional signals (e.g. dwell time, repeat searches) |

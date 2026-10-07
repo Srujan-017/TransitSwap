@@ -21,15 +21,38 @@ import type {
   SegmentLocation,
 } from "../types/multimodal"
 
-const MAX_WALK_TO_METRO_M = 2000
-const MAX_WALK_TO_BUS_M = 1200
-const WALK_SPEED_MPS = 1.4
-const METRO_MIN_PER_STOP = 2.5
-// Phase 5 — METRO_WAIT_SEC/BUS_WAIT_SEC (previously flat 300s/480s for every
-// train/bus regardless of line or route) were replaced by each line's/
-// route's own frequencyMinutes field (see metroSegment()/busSegment() below).
-const BUS_SPEED_MPS = 6.0
-const AUTO_SPEED_MPS = 4.2
+// Phase 9 — these were previously bare module-level `const`s. Bundled into a
+// single exported, mutable object so a sensitivity-sweep script (see
+// scripts/sensitivity-sweep.ts) can perturb one at a time and re-run real
+// route generation against it, then restore the original — a primitive
+// `const` can't be reassigned from outside the module at all, and even an
+// exported `let` wouldn't work here (this compiles to CommonJS, where an
+// external assignment to an imported binding does not propagate back to the
+// internal variable the module's own functions read). Mutating a shared
+// object's properties works correctly under either module system, and the
+// default values below are byte-identical to the former standalone consts,
+// so this is a pure refactor with no behavior change for every existing caller.
+export const ROUTING_CONSTANTS = {
+  MAX_WALK_TO_METRO_M: 2000,
+  MAX_WALK_TO_BUS_M: 1200,
+  WALK_SPEED_MPS: 1.4,
+  METRO_MIN_PER_STOP: 2.5,
+  // Phase 5 — METRO_WAIT_SEC/BUS_WAIT_SEC (previously flat 300s/480s for every
+  // train/bus regardless of line or route) were replaced by each line's/
+  // route's own frequencyMinutes field (see metroSegment()/busSegment() below).
+  BUS_SPEED_MPS: 6.0,
+  AUTO_SPEED_MPS: 4.2,
+  // Phase 9 — these 3 distance-inflation factors were previously inline
+  // literals (1.15, 1.35, 1.25) at their one call site each. Named and moved
+  // here so the sensitivity sweep can cover them too, per
+  // PROJECT_MASTER_PLAN.md §13's "distance factors" entry.
+  METRO_DISTANCE_FACTOR: 1.15,
+  BUS_DISTANCE_FACTOR: 1.35,
+  AUTO_DISTANCE_FACTOR: 1.25,
+}
+
+export type RoutingConstants = typeof ROUTING_CONSTANTS
+
 const CONTINUITY_TOLERANCE_M = 50
 const SAME_POINT_TOLERANCE_M = 25
 // Phase 4 fix (B12) — a walking segment shorter than this is dropped from
@@ -299,7 +322,7 @@ function busPathDistance(stopIds: string[]): number {
     if (!from || !to) return Infinity
     distance += haversine(from.latitude, from.longitude, to.latitude, to.longitude)
   }
-  return Math.round(distance * 1.35)
+  return Math.round(distance * ROUTING_CONSTANTS.BUS_DISTANCE_FACTOR)
 }
 
 function busStopPath(routeStops: string[], fromIndex: number, toIndex: number): string[] {
@@ -351,7 +374,7 @@ async function walkSegment(
   toLat: number,
   toLng: number,
 ): Promise<RouteSegment> {
-  const leg = await bestEffortRoadLeg(ctx, "walking", fromLat, fromLng, toLat, toLng, 1, WALK_SPEED_MPS)
+  const leg = await bestEffortRoadLeg(ctx, "walking", fromLat, fromLng, toLat, toLng, 1, ROUTING_CONSTANTS.WALK_SPEED_MPS)
   const dist = leg.distanceMeters
   return {
     id: crypto.randomUUID(),
@@ -377,7 +400,7 @@ function metroSegment(fromId: string, toId: string, stationPath: string[]): Rout
       const a = getStation(stationId)!
       const b = getStation(stationPath[index + 1])!
       return sum + haversine(a.latitude, a.longitude, b.latitude, b.longitude)
-    }, 0) * 1.15,
+    }, 0) * ROUTING_CONSTANTS.METRO_DISTANCE_FACTOR,
   )
   // Phase 5 — boarding wait is the frequency of the line actually boarded
   // (the first hop's line), instead of the previous flat METRO_WAIT_SEC
@@ -385,7 +408,7 @@ function metroSegment(fromId: string, toId: string, stationPath: string[]): Rout
   // stationPath resolves to a real line, so this lookup cannot be undefined.
   const boardingLine = metroLineForHop(stationPath[0], stationPath[1])!
   const waitSeconds = boardingLine.frequencyMinutes * 60
-  const durationSeconds = Math.round(waitSeconds + stopCount * METRO_MIN_PER_STOP * 60)
+  const durationSeconds = Math.round(waitSeconds + stopCount * ROUTING_CONSTANTS.METRO_MIN_PER_STOP * 60)
   const fare = FARE_CONFIG.metro.basefare + stopCount * FARE_CONFIG.metro.perStation
   const lineDetails = metroLineDetails(stationPath)
   if (!lineDetails) return null
@@ -414,7 +437,7 @@ function busSegment(fromStop: (typeof BUS_STOPS)[0], toStop: (typeof BUS_STOPS)[
   // Phase 5 — boarding wait is this specific route's own frequencyMinutes,
   // instead of the previous flat BUS_WAIT_SEC constant applied to every bus.
   const waitSeconds = selected.route.frequencyMinutes * 60
-  const durationSeconds = Math.round(waitSeconds + distanceMeters / BUS_SPEED_MPS)
+  const durationSeconds = Math.round(waitSeconds + distanceMeters / ROUTING_CONSTANTS.BUS_SPEED_MPS)
   const fare = Math.round(FARE_CONFIG.bus.basefare + (distanceMeters / 1000) * FARE_CONFIG.bus.perKm)
   const stopNames = selected.stopPath.map((id) => getStop(id)?.name ?? id)
 
@@ -446,7 +469,7 @@ async function autoSegment(
   toLat: number,
   toLng: number,
 ): Promise<RouteSegment> {
-  const leg = await bestEffortRoadLeg(ctx, "driving", fromLat, fromLng, toLat, toLng, 1.25, AUTO_SPEED_MPS)
+  const leg = await bestEffortRoadLeg(ctx, "driving", fromLat, fromLng, toLat, toLng, ROUTING_CONSTANTS.AUTO_DISTANCE_FACTOR, ROUTING_CONSTANTS.AUTO_SPEED_MPS)
   const distKm = leg.distanceMeters / 1000
   const fare = Math.round(FARE_CONFIG.auto.basefare + distKm * FARE_CONFIG.auto.perKm)
   return {
@@ -626,8 +649,8 @@ async function tryWalkMetroWalk(
   origin: SegmentLocation,
   destination: SegmentLocation,
 ): Promise<RouteSegment[] | null> {
-  const nearO = nearestMetro(origin.latitude, origin.longitude, MAX_WALK_TO_METRO_M, ctx.excludeIds)
-  const nearD = nearestMetro(destination.latitude, destination.longitude, MAX_WALK_TO_METRO_M, ctx.excludeIds)
+  const nearO = nearestMetro(origin.latitude, origin.longitude, ROUTING_CONSTANTS.MAX_WALK_TO_METRO_M, ctx.excludeIds)
+  const nearD = nearestMetro(destination.latitude, destination.longitude, ROUTING_CONSTANTS.MAX_WALK_TO_METRO_M, ctx.excludeIds)
   if (!nearO || !nearD || nearO.station.id === nearD.station.id) return null
 
   const path = stationsOnPath(nearO.station.id, nearD.station.id)
@@ -649,8 +672,8 @@ async function tryWalkBusWalk(
   origin: SegmentLocation,
   destination: SegmentLocation,
 ): Promise<RouteSegment[] | null> {
-  const nearO = nearestBusStop(origin.latitude, origin.longitude, MAX_WALK_TO_BUS_M, ctx.excludeIds)
-  const nearD = nearestBusStop(destination.latitude, destination.longitude, MAX_WALK_TO_BUS_M, ctx.excludeIds)
+  const nearO = nearestBusStop(origin.latitude, origin.longitude, ROUTING_CONSTANTS.MAX_WALK_TO_BUS_M, ctx.excludeIds)
+  const nearD = nearestBusStop(destination.latitude, destination.longitude, ROUTING_CONSTANTS.MAX_WALK_TO_BUS_M, ctx.excludeIds)
   if (!nearO || !nearD || nearO.stop.id === nearD.stop.id) return null
 
   const bus = busSegment(nearO.stop, nearD.stop)
@@ -669,7 +692,7 @@ async function tryWalkMetroAuto(
   origin: SegmentLocation,
   destination: SegmentLocation,
 ): Promise<RouteSegment[] | null> {
-  const nearO = nearestMetro(origin.latitude, origin.longitude, MAX_WALK_TO_METRO_M, ctx.excludeIds)
+  const nearO = nearestMetro(origin.latitude, origin.longitude, ROUTING_CONSTANTS.MAX_WALK_TO_METRO_M, ctx.excludeIds)
   if (!nearO) return null
 
   const nearD = nearestMetro(destination.latitude, destination.longitude, 5000, ctx.excludeIds)
@@ -697,8 +720,8 @@ async function tryWalkBusMetroWalk(
   origin: SegmentLocation,
   destination: SegmentLocation,
 ): Promise<RouteSegment[] | null> {
-  const nearD = nearestMetro(destination.latitude, destination.longitude, MAX_WALK_TO_METRO_M, ctx.excludeIds)
-  const nearO = nearestBusStop(origin.latitude, origin.longitude, MAX_WALK_TO_BUS_M, ctx.excludeIds)
+  const nearD = nearestMetro(destination.latitude, destination.longitude, ROUTING_CONSTANTS.MAX_WALK_TO_METRO_M, ctx.excludeIds)
+  const nearO = nearestBusStop(origin.latitude, origin.longitude, ROUTING_CONSTANTS.MAX_WALK_TO_BUS_M, ctx.excludeIds)
   if (!nearD || !nearO) return null
 
   const connectorCandidates: Array<{
@@ -896,8 +919,8 @@ function buildTransitGraph(): TransitGraph {
       const b = allNodes[j]
       const d = haversine(a.latitude, a.longitude, b.latitude, b.longitude)
       if (d <= 0 || d > TRANSFER_WALK_RADIUS_M) continue
-      addEdge(a.key, b.key, { mode: "walking", durationSeconds: Math.round(d / WALK_SPEED_MPS), distanceMeters: Math.round(d) })
-      addEdge(b.key, a.key, { mode: "walking", durationSeconds: Math.round(d / WALK_SPEED_MPS), distanceMeters: Math.round(d) })
+      addEdge(a.key, b.key, { mode: "walking", durationSeconds: Math.round(d / ROUTING_CONSTANTS.WALK_SPEED_MPS), distanceMeters: Math.round(d) })
+      addEdge(b.key, a.key, { mode: "walking", durationSeconds: Math.round(d / ROUTING_CONSTANTS.WALK_SPEED_MPS), distanceMeters: Math.round(d) })
     }
   }
 
@@ -1022,22 +1045,22 @@ async function searchGraphCandidates(
 
   for (const node of graph.nodes.values()) {
     if (ctx.excludeIds.has(node.id)) continue
-    const maxAccessM = node.type === "metro" ? MAX_WALK_TO_METRO_M : MAX_WALK_TO_BUS_M
+    const maxAccessM = node.type === "metro" ? ROUTING_CONSTANTS.MAX_WALK_TO_METRO_M : ROUTING_CONSTANTS.MAX_WALK_TO_BUS_M
 
     const dOrigin = haversine(origin.latitude, origin.longitude, node.latitude, node.longitude)
     if (dOrigin > 0 && dOrigin <= maxAccessM) {
-      startEdges.push({ toNodeKey: node.key, durationSeconds: Math.round(dOrigin / WALK_SPEED_MPS), distanceMeters: Math.round(dOrigin) })
+      startEdges.push({ toNodeKey: node.key, durationSeconds: Math.round(dOrigin / ROUTING_CONSTANTS.WALK_SPEED_MPS), distanceMeters: Math.round(dOrigin) })
     }
 
     const dDest = haversine(node.latitude, node.longitude, destination.latitude, destination.longitude)
     if (dDest > 0 && dDest <= maxAccessM) {
-      endEdges.push({ fromNodeKey: node.key, mode: "walking", durationSeconds: Math.round(dDest / WALK_SPEED_MPS), distanceMeters: Math.round(dDest), fareEstimate: 0 })
+      endEdges.push({ fromNodeKey: node.key, mode: "walking", durationSeconds: Math.round(dDest / ROUTING_CONSTANTS.WALK_SPEED_MPS), distanceMeters: Math.round(dDest), fareEstimate: 0 })
     }
     if (node.hasAutoHub && dDest > AUTO_EGRESS_MIN_M && dDest <= AUTO_EGRESS_MAX_M) {
-      const autoDistance = Math.round(dDest * 1.25)
+      const autoDistance = Math.round(dDest * ROUTING_CONSTANTS.AUTO_DISTANCE_FACTOR)
       endEdges.push({
         fromNodeKey: node.key, mode: "auto",
-        durationSeconds: Math.round(autoDistance / AUTO_SPEED_MPS), distanceMeters: autoDistance,
+        durationSeconds: Math.round(autoDistance / ROUTING_CONSTANTS.AUTO_SPEED_MPS), distanceMeters: autoDistance,
         fareEstimate: Math.round(FARE_CONFIG.auto.basefare + (autoDistance / 1000) * FARE_CONFIG.auto.perKm),
       })
     }
@@ -1306,7 +1329,7 @@ export const multimodalService = {
           latitude: nearMetro.station.latitude,
           longitude: nearMetro.station.longitude,
           distanceMeters: Math.round(nearMetro.distM),
-          estimatedWalkingMinutes: Math.max(1, Math.round(nearMetro.distM / WALK_SPEED_MPS / 60)),
+          estimatedWalkingMinutes: Math.max(1, Math.round(nearMetro.distM / ROUTING_CONSTANTS.WALK_SPEED_MPS / 60)),
         }
       : null
 
@@ -1318,7 +1341,7 @@ export const multimodalService = {
           latitude: nearBus.stop.latitude,
           longitude: nearBus.stop.longitude,
           distanceMeters: Math.round(nearBus.distM),
-          estimatedWalkingMinutes: Math.max(1, Math.round(nearBus.distM / WALK_SPEED_MPS / 60)),
+          estimatedWalkingMinutes: Math.max(1, Math.round(nearBus.distM / ROUTING_CONSTANTS.WALK_SPEED_MPS / 60)),
         }
       : null
 

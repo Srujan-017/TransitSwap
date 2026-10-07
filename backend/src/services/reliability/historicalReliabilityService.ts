@@ -1,6 +1,7 @@
 import mongoose from "mongoose"
 import { JourneyObservation, type IJourneyObservation } from "../../models/JourneyObservation"
 import { parseLocalDateTime } from "../../utils/dateTime"
+import { createSeededRandom, seededGaussianNoise } from "../ml/seededRandom"
 
 export interface HistoricalErrorStats {
   sampleSize: number
@@ -42,7 +43,12 @@ export interface PredictionIntervalResult {
 }
 
 export interface CoverageEvaluationReport {
-  isSimulatedBenchmark: true
+  // Phase 9 — was a hardcoded `true` literal; calculateCoverageEvaluation()
+  // now uses REAL stored observations when enough exist, per
+  // PROJECT_MASTER_PLAN.md §39 Phase 9's explicit instruction, so this must
+  // honestly reflect which case actually ran.
+  isSimulatedBenchmark: boolean
+  dataSource: "real" | "synthetic_demo"
   totalTestJourneys: number
   covered90Count: number
   covered95Count: number
@@ -55,6 +61,16 @@ export interface CoverageEvaluationReport {
 }
 
 const MINIMUM_SAMPLE_THRESHOLD = 5
+
+// Phase 9 — the coverage evaluation does its own 80/20 train/test split, so
+// it needs enough real observations for that split to be meaningful on both
+// sides, not just enough to compute a mean/stdDev (MINIMUM_SAMPLE_THRESHOLD).
+const MINIMUM_COVERAGE_SPLIT_THRESHOLD = 10
+
+// Phase 9 — fixed seed for generateSyntheticJourneyObservations()'s noise,
+// so the synthetic fallback dataset (and therefore its coverage numbers) is
+// reproducible run to run, same principle as ml/seededRandom.ts elsewhere.
+const SYNTHETIC_OBSERVATION_SEED = 99
 
 // In-memory fallback dataset for offline / unauthenticated demo mode
 const memoryObservations: Array<{
@@ -372,14 +388,45 @@ export const historicalReliabilityService = {
 
   /**
    * Step 16, 17, 18: Empirical coverage calculation on 80/20 train/test split.
+   *
+   * Phase 9 fix — this previously ALWAYS used generateSyntheticJourneyObservations(),
+   * even when real JourneyObservation documents existed in the database, so
+   * "empirical coverage" never actually reflected real user data. Now checks
+   * for enough real, non-synthetic observations first (chronological order,
+   * so the split is still a genuine past/future train/test split) and only
+   * falls back to the synthetic dataset — clearly labelled as such via
+   * dataSource/isSimulatedBenchmark — when there isn't enough real data yet.
    */
   async calculateCoverageEvaluation(): Promise<CoverageEvaluationReport> {
-    const demoData = this.generateSyntheticJourneyObservations()
+    let dataset: Array<{ predictedDurationMinutes: number; actualDurationMinutes: number; errorMinutes: number }> = []
+    let dataSource: "real" | "synthetic_demo" = "synthetic_demo"
+
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const realObs = await JourneyObservation.find({ isSyntheticDemoData: false })
+          .sort({ createdAt: 1 })
+          .select("predictedDurationMinutes actualDurationMinutes errorMinutes")
+        if (realObs.length >= MINIMUM_COVERAGE_SPLIT_THRESHOLD) {
+          dataset = realObs.map((o) => ({
+            predictedDurationMinutes: o.predictedDurationMinutes,
+            actualDurationMinutes: o.actualDurationMinutes,
+            errorMinutes: o.errorMinutes,
+          }))
+          dataSource = "real"
+        }
+      } catch (err) {
+        console.warn("⚠️ Failed to query real observations for coverage evaluation:", err)
+      }
+    }
+
+    if (dataSource === "synthetic_demo") {
+      dataset = this.generateSyntheticJourneyObservations()
+    }
 
     // 80/20 Chronological Split
-    const splitIdx = Math.floor(demoData.length * 0.8)
-    const trainSet = demoData.slice(0, splitIdx)
-    const testSet = demoData.slice(splitIdx)
+    const splitIdx = Math.floor(dataset.length * 0.8)
+    const trainSet = dataset.slice(0, splitIdx)
+    const testSet = dataset.slice(splitIdx)
 
     // Compute training parameters from trainSet
     const trainErrors = trainSet.map((d) => d.errorMinutes)
@@ -417,7 +464,8 @@ export const historicalReliabilityService = {
     const coverage95 = Number(((covered95 / testN) * 100).toFixed(1))
 
     return {
-      isSimulatedBenchmark: true,
+      isSimulatedBenchmark: dataSource === "synthetic_demo",
+      dataSource,
       totalTestJourneys: testN,
       covered90Count: covered90,
       covered95Count: covered95,
@@ -426,7 +474,12 @@ export const historicalReliabilityService = {
       meanObservedError: Number(meanError.toFixed(2)),
       stdDevObservedError: Number(stdDev.toFixed(2)),
       disclaimer:
-        "PROTOTYPE RESEARCH EVALUATION — Empirical coverage measured on unseen test dataset using 80/20 chronological train/test split. All demo observations are synthetic.",
+        dataSource === "real"
+          ? `REAL-DATA EVALUATION — Empirical coverage measured on ${testN} real, user-submitted journey observations ` +
+            `(80/20 chronological train/test split, ${trainSet.length} training / ${testN} held-out test). Not synthetic.`
+          : `PROTOTYPE RESEARCH EVALUATION — Empirical coverage measured on unseen test dataset using 80/20 chronological ` +
+            `train/test split. All demo observations are synthetic (fewer than ${MINIMUM_COVERAGE_SPLIT_THRESHOLD} real, ` +
+            `non-synthetic journey observations were available in the database).`,
       evaluatedAt: new Date().toISOString(),
     }
   },
@@ -590,6 +643,14 @@ export const historicalReliabilityService = {
 
   /**
    * Step 20: Generates reproducible synthetic journey observations for demo seeding.
+   *
+   * Phase 9 fix — the noise term was `Math.sin(i * 1.5) * 2.1 + 3.4` (bus) and
+   * `Math.cos(i * 1.2) * 1.1 + 0.9` (metro): a fixed-period oscillation, not
+   * noise at all, so every observation's error was a deterministic function
+   * of its index with none of the irregularity real delay data has. Replaced
+   * with properly sampled (Box-Muller) Gaussian noise from a seeded PRNG —
+   * still fully reproducible (same seed -> same dataset every run), but
+   * actually random-shaped rather than periodic.
    */
   generateSyntheticJourneyObservations() {
     const items: Array<{
@@ -601,10 +662,12 @@ export const historicalReliabilityService = {
       createdAt: Date
     }> = []
 
+    const rand = createSeededRandom(SYNTHETIC_OBSERVATION_SEED)
+
     // Seed 40 synthetic bus journeys (Mean delay 3.4m, SD 2.1m)
     for (let i = 0; i < 40; i++) {
       const predicted = 30 + (i % 5) * 4
-      const noise = (Math.sin(i * 1.5) * 2.1) + 3.4
+      const noise = seededGaussianNoise(rand, 2.1) + 3.4
       const actual = Number(Math.max(10, predicted + noise).toFixed(2))
       const error = Number((actual - predicted).toFixed(2))
       const delay = Number(Math.max(0, error).toFixed(2))
@@ -621,7 +684,7 @@ export const historicalReliabilityService = {
     // Seed 40 synthetic metro journeys (Mean delay 0.9m, SD 1.1m)
     for (let i = 0; i < 40; i++) {
       const predicted = 20 + (i % 4) * 3
-      const noise = (Math.cos(i * 1.2) * 1.1) + 0.9
+      const noise = seededGaussianNoise(rand, 1.1) + 0.9
       const actual = Number(Math.max(10, predicted + noise).toFixed(2))
       const error = Number((actual - predicted).toFixed(2))
       const delay = Number(Math.max(0, error).toFixed(2))
