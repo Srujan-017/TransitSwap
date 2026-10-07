@@ -17,10 +17,12 @@ export interface LogisticModelWeights {
   accessibility: number
   crowd: number
   weather: number
+  connectionRisk: number
+  transfers: number
 }
 
 export interface TrainingSample {
-  deltaX: number[] // 7-D difference vector: X_preferred - X_rejected
+  deltaX: number[] // 9-D difference vector: X_preferred - X_rejected
   label: number    // 1 for preferred > rejected
 }
 
@@ -40,7 +42,7 @@ export class PairwiseLogisticRegression {
   private l2Penalty: number
 
   constructor(
-    initialWeights: number[] = [0.25, 0.15, 0.20, 0.25, 0.15, 0.10, 0.10],
+    initialWeights: number[] = [0.25, 0.15, 0.20, 0.25, 0.15, 0.10, 0.10, 0.15, 0.10],
     learningRate = 0.05,
     maxIterations = 200,
     l2Penalty = 0.01,
@@ -61,7 +63,10 @@ export class PairwiseLogisticRegression {
   }
 
   /**
-   * Computes dot product between weight vector w and difference vector deltaX
+   * Computes dot product between weight vector w and difference vector deltaX.
+   * A deltaX shorter than w (e.g. a pre-Phase-7, 7-D legacy sample scored
+   * against today's 9-D weights) contributes 0 for each missing index, rather
+   * than throwing — the documented migration path for existing PairwisePreference rows.
    */
   public static dot(w: number[], deltaX: number[]): number {
     return w.reduce((sum, val, idx) => sum + val * (deltaX[idx] ?? 0), 0)
@@ -171,13 +176,15 @@ export class PairwiseLogisticRegression {
 
   public getWeightsObject(): LogisticModelWeights {
     return {
-      time: Number(this.weights[0].toFixed(4)),
-      cost: Number(this.weights[1].toFixed(4)),
-      walking: Number(this.weights[2].toFixed(4)),
-      reliability: Number(this.weights[3].toFixed(4)),
-      accessibility: Number(this.weights[4].toFixed(4)),
-      crowd: Number(this.weights[5].toFixed(4)),
-      weather: Number(this.weights[6].toFixed(4)),
+      time: Number((this.weights[0] ?? 0).toFixed(4)),
+      cost: Number((this.weights[1] ?? 0).toFixed(4)),
+      walking: Number((this.weights[2] ?? 0).toFixed(4)),
+      reliability: Number((this.weights[3] ?? 0).toFixed(4)),
+      accessibility: Number((this.weights[4] ?? 0).toFixed(4)),
+      crowd: Number((this.weights[5] ?? 0).toFixed(4)),
+      weather: Number((this.weights[6] ?? 0).toFixed(4)),
+      connectionRisk: Number((this.weights[7] ?? 0).toFixed(4)),
+      transfers: Number((this.weights[8] ?? 0).toFixed(4)),
     }
   }
 
@@ -185,7 +192,17 @@ export class PairwiseLogisticRegression {
     if (Array.isArray(w)) {
       this.weights = [...w]
     } else {
-      this.weights = [w.time, w.cost, w.walking, w.reliability, w.accessibility, w.crowd, w.weather]
+      this.weights = [
+        w.time,
+        w.cost,
+        w.walking,
+        w.reliability,
+        w.accessibility,
+        w.crowd,
+        w.weather,
+        w.connectionRisk,
+        w.transfers,
+      ]
     }
   }
 }

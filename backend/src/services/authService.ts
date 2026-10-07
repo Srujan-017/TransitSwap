@@ -77,8 +77,8 @@ export const authService = {
    * User document itself.
    *
    * A real reset now:
-   *   1. Rewrites User.transitDNA with all 7 baseline weights (unchanged
-   *      display-only behavior, now complete).
+   *   1. Rewrites User.transitDNA with all 9 baseline weights (Phase 7 added
+   *      connectionRisk/transfers; unchanged display-only behavior, now complete).
    *   2. Deletes the user's trained UserPreferenceModel, so
    *      mlPreferenceService.getModelStatus() falls back to the profile's
    *      baseline weights again — this is the actual ranking-affecting fix.
@@ -93,7 +93,7 @@ export const authService = {
     user.transitDNA = {
       totalTrips: 0,
       lastUpdated: new Date(),
-      learnedWeights: { time: 0.25, cost: 0.15, walking: 0.2, reliability: 0.25, accessibility: 0.15, crowd: 0.10, weather: 0.10 },
+      learnedWeights: { time: 0.25, cost: 0.15, walking: 0.2, reliability: 0.25, accessibility: 0.15, crowd: 0.10, weather: 0.10, connectionRisk: 0.15, transfers: 0.10 },
     }
     await user.save()
 

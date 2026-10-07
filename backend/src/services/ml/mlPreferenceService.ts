@@ -32,28 +32,35 @@ const DEFAULT_WEIGHTS: LogisticModelWeights = {
   accessibility: 0.15,
   crowd: 0.10,
   weather: 0.10,
+  connectionRisk: 0.15,
+  transfers: 0.10,
 }
 
+// Phase 7 — connectionRisk and transfers added to every profile. Risk is
+// weighted alongside reliability (same "will I actually get there" signal);
+// transfers is weighted higher for profiles where physical transfer effort
+// matters most (senior, pregnant, luggage, reduced_mobility) and lower for
+// profiles that are indifferent to it (fastest, cheapest).
 export function getProfileWeights(profile?: string): LogisticModelWeights {
   switch (profile) {
     case "wheelchair":
-      return { accessibility: 0.50, walking: 0.20, reliability: 0.15, time: 0.05, cost: 0.05, crowd: 0.025, weather: 0.025 }
+      return { accessibility: 0.50, walking: 0.20, reliability: 0.15, time: 0.05, cost: 0.05, crowd: 0.025, weather: 0.025, connectionRisk: 0.05, transfers: 0.05 }
     case "senior":
-      return { walking: 0.30, reliability: 0.25, accessibility: 0.20, time: 0.10, cost: 0.05, crowd: 0.05, weather: 0.05 }
+      return { walking: 0.30, reliability: 0.25, accessibility: 0.20, time: 0.10, cost: 0.05, crowd: 0.05, weather: 0.05, connectionRisk: 0.15, transfers: 0.15 }
     case "pregnant":
-      return { walking: 0.35, crowd: 0.15, accessibility: 0.20, time: 0.10, reliability: 0.10, cost: 0.05, weather: 0.05 }
+      return { walking: 0.35, crowd: 0.15, accessibility: 0.20, time: 0.10, reliability: 0.10, cost: 0.05, weather: 0.05, connectionRisk: 0.10, transfers: 0.15 }
     case "luggage":
-      return { walking: 0.30, accessibility: 0.30, time: 0.10, cost: 0.05, reliability: 0.10, crowd: 0.05, weather: 0.10 }
+      return { walking: 0.30, accessibility: 0.30, time: 0.10, cost: 0.05, reliability: 0.10, crowd: 0.05, weather: 0.10, connectionRisk: 0.05, transfers: 0.15 }
     case "reduced_mobility":
-      return { accessibility: 0.35, walking: 0.30, reliability: 0.15, time: 0.10, cost: 0.05, crowd: 0.025, weather: 0.025 }
+      return { accessibility: 0.35, walking: 0.30, reliability: 0.15, time: 0.10, cost: 0.05, crowd: 0.025, weather: 0.025, connectionRisk: 0.05, transfers: 0.15 }
     case "stroller":
-      return { accessibility: 0.40, walking: 0.25, time: 0.10, cost: 0.05, reliability: 0.10, crowd: 0.05, weather: 0.05 }
+      return { accessibility: 0.40, walking: 0.25, time: 0.10, cost: 0.05, reliability: 0.10, crowd: 0.05, weather: 0.05, connectionRisk: 0.05, transfers: 0.10 }
     case "fastest":
-      return { time: 0.60, cost: 0.10, walking: 0.10, reliability: 0.10, accessibility: 0.05, crowd: 0.025, weather: 0.025 }
+      return { time: 0.60, cost: 0.10, walking: 0.10, reliability: 0.10, accessibility: 0.05, crowd: 0.025, weather: 0.025, connectionRisk: 0.05, transfers: 0.05 }
     case "cheapest":
-      return { cost: 0.60, time: 0.10, walking: 0.10, reliability: 0.10, accessibility: 0.05, crowd: 0.025, weather: 0.025 }
+      return { cost: 0.60, time: 0.10, walking: 0.10, reliability: 0.10, accessibility: 0.05, crowd: 0.025, weather: 0.025, connectionRisk: 0.05, transfers: 0.05 }
     case "comfort":
-      return { crowd: 0.25, weather: 0.20, walking: 0.20, reliability: 0.15, accessibility: 0.10, time: 0.05, cost: 0.05 }
+      return { crowd: 0.25, weather: 0.20, walking: 0.20, reliability: 0.15, accessibility: 0.10, time: 0.05, cost: 0.05, connectionRisk: 0.10, transfers: 0.10 }
     case "standard":
     default:
       return DEFAULT_WEIGHTS
@@ -236,7 +243,9 @@ export const mlPreferenceService = {
         vector.features.reliability * (weights.reliability ?? 0.25) +
         vector.features.accessibility * (weights.accessibility ?? 0.15) +
         vector.features.crowd * (weights.crowd ?? 0.10) +
-        vector.features.weather * (weights.weather ?? 0.10)
+        vector.features.weather * (weights.weather ?? 0.10) +
+        vector.features.connectionRisk * (weights.connectionRisk ?? 0.15) +
+        vector.features.transfers * (weights.transfers ?? 0.10)
 
       // Apply explicit user preference adjustments (mode match, walking bounds, reliability risk)
       score += calculatePreferenceAdjustment(route, preferences)
@@ -287,11 +296,21 @@ export const mlPreferenceService = {
     try {
       const stored = await UserPreferenceModel.findOne({ userId })
       if (stored && stored.isPersonalized && stored.sampleCount >= 5) {
+        // Phase 7 fix (P1-6) — explicit preferences (prioritize, walkingTolerance,
+        // budgetPreference) were previously applied only on the non-personalized
+        // baseline path below; once a user's model personalized, this branch
+        // returned the learned weights untouched, silently dropping every
+        // explicit preference the user had set. getPreferenceAdjustedWeights()
+        // now runs on both paths, exactly like it already did for profile weights.
+        const personalizedWeights = getPreferenceAdjustedWeights(
+          stored.weights as unknown as import("../transitDnaService").LearnedWeights,
+          preferences,
+        ) as LogisticModelWeights
         return {
           isPersonalized: true,
           sampleCount: stored.sampleCount,
           statusMessage: `Personalized ML Model Active (Trained on ${stored.sampleCount} pairwise choices)`,
-          weights: stored.weights as LogisticModelWeights,
+          weights: personalizedWeights,
           modelMetrics: {
             trainAccuracy: stored.trainAccuracy,
             testAccuracy: stored.testAccuracy,

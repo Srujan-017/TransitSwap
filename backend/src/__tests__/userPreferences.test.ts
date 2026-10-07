@@ -2,6 +2,7 @@ import { accessibilityService } from "../services/accessibilityService"
 import { mlPreferenceService } from "../services/ml/mlPreferenceService"
 import { transitDnaService } from "../services/transitDnaService"
 import type { MultimodalRoute } from "../types/multimodal"
+import type { EnrichedRoute } from "../types/intelligence"
 import type { UserPreferences } from "../types"
 
 /**
@@ -185,6 +186,88 @@ async function runPreferenceTests() {
   const filteredRoutes = await accessibilityService.filterRoutes([inaccessibleMetroRoute, accessibleBusRoute], "wheelchair")
   if (assert(filteredRoutes.length === 1 && filteredRoutes[0].id === "route-accessible-bus", "Wheelchair hard constraints REJECT inaccessible Metro route despite user's preferredMode = metro")) {
     console.log("   ✅ Hard accessibility constraint precedence test passed.\n")
+  }
+
+  // ── Test 7: Phase 7 — missedConnectionRisk and transferCount measurably
+  //    affect ranking order, even with NO preference boosting them ────────
+
+  console.log("9️⃣ Testing Risk & Transfers Measurably Change Ranking Order...")
+  const lowRiskFewTransfers = {
+    ...makeRoute("route-low-risk", "bus", 2100, 300, 25, 0),
+    missedConnectionRisk: { overallRiskPercent: 5, riskLevel: "LOW" as const, simulatedTrialsCount: 1000, transfers: [], summary: "Low risk" },
+  }
+  const highRiskManyTransfers = {
+    ...makeRoute("route-high-risk", "bus", 2100, 300, 25, 3),
+    missedConnectionRisk: { overallRiskPercent: 70, riskLevel: "HIGH" as const, simulatedTrialsCount: 1000, transfers: [], summary: "High risk" },
+  }
+  // Identical duration/fare/walking — the ONLY differences are risk and transfer
+  // count, and no explicit preference is set, so this isolates the raw 9-feature
+  // vector's own effect (not a preference-weight boost) on ranking order.
+  const prefsNeutral: UserPreferences = { preferredMode: "any", walkingTolerance: "medium", prioritize: "speed" }
+  const rankRisk = await mlPreferenceService.rankRoutes(undefined, [lowRiskFewTransfers, highRiskManyTransfers], "standard", prefsNeutral)
+  if (assert(rankRisk.rankedRoutes[0].id === "route-low-risk", "Lower missed-connection risk & fewer transfers ranks first with all else equal")) {
+    console.log("   ✅ Risk & transfers ranking test passed.\n")
+  }
+
+  // ── Test 8: Property check — a Pareto-dominated route is never ranked
+  //    first, across a spread of hand-built scenarios covering every
+  //    feature dimension in turn ──────────────────────────────────────────
+
+  console.log("🔟 Testing Pareto-Dominated Routes Are Never Ranked First (property check)...")
+
+  type Scenario = { name: string; better: EnrichedRoute; worse: EnrichedRoute; preferences: UserPreferences }
+
+  const scenarios: Scenario[] = [
+    {
+      name: "strictly faster, same everything else",
+      better: makeRoute("p1-better", "bus", 1500, 300, 25, 1),
+      worse: makeRoute("p1-worse", "bus", 2400, 300, 25, 1),
+      preferences: { preferredMode: "any", walkingTolerance: "medium", prioritize: "speed" },
+    },
+    {
+      name: "strictly cheaper, same everything else",
+      better: makeRoute("p2-better", "bus", 2100, 300, 15, 1),
+      worse: makeRoute("p2-worse", "bus", 2100, 300, 55, 1),
+      preferences: { preferredMode: "any", walkingTolerance: "medium", prioritize: "cost" },
+    },
+    {
+      name: "strictly less walking, same everything else",
+      better: makeRoute("p3-better", "bus", 2100, 200, 25, 1),
+      worse: makeRoute("p3-worse", "bus", 2100, 1800, 25, 1),
+      preferences: { preferredMode: "any", walkingTolerance: "low", prioritize: "speed" },
+    },
+    {
+      name: "strictly fewer transfers, same everything else",
+      better: makeRoute("p4-better", "bus", 2100, 300, 25, 0),
+      worse: makeRoute("p4-worse", "bus", 2100, 300, 25, 3),
+      preferences: { preferredMode: "any", walkingTolerance: "medium", prioritize: "speed" },
+    },
+    {
+      name: "strictly lower risk & more reliable, same everything else",
+      better: {
+        ...makeRoute("p5-better", "bus", 2100, 300, 25, 1),
+        reliability: { score: 90, summary: "High reliability", level: "HIGH" as const, delayVarianceMinutes: 1, factors: [] },
+        missedConnectionRisk: { overallRiskPercent: 5, riskLevel: "LOW" as const, simulatedTrialsCount: 1000, transfers: [], summary: "Low risk" },
+      },
+      worse: {
+        ...makeRoute("p5-worse", "bus", 2100, 300, 25, 1),
+        reliability: { score: 55, summary: "Low reliability", level: "LOW" as const, delayVarianceMinutes: 8, factors: [] },
+        missedConnectionRisk: { overallRiskPercent: 60, riskLevel: "HIGH" as const, simulatedTrialsCount: 1000, transfers: [], summary: "High risk" },
+      },
+      preferences: { preferredMode: "any", walkingTolerance: "medium", prioritize: "reliability" },
+    },
+  ]
+
+  let dominancePropertyHolds = true
+  for (const scenario of scenarios) {
+    const { rankedRoutes } = await mlPreferenceService.rankRoutes(undefined, [scenario.better, scenario.worse], "standard", scenario.preferences)
+    if (rankedRoutes[0].id !== scenario.better.id) {
+      dominancePropertyHolds = false
+      console.error(`   ❌ Dominance violated in scenario "${scenario.name}": dominated route "${rankedRoutes[0].id}" ranked first`)
+    }
+  }
+  if (assert(dominancePropertyHolds, "No Pareto-dominated route is ever ranked first, across all 5 single-dimension dominance scenarios")) {
+    console.log("   ✅ Pareto-dominance property check passed.\n")
   }
 
   // ── Summary ────────────────────────────────────────────────────────────

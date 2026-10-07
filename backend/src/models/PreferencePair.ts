@@ -15,6 +15,8 @@ export interface IPairwisePreference extends Document {
     accessibility: number
     crowd: number
     weather: number
+    connectionRisk: number
+    transfers: number
   }
   rejectedFeatures: {
     time: number
@@ -24,8 +26,15 @@ export interface IPairwisePreference extends Document {
     accessibility: number
     crowd: number
     weather: number
+    connectionRisk: number
+    transfers: number
   }
-  deltaX: number[] // 7-D feature difference vector [chosen - rejected]
+  // Phase 7 — extended from 7-D to 9-D (added connectionRisk, transfers).
+  // Existing 7-D rows are not migrated: PairwiseLogisticRegression.predictProbability()
+  // already treats a missing deltaX index as 0 (documented there), so legacy rows
+  // keep training correctly on their original 7 dimensions and simply contribute
+  // no gradient to the 2 new ones, rather than being discarded or crashing.
+  deltaX: number[] // 9-D feature difference vector [chosen - rejected]
   label: number    // 1 for chosen > rejected
   source: "USER_CHOICE" | "USER_FEEDBACK" | "DEMO_SYNTHETIC_DATA"
   createdAt: Date
@@ -40,6 +49,8 @@ const featureMapSchema = new Schema(
     accessibility: { type: Number, required: true },
     crowd: { type: Number, required: true },
     weather: { type: Number, required: true },
+    connectionRisk: { type: Number, required: true },
+    transfers: { type: Number, required: true },
   },
   { _id: false },
 )

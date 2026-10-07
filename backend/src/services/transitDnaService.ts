@@ -15,6 +15,8 @@ export interface LearnedWeights {
   accessibility: number
   crowd?: number
   weather?: number
+  connectionRisk?: number
+  transfers?: number
 }
 
 const DEFAULT_WEIGHTS: LearnedWeights = {
@@ -25,6 +27,8 @@ const DEFAULT_WEIGHTS: LearnedWeights = {
   accessibility: 0.15,
   crowd: 0.10,
   weather: 0.10,
+  connectionRisk: 0.15,
+  transfers: 0.10,
 }
 
 /**
@@ -44,6 +48,10 @@ export function getPreferenceAdjustedWeights(
     w.time = (w.time ?? 0.25) * 1.5
   } else if (priority === "reliability") {
     w.reliability = (w.reliability ?? 0.25) * 1.5
+    // Phase 7 — missed-connection risk is a reliability-adjacent signal
+    // (both describe "will I actually get there as expected"), so reliability
+    // priority boosts both or risk-heavy routes could still outrank it.
+    w.connectionRisk = (w.connectionRisk ?? 0.15) * 1.5
   } else if (priority === "cost" || priority === "cheapest") {
     w.cost = (w.cost ?? 0.15) * 1.5
   } else if (priority === "accessibility") {
@@ -87,7 +95,7 @@ export function getPreferenceAdjustedWeights(
  * by getPreferenceAdjustedWeights() above, double-counting the same signal. Those
  * branches were removed; getPreferenceAdjustedWeights() is now the single place
  * that applies walkingTolerance and prioritize. Preferred-mode has no equivalent in
- * the weight vector (it's not one of the 7 ML features), so it's the one signal
+ * the weight vector (it's not one of the 9 ML features), so it's the one signal
  * that genuinely belongs only here.
  */
 export function calculatePreferenceAdjustment(route: EnrichedRoute, preferences?: UserPreferences): number {
@@ -95,7 +103,7 @@ export function calculatePreferenceAdjustment(route: EnrichedRoute, preferences?
   let adjustment = 0
 
   // Preferred Transport Mode Preference (Soft bonus) — not represented in the
-  // 7-dimensional weight vector, so this is its one and only application point.
+  // 9-dimensional weight vector, so this is its one and only application point.
   const mode = preferences.preferredMode
   if (mode && mode !== "any") {
     const routeModes = route.modes || route.segments.map((s) => s.mode)
@@ -130,7 +138,9 @@ export const transitDnaService = {
       vector.features.reliability * (w.reliability ?? 0.25) +
       vector.features.accessibility * (w.accessibility ?? 0.15) +
       vector.features.crowd * (w.crowd ?? 0.10) +
-      vector.features.weather * (w.weather ?? 0.10)
+      vector.features.weather * (w.weather ?? 0.10) +
+      vector.features.connectionRisk * (w.connectionRisk ?? 0.15) +
+      vector.features.transfers * (w.transfers ?? 0.10)
 
     // Apply explicit user preference adjustments (mode match, walking bounds, reliability risk)
     score += calculatePreferenceAdjustment(route, preferences)
@@ -344,8 +354,9 @@ export const transitDnaService = {
         dbUser.transitDNA = {
           totalTrips: (dbUser.transitDNA?.totalTrips ?? 0) + 1,
           lastUpdated: new Date(),
-          // Problem 1 fix — persist all 7 learned weights (crowd/weather were
+          // Problem 1 fix — persist all learned weights (crowd/weather were
           // previously dropped here even though the ML model learns them).
+          // Phase 7 — connectionRisk/transfers added alongside the original 7.
           learnedWeights: {
             time: result.status.weights.time,
             cost: result.status.weights.cost,
@@ -354,6 +365,8 @@ export const transitDnaService = {
             accessibility: result.status.weights.accessibility,
             crowd: result.status.weights.crowd,
             weather: result.status.weights.weather,
+            connectionRisk: result.status.weights.connectionRisk,
+            transfers: result.status.weights.transfers,
           },
         }
         await dbUser.save()

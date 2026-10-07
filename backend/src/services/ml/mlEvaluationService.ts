@@ -1,6 +1,6 @@
 import { PairwisePreference } from "../../models/PreferencePair"
 import { extractRouteFeatures } from "./featureExtractor"
-import { PairwiseLogisticRegression } from "./logisticRegression"
+import { PairwiseLogisticRegression, type LogisticModelWeights } from "./logisticRegression"
 import { mlPreferenceService } from "./mlPreferenceService"
 import { multimodalService } from "../multimodalService"
 import { reliabilityService } from "../reliabilityService"
@@ -15,15 +15,7 @@ export interface MLEvaluationReport {
   baselineRuleAccuracyPercent: number
   accuracyImprovementPercent: number
   logLoss: number
-  learnedWeights: {
-    time: number
-    cost: number
-    walking: number
-    reliability: number
-    accessibility: number
-    crowd: number
-    weather: number
-  }
+  learnedWeights: LogisticModelWeights
   disclaimer: string
   evaluatedAt: string
 }

@@ -10,6 +10,8 @@ export interface IUserPreferenceModel extends Document {
     accessibility: number
     crowd: number
     weather: number
+    connectionRisk: number
+    transfers: number
   }
   weightsArray: number[]
   featureNames: string[]
@@ -35,6 +37,10 @@ const userPreferenceModelSchema = new Schema<IUserPreferenceModel>(
       accessibility: { type: Number, required: true, default: 0.15 },
       crowd: { type: Number, required: true, default: 0.10 },
       weather: { type: Number, required: true, default: 0.10 },
+      // Phase 7 additions — defaults let pre-Phase-7 documents hydrate and
+      // validate without a migration, same pattern used for crowd/weather above.
+      connectionRisk: { type: Number, required: true, default: 0.15 },
+      transfers: { type: Number, required: true, default: 0.10 },
     },
     weightsArray: [{ type: Number }],
     featureNames: [{ type: String }],

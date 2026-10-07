@@ -32,6 +32,9 @@ export interface IUser extends Document {
       // schema defaults below when such a document is loaded.
       crowd?: number
       weather?: number
+      // Phase 7 additions — same optional-with-default pattern as crowd/weather.
+      connectionRisk?: number
+      transfers?: number
     }
   }
   savedDestinations: Array<{
@@ -97,6 +100,9 @@ const userSchema = new mongoose.Schema<IUser>(
         // change validate and hydrate correctly without a migration.
         crowd: { type: Number, default: 0.10 },
         weather: { type: Number, default: 0.10 },
+        // Phase 7 additions — same safe-default pattern.
+        connectionRisk: { type: Number, default: 0.15 },
+        transfers: { type: Number, default: 0.10 },
       },
     },
     savedDestinations: [
