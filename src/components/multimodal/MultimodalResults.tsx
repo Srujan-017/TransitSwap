@@ -57,7 +57,18 @@ export default function MultimodalResults({
   const [reportMessage, setReportMessage] = useState("")
   const [reportError, setReportError] = useState("")
   const selected = routes[selectedIndex]
-  const reportStation = useMemo(() => transitSegments(selected ?? routes[0])[0], [selected, routes])
+  // Phase 10 — found by testing this component with a genuinely empty
+  // `routes` array (not just an out-of-range selectedIndex): `selected ??
+  // routes[0]` still evaluates to undefined when routes itself is [], and
+  // transitSegments(undefined) then threw reading `.segments`, crashing the
+  // whole component instead of falling through to the `if (!selected)
+  // return null` below. Currently unreachable in the app (PlanTripPage only
+  // mounts this component when routes.length > 0), but the same class of
+  // bug as B7 — a component contract this component's own early-return
+  // implies it should honor regardless of what the current caller happens
+  // to guarantee.
+  const reportTarget = selected ?? routes[0]
+  const reportStation = useMemo(() => (reportTarget ? transitSegments(reportTarget)[0] : undefined), [reportTarget])
 
   // These read `selected` defensively (it may be undefined here) so they can
   // sit above the early return below, alongside every other hook.

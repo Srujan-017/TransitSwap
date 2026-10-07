@@ -1,0 +1,73 @@
+name: CI
+
+# Phase 10 — PROJECT_MASTER_PLAN.md §39: "CI running typecheck + build + test
+# on both packages." Backend and frontend run as independent jobs so a
+# failure in one doesn't hide the other's result. The E2E job is separate
+# and non-blocking (see its own comment) — it depends on live Nominatim/OSRM
+# reachability, which this CI gate should never depend on to go green.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend (typecheck, build, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Build
+        run: npm run build
+      # Includes the Phase 10 supertest API integration tests, run against a
+      # real in-memory MongoDB started by scripts/run-tests.js itself.
+      - name: Test
+        run: npm test
+
+  frontend:
+    name: Frontend (typecheck, build, component tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Typecheck + build
+        run: npm run build
+      - name: Component tests (Vitest + Testing Library)
+        run: npx vitest run
+
+  e2e:
+    name: E2E happy path (non-blocking)
+    # Deliberately does not run on every push/PR: it needs real outbound
+    # network access to Nominatim (geocoding) and starts both dev servers
+    # plus an in-memory MongoDB, making it slower and more exposed to
+    # third-party rate limiting than this project wants as a merge gate.
+    # Available on demand via "Run workflow" in the Actions tab.
+    if: github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm --prefix backend ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test

@@ -11,3 +11,8 @@ logs/
 *.log
 .claude-replay.*
 .tmp-*
+
+# Phase 10 — Playwright E2E test artifacts
+playwright-report/
+test-results/
+blob-report/
