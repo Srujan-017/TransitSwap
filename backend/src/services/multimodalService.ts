@@ -25,15 +25,16 @@ const MAX_WALK_TO_METRO_M = 2000
 const MAX_WALK_TO_BUS_M = 1200
 const WALK_SPEED_MPS = 1.4
 const METRO_MIN_PER_STOP = 2.5
-const METRO_WAIT_SEC = 300
-const BUS_WAIT_SEC = 480
+// Phase 5 — METRO_WAIT_SEC/BUS_WAIT_SEC (previously flat 300s/480s for every
+// train/bus regardless of line or route) were replaced by each line's/
+// route's own frequencyMinutes field (see metroSegment()/busSegment() below).
 const BUS_SPEED_MPS = 6.0
 const AUTO_SPEED_MPS = 4.2
 const CONTINUITY_TOLERANCE_M = 50
 const SAME_POINT_TOLERANCE_M = 25
 // Phase 4 fix (B12) — a walking segment shorter than this is dropped from
 // the final route entirely (see omitNegligibleWalks below), rather than
-// surfacing degenerate instructions like "Walk 0 m to Versova Metro" with a
+// surfacing degenerate instructions like "Walk 0 m to Majestic Metro" with a
 // two-identical-coordinate geometry. Comfortably under CONTINUITY_TOLERANCE_M
 // so dropping one never breaks validateCandidate()'s boundary/continuity
 // checks — by construction, a walk below this threshold connects two points
@@ -378,7 +379,13 @@ function metroSegment(fromId: string, toId: string, stationPath: string[]): Rout
       return sum + haversine(a.latitude, a.longitude, b.latitude, b.longitude)
     }, 0) * 1.15,
   )
-  const durationSeconds = Math.round(METRO_WAIT_SEC + stopCount * METRO_MIN_PER_STOP * 60)
+  // Phase 5 — boarding wait is the frequency of the line actually boarded
+  // (the first hop's line), instead of the previous flat METRO_WAIT_SEC
+  // constant. validateMetroPath() above already confirmed every hop in
+  // stationPath resolves to a real line, so this lookup cannot be undefined.
+  const boardingLine = metroLineForHop(stationPath[0], stationPath[1])!
+  const waitSeconds = boardingLine.frequencyMinutes * 60
+  const durationSeconds = Math.round(waitSeconds + stopCount * METRO_MIN_PER_STOP * 60)
   const fare = FARE_CONFIG.metro.basefare + stopCount * FARE_CONFIG.metro.perStation
   const lineDetails = metroLineDetails(stationPath)
   if (!lineDetails) return null
@@ -404,7 +411,10 @@ function busSegment(fromStop: (typeof BUS_STOPS)[0], toStop: (typeof BUS_STOPS)[
   if (!selected) return null
 
   const distanceMeters = selected.distanceMeters
-  const durationSeconds = Math.round(BUS_WAIT_SEC + distanceMeters / BUS_SPEED_MPS)
+  // Phase 5 — boarding wait is this specific route's own frequencyMinutes,
+  // instead of the previous flat BUS_WAIT_SEC constant applied to every bus.
+  const waitSeconds = selected.route.frequencyMinutes * 60
+  const durationSeconds = Math.round(waitSeconds + distanceMeters / BUS_SPEED_MPS)
   const fare = Math.round(FARE_CONFIG.bus.basefare + (distanceMeters / 1000) * FARE_CONFIG.bus.perKm)
   const stopNames = selected.stopPath.map((id) => getStop(id)?.name ?? id)
 

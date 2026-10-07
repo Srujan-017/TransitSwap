@@ -5,8 +5,8 @@ import type { EnrichedRoute } from "../types/intelligence"
 
 // ── BUG 4 FIX: Remove the fake 92% hardcoded confidence coverage ─────────────
 // confidenceIntervalCoveragePercent is now null with an honest label.
-// ── BUG 3 FIX: All scenarios use Mumbai Metro Line 1 corridor coordinates ─────
-// (Versova ↔ Ghatkopar, matching transitData.ts)
+// ── BUG 3 FIX: All scenarios use real Namma Metro corridor coordinates ───────
+// (Phase 5 migrated this from Mumbai to Bengaluru, matching transitData.ts)
 // ── BUG 6: Clearly marked as SIMULATED PROTOTYPE BENCHMARK ───────────────────
 
 export interface EvaluationMetrics {
@@ -38,28 +38,28 @@ export interface EvaluationMetrics {
   }>
 }
 
-// BUG 3 FIX: All scenarios now use Mumbai Metro Line 1 corridor (Versova ↔ Ghatkopar)
-// matching the existing transitData.ts demo dataset.
-const MUMBAI_TEST_SCENARIOS = [
+// Phase 5 — migrated from the Mumbai Metro Line 1 corridor to real Namma
+// Metro corridors across all 3 lines in transitData.ts (was 1 line only).
+const BENGALURU_TEST_SCENARIOS = [
   {
-    origin: { name: "Versova Metro Station", latitude: 19.1300, longitude: 72.8161 },
-    destination: { name: "Ghatkopar Metro Station", latitude: 19.0863, longitude: 72.9082 },
+    origin: { name: "Whitefield Metro Station", latitude: 12.9698, longitude: 77.7500 },
+    destination: { name: "Baiyappanahalli Metro Station", latitude: 12.9906, longitude: 77.6530 },
   },
   {
-    origin: { name: "Andheri Metro Station", latitude: 19.1197, longitude: 72.8461 },
-    destination: { name: "Marol Naka Metro Station", latitude: 19.1083, longitude: 72.8812 },
+    origin: { name: "MG Road Metro Station", latitude: 12.9757, longitude: 77.6079 },
+    destination: { name: "Cubbon Park Metro Station", latitude: 12.9774, longitude: 77.5967 },
   },
   {
-    origin: { name: "Chakala Metro Station", latitude: 19.1019, longitude: 72.8672 },
-    destination: { name: "Saki Naka Metro Station", latitude: 19.0961, longitude: 72.8882 },
+    origin: { name: "Majestic Metro Station", latitude: 12.9767, longitude: 77.5713 },
+    destination: { name: "Vidhana Soudha Metro Station", latitude: 12.9793, longitude: 77.5920 },
   },
   {
-    origin: { name: "D.N. Nagar Metro Station", latitude: 19.1247, longitude: 72.8256 },
-    destination: { name: "Asalpha Metro Station", latitude: 19.0903, longitude: 72.8961 },
+    origin: { name: "Yeshwanthpur Metro Station", latitude: 13.0280, longitude: 77.5540 },
+    destination: { name: "Rajajinagar Metro Station", latitude: 12.9939, longitude: 77.5540 },
   },
   {
-    origin: { name: "WEH Metro Station", latitude: 19.1147, longitude: 72.8562 },
-    destination: { name: "Jagruti Nagar Metro Station", latitude: 19.0838, longitude: 72.9030 },
+    origin: { name: "Silk Board Metro Station", latitude: 12.9166, longitude: 77.6228 },
+    destination: { name: "Electronic City Metro Station", latitude: 12.8452, longitude: 77.6602 },
   },
 ]
 
@@ -80,7 +80,7 @@ export const evaluationService = {
     let totalTSRisk = 0
     let totalBaseRisk = 0
 
-    for (const scenario of MUMBAI_TEST_SCENARIOS) {
+    for (const scenario of BENGALURU_TEST_SCENARIOS) {
       const rawRoutes = await multimodalService.generateRoutes({
         origin: scenario.origin,
         destination: scenario.destination,
@@ -159,7 +159,7 @@ export const evaluationService = {
       averageComputationLatencyMs: latency,
       isSimulatedBenchmark: true,
       benchmarkDisclaimer:
-        "SIMULATED PROTOTYPE BENCHMARK — evaluated against 5 Mumbai Metro Line 1 demo scenarios. " +
+        "SIMULATED PROTOTYPE BENCHMARK — evaluated against 5 real Namma Metro corridor demo scenarios. " +
         "Not a real-world measurement. Does not claim superiority over live navigation systems. " +
         "Compares TransitSwap multi-criteria engine against shortest-time and lowest-cost baselines only.",
       evaluatedAt: new Date().toISOString(),
