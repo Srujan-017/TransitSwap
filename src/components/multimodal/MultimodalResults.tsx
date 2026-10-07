@@ -58,12 +58,19 @@ export default function MultimodalResults({
   const [reportError, setReportError] = useState("")
   const selected = routes[selectedIndex]
   const reportStation = useMemo(() => transitSegments(selected ?? routes[0])[0], [selected, routes])
-  if (!selected) return null
 
-  const weather = selected.weatherImpact?.weather
-  const checkedStations = selected.accessibility?.checkedStations ?? []
-  const crowdStations = selected.crowd?.stations ?? []
+  // These read `selected` defensively (it may be undefined here) so they can
+  // sit above the early return below, alongside every other hook.
+  const checkedStations = selected?.accessibility?.checkedStations ?? []
+  const crowdStations = selected?.crowd?.stations ?? []
 
+  // Phase 4 fix (B7) — this useMemo used to come AFTER `if (!selected) return
+  // null`, so it ran on some renders and not others depending on `selected`.
+  // That's a Rules-of-Hooks violation: React requires every hook to run in
+  // the same order on every render of this component, or it throws
+  // "Rendered fewer hooks than expected". Moving both this memo and the
+  // early return below it (instead of between them) fixes that — every hook
+  // in this component now runs unconditionally on every render.
   const reportStationId = useMemo(() => {
     if (!reportStation) return null
     const match =
@@ -71,6 +78,10 @@ export default function MultimodalResults({
       crowdStations.find((s) => s.stationName === reportStation.from.name)
     return match?.stationId ?? null
   }, [reportStation, checkedStations, crowdStations])
+
+  if (!selected) return null
+
+  const weather = selected.weatherImpact?.weather
 
   async function submitCrowdReport() {
     if (!reportStation || !reportStationId) return
