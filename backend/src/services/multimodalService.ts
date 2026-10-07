@@ -31,6 +31,14 @@ const BUS_SPEED_MPS = 6.0
 const AUTO_SPEED_MPS = 4.2
 const CONTINUITY_TOLERANCE_M = 50
 const SAME_POINT_TOLERANCE_M = 25
+// Phase 4 fix (B12) — a walking segment shorter than this is dropped from
+// the final route entirely (see omitNegligibleWalks below), rather than
+// surfacing degenerate instructions like "Walk 0 m to Versova Metro" with a
+// two-identical-coordinate geometry. Comfortably under CONTINUITY_TOLERANCE_M
+// so dropping one never breaks validateCandidate()'s boundary/continuity
+// checks — by construction, a walk below this threshold connects two points
+// already within CONTINUITY_TOLERANCE_M of each other.
+const MIN_WALK_SEGMENT_M = 20
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000
@@ -524,6 +532,22 @@ function routeSignature(segments: RouteSegment[]): string {
   }).join("|")
 }
 
+/**
+ * Phase 4 fix (B12) — drops any walking segment under MIN_WALK_SEGMENT_M
+ * from a candidate's segment list (access walk, egress walk, or an internal
+ * connector walk — the same rule applies uniformly to all three). Safe for
+ * validateCandidate()'s boundary/continuity checks: whichever two points a
+ * dropped walk connected are, by construction, already within
+ * CONTINUITY_TOLERANCE_M of each other, so removing it never introduces a
+ * gap validateCandidate() would reject. Never drops a metro/bus/auto
+ * segment — those are the only segments that can never legitimately be
+ * zero-length (validSegment() already requires distanceMeters > 0 for
+ * transit segments).
+ */
+function omitNegligibleWalks(segments: RouteSegment[]): RouteSegment[] {
+  return segments.filter((segment) => !(segment.mode === "walking" && segment.distanceMeters < MIN_WALK_SEGMENT_M))
+}
+
 function removeDuplicateCandidates(candidates: RouteSegment[][]): RouteSegment[][] {
   const seen = new Set<string>()
   const unique: RouteSegment[][] = []
@@ -803,7 +827,13 @@ export const multimodalService = {
       tryWalkBusMetroWalk(ctx, origin, destination),
     ])
 
-    const validCandidates = generated.filter((segments): segments is RouteSegment[] => (
+    // Phase 4 fix (B12) — drop degenerate near-zero walking segments (e.g. an
+    // access walk of 0m when the origin IS the station) before validation,
+    // instead of surfacing "Walk 0 m to X" with a two-identical-coordinate
+    // geometry in the final route.
+    const cleaned = generated.map((segments) => (segments ? omitNegligibleWalks(segments) : segments))
+
+    const validCandidates = cleaned.filter((segments): segments is RouteSegment[] => (
       validateCandidate(segments, origin, destination)
     ))
     const uniqueCandidates = removeDuplicateCandidates(validCandidates)

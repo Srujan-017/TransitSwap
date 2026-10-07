@@ -135,16 +135,22 @@ async function run() {
     const routes = await multimodalService.generateRoutes({ origin: borivali, destination: goregaon })
     assert.equal(routes.length, 4, "Borivali -> Goregaon should preserve four supported candidate patterns")
 
+    // Phase 4 fix (B12) — borivali/goregaon are, in the demo dataset, the
+    // EXACT coordinates of bus stops b-07/b-10, so the walk-bus-walk
+    // pattern's access/egress walks are both 0m and are now correctly
+    // omitted (see omitNegligibleWalks() in multimodalService.ts) instead of
+    // surfacing a degenerate "Walk 0 m to Borivali Station" instruction.
+    // Same reasoning for the walk-bus-metro-walk pattern's leading walk.
     findByModes(routes, "walking>metro>walking")
-    findByModes(routes, "walking>bus>walking")
+    findByModes(routes, "bus")
     findByModes(routes, "walking>metro>auto")
-    findByModes(routes, "walking>bus>walking>metro>walking")
+    findByModes(routes, "bus>walking>metro>walking")
 
     routes.forEach(assertCandidateIntegrity)
     assertLabels(routes)
     assert.equal(new Set(signatures(routes)).size, routes.length, "duplicate candidates must be removed")
 
-    const directBus = findByModes(routes, "walking>bus>walking").segments.find((segment) => segment.mode === "bus")!
+    const directBus = findByModes(routes, "bus").segments.find((segment) => segment.mode === "bus")!
     assert.equal(directBus.transitDetails?.lineName, "455 — Borivali ↔ Goregaon")
     assert.deepEqual(directBus.transitDetails?.stops, [
       "Borivali Station",
