@@ -32,26 +32,33 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
     const accessibilityFiltered = await accessibilityService.filterRoutes(routes, profile)
     const allWalkingMeters = accessibilityFiltered.map((route) => route.totalWalkingMeters)
 
-    // Load authenticated user's profile preferences & learned TransitDNA weights
-    let personalizedWeights: { time: number; cost: number; walking: number; reliability: number; accessibility: number } | undefined = undefined
+    // Load authenticated user's profile preferences
     let userPreferences: import("../types").UserPreferences | undefined = undefined
     const authUserId = (req as unknown as { user?: { userId: string } }).user?.userId
 
     if (authUserId && mongoose.connection.readyState === 1) {
       try {
         const dbUser = await User.findById(authUserId)
-        if (dbUser) {
-          if (dbUser.preferences) {
-            userPreferences = dbUser.preferences
-          }
-          if (dbUser.transitDNA?.learnedWeights) {
-            personalizedWeights = dbUser.transitDNA.learnedWeights as unknown as typeof personalizedWeights
-          }
+        if (dbUser?.preferences) {
+          userPreferences = dbUser.preferences
         }
       } catch {
         // Non-fatal — fall back to baseline defaults
       }
     }
+
+    // Phase 4 fix (B2) — the enrichment loop below used to score each route
+    // with User.transitDNA.learnedWeights ("personalizedWeights"), but
+    // mlPreferenceService.rankRoutes() (called further down, after
+    // enrichment) scores from UserPreferenceModel via getModelStatus() and
+    // always overwrites transitDnaScore whenever there are 2+ candidate
+    // routes — so that computation was discarded on every multi-route
+    // request. It was NOT discarded for a single-route result (rankRoutes()
+    // returns a 1-route set unchanged), so fetching the weights from the
+    // same source used below keeps that one real case correct too, instead
+    // of silently reading a value (User.transitDNA.learnedWeights) nothing
+    // else in the system treats as authoritative.
+    const { weights: scoringWeights } = await mlPreferenceService.getModelStatus(authUserId, profile, userPreferences)
 
     // Enrich each route with weather, crowd, reliability, and intelligence scores
     const enriched: EnrichedRoute[] = await Promise.all(
@@ -86,10 +93,13 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
         // Last-mile connectivity options
         enrichedRoute.lastMileOptions = reliabilityService.calculateLastMileOptions(enrichedRoute)
 
-        // Initial feature score using TransitDNA and user preferences
+        // Initial feature score using TransitDNA and user preferences. Only
+        // user-visible when mlPreferenceService.rankRoutes() below leaves a
+        // single route unchanged; otherwise it recomputes this from the same
+        // scoringWeights source anyway.
         enrichedRoute.transitDnaScore = transitDnaService.scoreRoute(
           enrichedRoute,
-          personalizedWeights,
+          scoringWeights,
           profile,
           userPreferences,
         )
