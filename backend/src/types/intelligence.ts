@@ -44,7 +44,13 @@ export interface AccessibilityRecord {
   stepFreeEntrance: boolean | null
   stepFreePlatform: boolean | null
   lastVerified: string
-  verificationSource: "synthetic_demo" | "field_survey" | "community_report" | "transit_authority" | "external_dataset" | "Demo Accessibility Dataset" | "Surveyed Dataset" | "User Report"
+  // "no_record_found" — Phase 4 fix (B5): synthesized in-memory for a transit
+  // station that appears in a route but has no accessibility record at all
+  // (as opposed to "synthetic_demo", which means a demo record DOES exist).
+  // Never persisted; accessibilityService.extractTransitStations() creates
+  // this on the fly so such a station is never silently dropped from
+  // scoring, warnings, or checkedStations.
+  verificationSource: "synthetic_demo" | "field_survey" | "community_report" | "transit_authority" | "external_dataset" | "Demo Accessibility Dataset" | "Surveyed Dataset" | "User Report" | "no_record_found"
   status: AccessibilityStatus
   notes: string | null
   // Problem 23 — optional so existing DEMO_ACCESSIBILITY_DATA entries don't need
@@ -68,7 +74,10 @@ export interface AccessibilityEvaluation {
   checkedStations: CheckedAccessibilityStation[]
   accessibilityScore: number // 0-100, transparent composite score
   rejectionReason: string | null // explains why a route was rejected if blocked
-  dataSource: "synthetic_demo" | "field_survey" | "community_report" | "transit_authority" | "external_dataset" | "mixed"
+  // "no_data" — Phase 4 fix (B5): every transit station on this route has no
+  // accessibility record at all (distinct from "mixed", which means multiple
+  // real sources are blended; "no_data" means there is no real source).
+  dataSource: "synthetic_demo" | "field_survey" | "community_report" | "transit_authority" | "external_dataset" | "mixed" | "no_data"
 }
 
 export interface CrowdStationEstimate {

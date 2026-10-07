@@ -27,14 +27,51 @@ function matchRecordByName(name: string, records: AccessibilityRecord[]) {
   return records.find((r) => r.stationName.toLowerCase() === normalized)
 }
 
+/**
+ * Phase 4 fix (B5) — a transit station that appears in a route but has no
+ * matching accessibility record used to be silently dropped by
+ * extractTransitStations() below. With zero stations collected, the caller's
+ * averaging logic (calculateProfileAccessibilityScore) defaulted to a
+ * generous avgStationScore of 70 and totalStairs of 0 — so a route through
+ * stations the system has NO data on could score as highly "accessible" as
+ * one that was actually verified. This placeholder makes that station count
+ * as a genuinely unknown one instead of not counting at all: status
+ * "unknown" (the same status already used for legitimately-uncertain demo
+ * records), every feature field null, and a verificationSource that's
+ * never confused with an actual data source.
+ */
+function unrecordedStationPlaceholder(name: string, transportMode: "metro" | "bus"): AccessibilityRecord {
+  return {
+    stationId: `unrecorded:${name.toLowerCase()}`,
+    stationName: name,
+    transportMode,
+    latitude: null,
+    longitude: null,
+    hasLift: null,
+    hasRamp: null,
+    hasEscalator: null,
+    stairCount: null,
+    tactilePaving: null,
+    accessibleToilet: null,
+    wheelchairAccessible: null,
+    stepFreeEntrance: null,
+    stepFreePlatform: null,
+    lastVerified: "1970-01-01",
+    verificationSource: "no_record_found",
+    status: "unknown",
+    notes: "No accessibility record exists for this station in the current dataset.",
+  }
+}
+
 function extractTransitStations(route: MultimodalRoute, records: AccessibilityRecord[]) {
   const stationMap = new Map<string, AccessibilityRecord>()
   for (const segment of route.segments) {
     if (segment.mode !== "metro" && segment.mode !== "bus") continue
-    const from = matchRecordByName(segment.from.name, records)
-    const to = matchRecordByName(segment.to.name, records)
-    if (from) stationMap.set(from.stationId, from)
-    if (to) stationMap.set(to.stationId, to)
+    for (const endpoint of [segment.from, segment.to]) {
+      const match = matchRecordByName(endpoint.name, records)
+      const record = match ?? unrecordedStationPlaceholder(endpoint.name, segment.mode)
+      stationMap.set(record.stationId, record)
+    }
   }
   return [...stationMap.values()]
 }
@@ -210,6 +247,10 @@ function stationWarnings(record: AccessibilityRecord, profile: AccessibilityEval
   // Data-source warning
   if (record.verificationSource === "synthetic_demo" || record.verificationSource === "Demo Accessibility Dataset") {
     warnings.push("Accessibility data is from the synthetic demo dataset.")
+  } else if (record.verificationSource === "no_record_found") {
+    // Phase 4 fix (B5) — distinct from, and stronger than, the demo-dataset
+    // note above: this station has NO accessibility record of any kind.
+    warnings.push(`No accessibility record exists for ${record.stationName} — treat this station's accessibility as unverified.`)
   }
 
   // Universal warnings
@@ -373,6 +414,10 @@ function determineDataSource(records: AccessibilityRecord[]): AccessibilityEvalu
     if (src === "community_report" || src === "User Report") return "community_report"
     if (src === "transit_authority") return "transit_authority"
     if (src === "external_dataset") return "external_dataset"
+    // Phase 4 fix (B5) — every station on this route is an
+    // unrecordedStationPlaceholder; say so plainly instead of "mixed",
+    // which would wrongly imply multiple real sources were blended.
+    if (src === "no_record_found") return "no_data"
   }
   return "mixed"
 }
