@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { User, Shield, Settings, CheckCircle, RefreshCw, Dna } from "lucide-react"
+import { User, Shield, Settings, CheckCircle, AlertTriangle, RefreshCw, Dna } from "lucide-react"
 import { useAuthContext } from "../context/AuthContext"
 import { intelligenceService } from "../services/intelligenceService"
 import Card from "../components/ui/Card"
@@ -72,11 +72,18 @@ export default function ProfilePage() {
 
   const [saving, setSaving] = useState(false)
   const [savedMessage, setSavedMessage] = useState("")
+  // Phase 4 fix (B11) — the catch block below used to set the SAME
+  // savedMessage ("Preferences updated in local session.") on a genuine
+  // save failure, rendered with the same green checkmark as a real success.
+  // Nothing was actually persisted, but the user was told it was. This flag
+  // lets the message report what actually happened.
+  const [savedMessageIsError, setSavedMessageIsError] = useState(false)
   const [resetting, setResetting] = useState(false)
 
   const handleSave = async () => {
     setSaving(true)
     setSavedMessage("")
+    setSavedMessageIsError(false)
     try {
       // Call backend endpoints to update profile & preferences, then merge both
       // returned user objects so the local AuthContext state never goes stale
@@ -99,7 +106,12 @@ export default function ProfilePage() {
       }
       setSavedMessage("Preferences saved successfully to backend & TransitDNA!")
     } catch (err) {
-      setSavedMessage("Preferences updated in local session.")
+      setSavedMessageIsError(true)
+      setSavedMessage(
+        err instanceof Error
+          ? `Could not save preferences: ${err.message}`
+          : "Could not save preferences. Please try again.",
+      )
     } finally {
       setSaving(false)
       setTimeout(() => setSavedMessage(""), 4000)
@@ -332,8 +344,13 @@ export default function ProfilePage() {
                 Save Mobility Profile
               </Button>
               {savedMessage && (
-                <span className="flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" /> {savedMessage}
+                <span className={`flex items-center gap-1.5 text-xs font-medium ${savedMessageIsError ? "text-danger" : "text-emerald-700"}`}>
+                  {savedMessageIsError ? (
+                    <AlertTriangle className="w-4 h-4 text-danger" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+                  )}{" "}
+                  {savedMessage}
                 </span>
               )}
             </div>

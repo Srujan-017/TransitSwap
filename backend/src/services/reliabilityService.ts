@@ -9,6 +9,7 @@ import type {
 } from "../types/intelligence"
 import { historicalReliabilityService } from "./reliability/historicalReliabilityService"
 import { parseLocalDateTime } from "../utils/dateTime"
+import { FARE_CONFIG } from "../data/transitData"
 
 function formatClockTime(date: Date): string {
   let hours = date.getHours()
@@ -366,7 +367,13 @@ export const reliabilityService = {
     const autoDuration = Math.round(distM / 4.2) + 120 // include 2 min wait
     const bikeDuration = Math.round(distM / 3.5) + 60
 
-    const autoFare = Math.round(30 + (distM / 1000) * 15)
+    // Phase 4 fix (B10) — this used to hard-code its own auto tariff
+    // (basefare 30, ₹15/km) that silently disagreed with FARE_CONFIG.auto
+    // (basefare 25, ₹13/km), used everywhere else an auto segment's fare is
+    // priced (multimodalService.autoSegment). The same auto leg could show
+    // two different fares depending on which panel displayed it. Bike has
+    // no equivalent canonical source elsewhere, so its tariff is unchanged.
+    const autoFare = Math.round(FARE_CONFIG.auto.basefare + (distM / 1000) * FARE_CONFIG.auto.perKm)
     const bikeFare = Math.round(15 + (distM / 1000) * 8)
 
     return [
