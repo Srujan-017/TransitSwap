@@ -5,7 +5,7 @@ import { intelligenceService } from "../services/intelligenceService"
 import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Badge from "../components/ui/Badge"
-import type { AccessibilityProfile } from "../types"
+import type { AccessibilityProfile, UserPreferences } from "../types"
 
 const PROFILES = [
   { id: "standard", icon: "🚶", label: "Standard", desc: "Regular commuter" },
@@ -17,23 +17,36 @@ const PROFILES = [
   { id: "reduced_mobility", icon: "🦯", label: "Reduced Mobility", desc: "Requires step-free access & elevators" },
 ]
 
-const TRANSPORT_MODES = [
+// Phase 4 fix — each array's `id` is typed to match the corresponding
+// UserPreferences field exactly, so setForm(...) below can assign it without
+// widening to plain `string`. Previously these were untyped, form's own
+// fields were declared as `string`, and intelligenceService.updatePreferences(
+// form.*) failed tsc with TS2322 on all 4 fields — `npm run build` never
+// caught it because `vite build` doesn't type-check.
+const TRANSPORT_MODES: Array<{ id: UserPreferences["preferredMode"]; icon: string; label: string }> = [
   { id: "any", icon: "🔀", label: "Any mode" },
   { id: "metro", icon: "🚇", label: "Metro preferred" },
   { id: "bus", icon: "🚌", label: "Bus preferred" },
   { id: "auto", icon: "🛺", label: "Auto preferred" },
 ]
 
-const WALK_TOLERANCE = [
+const WALK_TOLERANCE: Array<{ id: UserPreferences["walkingTolerance"]; label: string; desc: string }> = [
   { id: "low", label: "Low", desc: "< 300 m" },
   { id: "medium", label: "Medium", desc: "300–800 m" },
   { id: "high", label: "High", desc: "> 800 m" },
 ]
 
-const BUDGET_PREFERENCE = [
+const BUDGET_PREFERENCE: Array<{ id: UserPreferences["budgetPreference"]; icon: string; label: string; desc: string }> = [
   { id: "cheapest", icon: "💰", label: "Cheapest", desc: "Prefer lower fares." },
   { id: "balanced", icon: "⚖️", label: "Balanced", desc: "Balance cost, time and comfort." },
   { id: "comfort", icon: "🛋️", label: "Comfort", desc: "Prefer lower crowd and better weather comfort." },
+]
+
+const PRIORITIZE_OPTIONS: Array<{ id: UserPreferences["prioritize"]; icon: string; label: string }> = [
+  { id: "speed", icon: "⚡", label: "Speed" },
+  { id: "reliability", icon: "🎯", label: "Reliability" },
+  { id: "comfort", icon: "🛋️", label: "Comfort" },
+  { id: "accessibility", icon: "♿", label: "Accessibility" },
 ]
 
 export default function ProfilePage() {
@@ -43,10 +56,10 @@ export default function ProfilePage() {
     name: string
     email: string
     accessibilityProfile: AccessibilityProfile
-    preferredMode: string
-    walkingTolerance: string
-    budgetPreference: string
-    prioritize: string
+    preferredMode: UserPreferences["preferredMode"]
+    walkingTolerance: UserPreferences["walkingTolerance"]
+    budgetPreference: UserPreferences["budgetPreference"]
+    prioritize: UserPreferences["prioritize"]
   }>({
     name: user?.name || "Commuter",
     email: user?.email || "user@example.com",
@@ -295,12 +308,7 @@ export default function ProfilePage() {
               <div>
                 <label className="text-sm font-medium text-navy-700 block mb-2.5">Primary Priority</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "speed", icon: "⚡", label: "Speed" },
-                    { id: "reliability", icon: "🎯", label: "Reliability" },
-                    { id: "comfort", icon: "🛋️", label: "Comfort" },
-                    { id: "accessibility", icon: "♿", label: "Accessibility" },
-                  ].map((opt) => (
+                  {PRIORITIZE_OPTIONS.map((opt) => (
                     <button
                       key={opt.id}
                       onClick={() => setForm((f) => ({ ...f, prioritize: opt.id }))}

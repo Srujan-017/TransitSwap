@@ -21,13 +21,20 @@ import { useAuthContext } from "../context/AuthContext"
 import { buildLocalDepartureDateTime } from "../utils/formatters"
 import type { GeoLocation, RouteResult, RouteStatus, TransportMode } from "../types/map"
 import type { MultimodalRoute } from "../types/multimodal"
+import type { AccessibilityProfile } from "../types"
 
 // Lazy-load MapView so Leaflet doesn't bloat the initial bundle
 const MapView = lazy(() => import("../components/map/MapView"))
 
 type RoutingMode = "road" | "multimodal"
 
-const PROFILES = [
+// Phase 4 fix — matches the backend's MultimodalRequest.profile shape
+// (backend/src/types/multimodal.ts). Without this, PROFILES.id below widened
+// to plain `string`, which setProfile(p.id) couldn't accept (tsc TS2345);
+// `npm run build` never caught it because `vite build` doesn't type-check.
+type RoutingProfile = AccessibilityProfile | "fastest" | "cheapest" | "comfort"
+
+const PROFILES: Array<{ id: RoutingProfile; icon: string; label: string; description: string }> = [
   { id: "standard",         icon: "🚶", label: "Standard",         description: "Optimizes for normal travel time, fare and schedule balance." },
   { id: "wheelchair",       icon: "♿", label: "Wheelchair",       description: "Prioritizes step-free routes and avoids inaccessible stations." },
   { id: "senior",           icon: "🧓", label: "Senior",           description: "Prioritizes fewer stairs, less walking and fewer transfers." },
@@ -63,7 +70,7 @@ export default function PlanTripPage() {
   const [transportMode, setTransportMode] = useState<TransportMode>("driving")
   // Problem 23 — initialize from the user's saved accessibility profile instead
   // of always defaulting to "standard".
-  const [profile, setProfile]         = useState(user?.accessibilityProfile || "standard")
+  const [profile, setProfile]         = useState<RoutingProfile>(user?.accessibilityProfile || "standard")
   const [date, setDate]               = useState("")
   const [time, setTime]               = useState("")
 
