@@ -383,7 +383,12 @@ export const accessibilityService = {
   async listStations(): Promise<AccessibilityRecord[]> {
     if (mongoose.connection.readyState === 1) {
       const stored = await Accessibility.find().sort({ stationName: 1 })
-      if (stored.length > 0) return stored.map(normalizeRecord)
+      // Phase 4 fix (B4) — a station an admin deactivated (active === false)
+      // is excluded from the records this service hands out. Checked against
+      // the raw (unfiltered) stored.length above, so "every station happens
+      // to be deactivated" is never mistaken for "no data exists yet" and
+      // silently replaced with the demo dataset.
+      if (stored.length > 0) return stored.filter((s) => s.active !== false).map(normalizeRecord)
     }
     return DEMO_ACCESSIBILITY_DATA
   },
@@ -391,9 +396,33 @@ export const accessibilityService = {
   async getStation(stationId: string): Promise<AccessibilityRecord | null> {
     if (mongoose.connection.readyState === 1) {
       const stored = await Accessibility.findOne({ stationId })
-      if (stored) return normalizeRecord(stored)
+      if (stored) {
+        // Phase 4 fix (B4) — a deactivated station is reported as not found
+        // rather than falling through to a same-id demo record below, which
+        // would silently resurrect data an admin explicitly turned off.
+        return stored.active === false ? null : normalizeRecord(stored)
+      }
     }
     return DEMO_ACCESSIBILITY_DATA.find((s) => s.stationId === stationId) ?? null
+  },
+
+  /**
+   * Phase 4 fix (B4) — the set of stationIds an admin has explicitly
+   * deactivated. `Accessibility.active` was written by
+   * adminService.deactivateStation()/updateStation() but never read by
+   * anything — grep-confirmed — so deactivating a station had no effect on
+   * route generation despite the model's own doc-comment claiming it did.
+   * multimodalService.generateRoutes() uses this to exclude deactivated
+   * stations from its nearest-station lookups.
+   */
+  async getInactiveStationIds(): Promise<Set<string>> {
+    if (mongoose.connection.readyState !== 1) return new Set()
+    try {
+      const inactive = await Accessibility.find({ active: false }).select("stationId")
+      return new Set(inactive.map((r) => r.stationId))
+    } catch {
+      return new Set()
+    }
   },
 
   /**

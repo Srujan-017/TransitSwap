@@ -10,6 +10,7 @@ import {
   stationsOnPath,
 } from "../data/transitData"
 import { routingService } from "./routingService"
+import { accessibilityService } from "./accessibilityService"
 import type { NormalizedRoute, TransportMode } from "../types/routing"
 import type {
   MultimodalRoute,
@@ -43,10 +44,15 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-function nearestMetro(lat: number, lng: number, maxM: number) {
+// Phase 4 fix (B4) — excludeIds lets callers keep an admin-deactivated
+// station out of route generation's nearest-station lookups. Defaults to an
+// empty set so every existing caller (including getNearbyTransit, which is
+// deliberately a pure function with no DB access) is unaffected.
+function nearestMetro(lat: number, lng: number, maxM: number, excludeIds: ReadonlySet<string> = new Set()) {
   let best: (typeof METRO_STATIONS)[0] | null = null
   let bestDist = Infinity
   for (const s of METRO_STATIONS) {
+    if (excludeIds.has(s.id)) continue
     const d = haversine(lat, lng, s.latitude, s.longitude)
     if (d < bestDist && d <= maxM) {
       best = s
@@ -56,10 +62,11 @@ function nearestMetro(lat: number, lng: number, maxM: number) {
   return best ? { station: best, distM: bestDist } : null
 }
 
-function nearestBusStop(lat: number, lng: number, maxM: number) {
+function nearestBusStop(lat: number, lng: number, maxM: number, excludeIds: ReadonlySet<string> = new Set()) {
   let best: (typeof BUS_STOPS)[0] | null = null
   let bestDist = Infinity
   for (const s of BUS_STOPS) {
+    if (excludeIds.has(s.id)) continue
     const d = haversine(lat, lng, s.latitude, s.longitude)
     if (d < bestDist && d <= maxM) {
       best = s
@@ -137,6 +144,9 @@ export interface RoadLegProvider {
 interface RoadContext {
   provider: RoadLegProvider
   cache: Map<string, Promise<RoadLegEstimate | null>>
+  // Phase 4 fix (B4) — stationIds/stopIds an admin has deactivated, carried
+  // through the whole candidate-generation call tree for this one request.
+  excludeIds: ReadonlySet<string>
 }
 
 let roadLegProviderOverride: RoadLegProvider | null = null
@@ -145,8 +155,8 @@ export function setMultimodalRoadLegProviderForTesting(provider: RoadLegProvider
   roadLegProviderOverride = provider
 }
 
-function createRoadContext(): RoadContext {
-  return { provider: roadLegProviderOverride ?? routingService, cache: new Map() }
+function createRoadContext(excludeIds: ReadonlySet<string> = new Set()): RoadContext {
+  return { provider: roadLegProviderOverride ?? routingService, cache: new Map(), excludeIds }
 }
 
 function fallbackRoadLeg(
@@ -582,8 +592,8 @@ async function tryWalkMetroWalk(
   origin: SegmentLocation,
   destination: SegmentLocation,
 ): Promise<RouteSegment[] | null> {
-  const nearO = nearestMetro(origin.latitude, origin.longitude, MAX_WALK_TO_METRO_M)
-  const nearD = nearestMetro(destination.latitude, destination.longitude, MAX_WALK_TO_METRO_M)
+  const nearO = nearestMetro(origin.latitude, origin.longitude, MAX_WALK_TO_METRO_M, ctx.excludeIds)
+  const nearD = nearestMetro(destination.latitude, destination.longitude, MAX_WALK_TO_METRO_M, ctx.excludeIds)
   if (!nearO || !nearD || nearO.station.id === nearD.station.id) return null
 
   const path = stationsOnPath(nearO.station.id, nearD.station.id)
@@ -605,8 +615,8 @@ async function tryWalkBusWalk(
   origin: SegmentLocation,
   destination: SegmentLocation,
 ): Promise<RouteSegment[] | null> {
-  const nearO = nearestBusStop(origin.latitude, origin.longitude, MAX_WALK_TO_BUS_M)
-  const nearD = nearestBusStop(destination.latitude, destination.longitude, MAX_WALK_TO_BUS_M)
+  const nearO = nearestBusStop(origin.latitude, origin.longitude, MAX_WALK_TO_BUS_M, ctx.excludeIds)
+  const nearD = nearestBusStop(destination.latitude, destination.longitude, MAX_WALK_TO_BUS_M, ctx.excludeIds)
   if (!nearO || !nearD || nearO.stop.id === nearD.stop.id) return null
 
   const bus = busSegment(nearO.stop, nearD.stop)
@@ -625,10 +635,10 @@ async function tryWalkMetroAuto(
   origin: SegmentLocation,
   destination: SegmentLocation,
 ): Promise<RouteSegment[] | null> {
-  const nearO = nearestMetro(origin.latitude, origin.longitude, MAX_WALK_TO_METRO_M)
+  const nearO = nearestMetro(origin.latitude, origin.longitude, MAX_WALK_TO_METRO_M, ctx.excludeIds)
   if (!nearO) return null
 
-  const nearD = nearestMetro(destination.latitude, destination.longitude, 5000)
+  const nearD = nearestMetro(destination.latitude, destination.longitude, 5000, ctx.excludeIds)
   if (!nearD || nearO.station.id === nearD.station.id) return null
 
   const walkFromMetroDist = haversine(nearD.station.latitude, nearD.station.longitude, destination.latitude, destination.longitude)
@@ -653,8 +663,8 @@ async function tryWalkBusMetroWalk(
   origin: SegmentLocation,
   destination: SegmentLocation,
 ): Promise<RouteSegment[] | null> {
-  const nearD = nearestMetro(destination.latitude, destination.longitude, MAX_WALK_TO_METRO_M)
-  const nearO = nearestBusStop(origin.latitude, origin.longitude, MAX_WALK_TO_BUS_M)
+  const nearD = nearestMetro(destination.latitude, destination.longitude, MAX_WALK_TO_METRO_M, ctx.excludeIds)
+  const nearO = nearestBusStop(origin.latitude, origin.longitude, MAX_WALK_TO_BUS_M, ctx.excludeIds)
   if (!nearD || !nearO) return null
 
   const connectorCandidates: Array<{
@@ -665,8 +675,10 @@ async function tryWalkBusMetroWalk(
   }> = []
 
   for (const metro of METRO_STATIONS) {
+    if (ctx.excludeIds.has(metro.id)) continue
     for (const stop of BUS_STOPS) {
       if (stop.id === nearO.stop.id) continue
+      if (ctx.excludeIds.has(stop.id)) continue
       const walkDistanceMeters = haversine(metro.latitude, metro.longitude, stop.latitude, stop.longitude)
       if (walkDistanceMeters > 600) continue
       const bus = busSegment(nearO.stop, stop)
@@ -780,7 +792,10 @@ export const multimodalService = {
       return []
     }
 
-    const ctx = createRoadContext()
+    // Phase 4 fix (B4) — stations/stops an admin has deactivated are kept out
+    // of every candidate pattern generated below (see RoadContext.excludeIds).
+    const inactiveIds = await accessibilityService.getInactiveStationIds()
+    const ctx = createRoadContext(inactiveIds)
     const generated = await Promise.all([
       tryWalkMetroWalk(ctx, origin, destination),
       tryWalkBusWalk(ctx, origin, destination),
