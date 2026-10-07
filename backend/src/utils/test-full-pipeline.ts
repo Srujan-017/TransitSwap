@@ -9,9 +9,10 @@ import { crowdService } from "../services/crowdService"
 async function runPipelineTest() {
   console.log("=== TRANSITSWAP PHASE 18 - FULL PIPELINE VERIFICATION ===")
 
-  // 1. Generate Multimodal Routes (Versova to Ghatkopar demo corridor)
-  const origin = { name: "Versova Metro Station", latitude: 19.1300, longitude: 72.8161 }
-  const destination = { name: "Ghatkopar Metro Station", latitude: 19.0863, longitude: 72.9082 }
+  // 1. Generate Multimodal Routes (Kempegowda Bus Station to Shivajinagar Bus
+  // Stand demo corridor — Phase 5 migrated this from Mumbai to Bengaluru)
+  const origin = { name: "Kempegowda Bus Station", latitude: 12.9770, longitude: 77.5705 }
+  const destination = { name: "Shivajinagar Bus Stand", latitude: 12.9868, longitude: 77.6047 }
 
   console.log("\n[1] Generating Candidate Multimodal Routes...")
   const rawRoutes = await multimodalService.generateRoutes({ origin, destination })

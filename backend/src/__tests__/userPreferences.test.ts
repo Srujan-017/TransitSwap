@@ -22,8 +22,8 @@ function makeRoute(id: string, mode: "metro" | "bus" | "walking", durationSec: n
       {
         id: `${id}-seg-1`,
         mode,
-        from: { name: mode === "metro" ? "Versova Metro" : "Bus Stop A", latitude: 19.1, longitude: 72.8 },
-        to: { name: mode === "metro" ? "D.N. Nagar Metro" : "Bus Stop B", latitude: 19.1, longitude: 72.9 },
+        from: { name: mode === "metro" ? "Whitefield Metro" : "Bus Stop A", latitude: 19.1, longitude: 72.8 },
+        to: { name: mode === "metro" ? "Majestic Metro" : "Bus Stop B", latitude: 19.1, longitude: 72.9 },
         distanceMeters: 3000,
         durationSeconds: durationSec - 300,
         estimatedFare: fare,
@@ -159,19 +159,19 @@ async function runPreferenceTests() {
   // ── Test 6: Hard Accessibility Constraint Precedence ─────────────────────
 
   console.log("8️⃣ Testing Hard Accessibility Constraint Precedence...")
-  // WEH Metro is physically not accessible (38 stairs, no lift, no ramp)
+  // Trinity Metro is physically not accessible (38 stairs, no lift, no ramp)
   const inaccessibleMetroRoute = {
     ...makeRoute("route-inaccessible-metro", "metro", 1500, 200, 20, 0),
     segments: [
       {
         id: "seg-weh",
         mode: "metro" as const,
-        from: { name: "WEH Metro", latitude: 19.1, longitude: 72.8 },
-        to: { name: "Chakala Metro", latitude: 19.1, longitude: 72.9 },
+        from: { name: "Trinity Metro", latitude: 19.1, longitude: 72.8 },
+        to: { name: "Cubbon Park Metro", latitude: 19.1, longitude: 72.9 },
         distanceMeters: 3000,
         durationSeconds: 1200,
         estimatedFare: 20,
-        instruction: "Metro from WEH to Chakala",
+        instruction: "Metro from Trinity to Cubbon Park",
         geometry: { type: "LineString" as const, coordinates: [[72.8, 19.1] as [number, number], [72.9, 19.1] as [number, number]] },
       },
     ],

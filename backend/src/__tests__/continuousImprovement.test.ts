@@ -124,8 +124,8 @@ function makeEnrichedRoute(id: string, durationSec: number): EnrichedRoute {
       {
         id: `${id}-seg-1`,
         mode: "metro",
-        from: { name: "Versova Metro", latitude: 19.13, longitude: 72.8161 },
-        to: { name: "Andheri Metro", latitude: 19.12, longitude: 72.85 },
+        from: { name: "Whitefield Metro", latitude: 12.9698, longitude: 77.7500 },
+        to: { name: "MG Road Metro", latitude: 12.9757, longitude: 77.6079 },
         distanceMeters: 3000,
         durationSeconds: durationSec,
         estimatedFare: 25,
@@ -170,8 +170,8 @@ async function runServiceTests() {
     // 10. Journey with NO stored departureTime: feedback + actualDurationMinutes
     // must still save the feedback, but must NOT fabricate an observation.
     const noDepartureJourney = await journeyService.saveJourney(String(user._id), {
-      origin: { name: "Versova Metro", latitude: 19.13, longitude: 72.8161 },
-      destination: { name: "Andheri Metro", latitude: 19.12, longitude: 72.85 },
+      origin: { name: "Whitefield Metro", latitude: 12.9698, longitude: 77.7500 },
+      destination: { name: "MG Road Metro", latitude: 12.9757, longitude: 77.6079 },
       selectedRoute: makeEnrichedRoute("route-no-departure", 1800),
       // departureTime intentionally omitted
     })
@@ -190,8 +190,8 @@ async function runServiceTests() {
     // 11 & 12. Journey WITH a real departureTime: first submission creates one
     // observation; resubmitting an updated duration updates it (no duplicate).
     const withDepartureJourney = await journeyService.saveJourney(String(user._id), {
-      origin: { name: "Versova Metro", latitude: 19.13, longitude: 72.8161 },
-      destination: { name: "Andheri Metro", latitude: 19.12, longitude: 72.85 },
+      origin: { name: "Whitefield Metro", latitude: 12.9698, longitude: 77.7500 },
+      destination: { name: "MG Road Metro", latitude: 12.9757, longitude: 77.6079 },
       selectedRoute: makeEnrichedRoute("route-with-departure", 1800), // 30 min predicted
       departureTime: "2026-08-16T08:00:00",
     })

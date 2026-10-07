@@ -10,8 +10,8 @@ async function runReliabilityTests() {
   // Test 1: Record Journey Observation & Compute Error (Step 3 & 4)
   console.log("1️⃣ Testing Journey Observation Recording & Error Calculation...")
   const res1 = await historicalReliabilityService.recordObservation({
-    originName: "Versova Metro",
-    destinationName: "Andheri Metro",
+    originName: "Whitefield Metro",
+    destinationName: "MG Road Metro",
     transportMode: "metro",
     predictedDurationMinutes: 15,
     actualDurationMinutes: 18, // Error = 18 - 15 = +3

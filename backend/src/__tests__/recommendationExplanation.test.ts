@@ -32,8 +32,8 @@ function makeEnrichedRoute(
       {
         id: `${id}-seg-1`,
         mode,
-        from: { name: mode === "metro" ? "Versova Metro" : "Bus Stop A", latitude: 19.1, longitude: 72.8 },
-        to: { name: mode === "metro" ? "D.N. Nagar Metro" : "Bus Stop B", latitude: 19.1, longitude: 72.9 },
+        from: { name: mode === "metro" ? "Whitefield Metro" : "Bus Stop A", latitude: 19.1, longitude: 72.8 },
+        to: { name: mode === "metro" ? "Majestic Metro" : "Bus Stop B", latitude: 19.1, longitude: 72.9 },
         distanceMeters: 3000,
         durationSeconds: durationSec - 300,
         estimatedFare: fare,

@@ -127,8 +127,8 @@ function makeEnrichedRoute(id: string, durationSec: number, walkMeters: number, 
       {
         id: `${id}-seg-1`,
         mode: "metro",
-        from: { name: "Versova Metro", latitude: 19.13, longitude: 72.8161 },
-        to: { name: "Andheri Metro", latitude: 19.12, longitude: 72.85 },
+        from: { name: "Whitefield Metro", latitude: 12.9698, longitude: 77.7500 },
+        to: { name: "MG Road Metro", latitude: 12.9757, longitude: 77.6079 },
         distanceMeters: 3000,
         durationSeconds: durationSec,
         estimatedFare: fare,
@@ -175,8 +175,8 @@ async function runServiceTests() {
 
     // 11. another user's journey rejected (ownership)
     const journey = await journeyService.saveJourney(String(userA._id), {
-      origin: { name: "Versova Metro", latitude: 19.13, longitude: 72.8161 },
-      destination: { name: "Andheri Metro", latitude: 19.12, longitude: 72.85 },
+      origin: { name: "Whitefield Metro", latitude: 12.9698, longitude: 77.7500 },
+      destination: { name: "MG Road Metro", latitude: 12.9757, longitude: 77.6079 },
       selectedRoute: routeA,
       alternativeRoutes: [routeB],
     })
@@ -232,8 +232,8 @@ async function runServiceTests() {
     // or a learning-unavailable scenario) must still save the feedback itself.
     const bareJourney = await Journey.create({
       userId: userA._id,
-      origin: { name: "Ghatkopar", latitude: 19.0863, longitude: 72.9082 },
-      destination: { name: "Kurla", latitude: 19.07, longitude: 72.88 },
+      origin: { name: "Magadi Road", latitude: 12.9770, longitude: 77.5590 },
+      destination: { name: "Domlur", latitude: 12.9610, longitude: 77.6387 },
       selectedRoute: { routeId: "bare-route", segments: [{ mode: "walking" }] },
       routeSegments: [{ mode: "walking" }],
       transportModes: ["walking"],

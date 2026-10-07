@@ -100,17 +100,17 @@ async function runAccessibilityTests() {
   const stations = await accessibilityService.listStations()
   assert(stations.length > 0, "listStations returns records")
 
-  const versova = await accessibilityService.getStation("m1-01")
-  assert(versova !== null, "getStation('m1-01') returns Versova Metro")
-  assert(versova!.stationName === "Versova Metro", "Station name matches")
-  assert(versova!.hasLift === true, "Versova has lift")
-  assert(versova!.stepFreeEntrance === true, "Versova has step-free entrance")
+  const whitefield = await accessibilityService.getStation("pl-01")
+  assert(whitefield !== null, "getStation('pl-01') returns Whitefield Metro")
+  assert(whitefield!.stationName === "Whitefield Metro", "Station name matches")
+  assert(whitefield!.hasLift === true, "Whitefield has lift")
+  assert(whitefield!.stepFreeEntrance === true, "Whitefield has step-free entrance")
 
-  const weh = await accessibilityService.getStation("m1-05")
-  assert(weh !== null, "getStation('m1-05') returns WEH Metro")
-  assert(weh!.status === "not_accessible", "WEH is not accessible")
-  assert(weh!.hasLift === false, "WEH has no lift")
-  assert(weh!.stairCount === 38, "WEH has 38 stairs")
+  const trinity = await accessibilityService.getStation("pl-07")
+  assert(trinity !== null, "getStation('pl-07') returns Trinity Metro")
+  assert(trinity!.status === "not_accessible", "Trinity is not accessible")
+  assert(trinity!.hasLift === false, "Trinity has no lift")
+  assert(trinity!.stairCount === 38, "Trinity has 38 stairs")
 
   const notFound = await accessibilityService.getStation("nonexistent")
   assert(notFound === null, "Nonexistent station returns null")
@@ -121,18 +121,18 @@ async function runAccessibilityTests() {
   console.log("3️⃣  Testing Wheelchair Hard-Constraint Filtering...")
 
   // Route through accessible stations only — should pass
-  const accessibleRoute = makeRoute(["Versova Metro", "D.N. Nagar Metro", "Andheri Metro"])
+  const accessibleRoute = makeRoute(["Whitefield Metro", "Majestic Metro", "MG Road Metro"])
   const accEval = await accessibilityService.evaluateRoute(accessibleRoute, "wheelchair")
   assert(accEval.blocked === false, "Accessible route is NOT blocked for wheelchair")
   assert(accEval.accessibilityScore > 0, `Accessibility score is ${accEval.accessibilityScore} (> 0)`)
   assert(accEval.rejectionReason === null, "No rejection reason for accessible route")
 
   // Route through NOT accessible station — should be blocked
-  const blockedRoute = makeRoute(["Versova Metro", "WEH Metro", "Chakala Metro"])
+  const blockedRoute = makeRoute(["Whitefield Metro", "Trinity Metro", "Cubbon Park Metro"])
   const blockEval = await accessibilityService.evaluateRoute(blockedRoute, "wheelchair")
-  assert(blockEval.blocked === true, "Route through WEH Metro IS blocked for wheelchair")
+  assert(blockEval.blocked === true, "Route through Trinity Metro IS blocked for wheelchair")
   assert(blockEval.rejectionReason !== null, "Rejection reason is provided")
-  assert(blockEval.rejectionReason!.includes("WEH Metro"), "Rejection reason names the blocking station")
+  assert(blockEval.rejectionReason!.includes("Trinity Metro"), "Rejection reason names the blocking station")
   assert(blockEval.accessibilityScore === 0, "Blocked route score is 0")
   console.log(`   Rejection: "${blockEval.rejectionReason}"`)
 
@@ -149,8 +149,8 @@ async function runAccessibilityTests() {
   assert(strollerEvalAccessible.blocked === false, "Accessible route is NOT blocked for stroller")
 
   const strollerEvalBlocked = await accessibilityService.evaluateRoute(blockedRoute, "stroller")
-  // Stroller at WEH: 38 stairs + no lift + no ramp → blocked (> 20 stairs)
-  assert(strollerEvalBlocked.blocked === true, "WEH (38 stairs, no lift/ramp) is blocked for stroller")
+  // Stroller at Trinity: 38 stairs + no lift + no ramp → blocked (> 20 stairs)
+  assert(strollerEvalBlocked.blocked === true, "Trinity (38 stairs, no lift/ramp) is blocked for stroller")
   console.log("   ✅ Stroller profile tests passed.\n")
 
   // ── Test 5: Senior Profile ─────────────────────────────────────────────
@@ -159,9 +159,9 @@ async function runAccessibilityTests() {
   const seniorEvalAccessible = await accessibilityService.evaluateRoute(accessibleRoute, "senior")
   assert(seniorEvalAccessible.blocked === false, "Accessible route is NOT blocked for senior")
 
-  // WEH has 38 stairs but only blocked if status="not_accessible" AND stairCount > 35
+  // Trinity has 38 stairs but only blocked if status="not_accessible" AND stairCount > 35
   const seniorEvalWeh = await accessibilityService.evaluateRoute(blockedRoute, "senior")
-  assert(seniorEvalWeh.blocked === true, "WEH (38 stairs, not_accessible) is blocked for senior")
+  assert(seniorEvalWeh.blocked === true, "Trinity (38 stairs, not_accessible) is blocked for senior")
   assert(seniorEvalWeh.warnings.length > 0, "Senior profile generates warnings")
   console.log("   ✅ Senior profile tests passed.\n")
 
@@ -172,7 +172,7 @@ async function runAccessibilityTests() {
   assert(pregnantEval.blocked === false, "Accessible route is NOT blocked for pregnant")
 
   const pregnantEvalWeh = await accessibilityService.evaluateRoute(blockedRoute, "pregnant")
-  assert(pregnantEvalWeh.blocked === true, "WEH (38 stairs, not_accessible) is blocked for pregnant")
+  assert(pregnantEvalWeh.blocked === true, "Trinity (38 stairs, not_accessible) is blocked for pregnant")
   console.log("   ✅ Pregnant profile tests passed.\n")
 
   // ── Test 7: Luggage Profile ────────────────────────────────────────────
@@ -189,7 +189,7 @@ async function runAccessibilityTests() {
   assert(rmEval.blocked === false, "Accessible route is NOT blocked for reduced_mobility")
 
   const rmEvalWeh = await accessibilityService.evaluateRoute(blockedRoute, "reduced_mobility")
-  assert(rmEvalWeh.blocked === true, "WEH (not_accessible) is blocked for reduced_mobility")
+  assert(rmEvalWeh.blocked === true, "Trinity (not_accessible) is blocked for reduced_mobility")
   console.log("   ✅ Reduced mobility profile tests passed.\n")
 
   // ── Test 9: Standard Profile ───────────────────────────────────────────
@@ -203,11 +203,11 @@ async function runAccessibilityTests() {
   // ── Test 10: Accessibility Score ───────────────────────────────────────
 
   console.log("🔟 Testing Accessibility Score Calculation...")
-  const fullAccessRoute = makeRoute(["Versova Metro", "D.N. Nagar Metro"])
+  const fullAccessRoute = makeRoute(["Whitefield Metro", "Majestic Metro"])
   const fullEval = await accessibilityService.evaluateRoute(fullAccessRoute, "standard")
   assert(fullEval.accessibilityScore >= 80, `Fully accessible route score is ${fullEval.accessibilityScore} (expected >= 80)`)
 
-  const partialRoute = makeRoute(["Azad Nagar Metro", "Andheri Metro"])
+  const partialRoute = makeRoute(["Swami Vivekananda Road Metro", "MG Road Metro"])
   const partialEval = await accessibilityService.evaluateRoute(partialRoute, "standard")
   assert(partialEval.accessibilityScore >= 50, `Partially accessible route score is ${partialEval.accessibilityScore} (expected >= 50)`)
   assert(partialEval.accessibilityScore <= fullEval.accessibilityScore, "Partial score is <= full accessible score")
@@ -222,26 +222,26 @@ async function runAccessibilityTests() {
   // ── Test 12: Transfer Station Accessibility Check ────────────────────────────
 
   console.log("1️⃣2️⃣ Testing Transfer Station Accessibility Check...")
-  const transferRoute = makeRoute(["Versova Metro", "Azad Nagar Metro", "Andheri Metro", "WEH Metro"])
+  const transferRoute = makeRoute(["Whitefield Metro", "Swami Vivekananda Road Metro", "MG Road Metro", "Trinity Metro"])
   const transferEval = await accessibilityService.evaluateRoute(transferRoute, "wheelchair")
-  assert(transferEval.blocked === true, "Route with WEH transfer is blocked for wheelchair")
+  assert(transferEval.blocked === true, "Route with Trinity transfer is blocked for wheelchair")
   assert(transferEval.checkedStations.length >= 3, `Checked ${transferEval.checkedStations.length} stations (expected >= 3)`)
   console.log("   ✅ Transfer station check passed.\n")
 
   // ── Test 13: Problem 5 Profile Diversity Test Scenario 1 ──────────────────
 
   console.log("1️⃣3️⃣ Testing Problem 5 Profile Diversity Scenario 1 (Route A: 0 stairs, lift vs Route B: 20 stairs, no lift)...")
-  // Route A: 10 min walk (600m), 0 stairs (Versova), 1 transfer
+  // Route A: 10 min walk (600m), 0 stairs (Whitefield), 1 transfer
   const routeA1Raw = {
-    ...makeRoute(["Versova Metro", "D.N. Nagar Metro"]),
+    ...makeRoute(["Whitefield Metro", "Majestic Metro"]),
     id: "route-A1",
     totalWalkingMeters: 600,
     totalDurationSeconds: 1200,
     transferCount: 1,
   }
-  // Route B: 6 min walk (360m), 38 stairs (WEH), 2 transfers
+  // Route B: 6 min walk (360m), 38 stairs (Trinity), 2 transfers
   const routeB1Raw = {
-    ...makeRoute(["WEH Metro", "Chakala Metro", "Airport Road Metro"]),
+    ...makeRoute(["Trinity Metro", "Cubbon Park Metro", "Vidhana Soudha Metro"]),
     id: "route-B1",
     totalWalkingMeters: 360,
     totalDurationSeconds: 960,
@@ -271,17 +271,17 @@ async function runAccessibilityTests() {
   // ── Test 14: Problem 5 Profile Diversity Test Scenario 2 ──────────────────
 
   console.log("1️⃣4️⃣ Testing Problem 5 Profile Diversity Scenario 2 (Route A: 15m walk, 0 stairs vs Route B: 7m walk, 44 stairs)...")
-  // Route A: 15 min walk (900m), 0 stairs (Versova), 1 transfer
+  // Route A: 15 min walk (900m), 0 stairs (Whitefield), 1 transfer
   const routeA2Raw = {
-    ...makeRoute(["Versova Metro", "D.N. Nagar Metro"]),
+    ...makeRoute(["Whitefield Metro", "Majestic Metro"]),
     id: "route-A2",
     totalWalkingMeters: 900,
     totalDurationSeconds: 1500,
     transferCount: 1,
   }
-  // Route B: 7 min walk (420m), 44 stairs (Saki Naka), 2 transfers
+  // Route B: 7 min walk (420m), 44 stairs (City Railway Station), 2 transfers
   const routeB2Raw = {
-    ...makeRoute(["Saki Naka Metro", "Asalpha Metro", "Ghatkopar Metro"]),
+    ...makeRoute(["City Railway Station Metro", "Halasuru Metro", "Magadi Road Metro"]),
     id: "route-B2",
     totalWalkingMeters: 420,
     totalDurationSeconds: 900,

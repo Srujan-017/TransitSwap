@@ -87,12 +87,12 @@ function runDashboardCalculationTests() {
 function runNearbyTransitTests() {
   console.log("🧪 Running Problem 17 Nearby Transit Tests (Part D)...\n")
 
-  const versova = METRO_STATIONS.find((s) => s.name === "Versova Metro")
-  if (!versova) throw new Error("Expected Versova Metro in demo station dataset")
+  const whitefield = METRO_STATIONS.find((s) => s.name === "Whitefield Metro")
+  if (!whitefield) throw new Error("Expected Whitefield Metro in demo station dataset")
 
-  const near = multimodalService.getNearbyTransit(versova.latitude, versova.longitude)
+  const near = multimodalService.getNearbyTransit(whitefield.latitude, whitefield.longitude)
   console.assert(near.metro !== null, "querying from a known metro station's own coordinates must find a nearby metro station")
-  console.assert(near.metro?.stationName === versova.name, "the nearest metro station to its own coordinates must be itself")
+  console.assert(near.metro?.stationName === whitefield.name, "the nearest metro station to its own coordinates must be itself")
   console.log("   ✅ Nearby Transit resolves the correct nearest metro station")
 
   const farAway = multimodalService.getNearbyTransit(0, 0) // middle of the ocean
@@ -181,13 +181,13 @@ function makeEnrichedRoute(id: string): EnrichedRoute {
       {
         id: `${id}-seg-1`,
         mode: "metro",
-        from: { name: "Versova Metro", latitude: 19.13, longitude: 72.8161 },
-        to: { name: "Andheri Metro", latitude: 19.12, longitude: 72.85 },
+        from: { name: "Whitefield Metro", latitude: 12.9698, longitude: 77.7500 },
+        to: { name: "MG Road Metro", latitude: 12.9757, longitude: 77.6079 },
         distanceMeters: 3000,
         durationSeconds: 1200,
         estimatedFare: 25,
         instruction: "Take the metro",
-        geometry: { type: "LineString", coordinates: [[72.8161, 19.13], [72.85, 19.12]] },
+        geometry: { type: "LineString", coordinates: [[77.7500, 12.9698], [77.6079, 12.9757]] },
       },
     ],
     totalDistanceMeters: 3000,
@@ -203,8 +203,8 @@ function makeEnrichedRoute(id: string): EnrichedRoute {
 async function runSavedRouteTests(userIdA: string, userIdB: string) {
   const saved = await savedRouteService.saveRoute(userIdA, {
     name: "My Commute",
-    origin: { name: "Versova Metro", latitude: 19.13, longitude: 72.8161 },
-    destination: { name: "Andheri Metro", latitude: 19.12, longitude: 72.85 },
+    origin: { name: "Whitefield Metro", latitude: 12.9698, longitude: 77.7500 },
+    destination: { name: "MG Road Metro", latitude: 12.9757, longitude: 77.6079 },
     selectedRoute: makeEnrichedRoute("saved-route-test"),
   })
   console.assert(saved.name === "My Commute", "saved route must persist the given name")
