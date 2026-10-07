@@ -39,12 +39,44 @@ router.post(
   validate,
   createStation,
 )
-router.put("/stations/:stationId", param("stationId").isString().trim().isLength({ min: 2, max: 40 }), validate, updateStation)
+// Phase 4 fix (B6) — this used to validate only the :stationId path param.
+// adminService.updateStation() assigns stationName/latitude/longitude/
+// active/notes straight onto the document with no range check of its own
+// (createStation's sibling route already validates these same fields —
+// this route just never matched it), so an admin could store e.g.
+// latitude: 999, silently corrupting every haversine distance calculation
+// and the map marker for that station.
+const updateStationValidation = [
+  param("stationId").isString().trim().isLength({ min: 2, max: 40 }),
+  body("stationName").optional().isString().trim().isLength({ min: 2, max: 120 }),
+  body("latitude").optional({ nullable: true }).isFloat({ min: -90, max: 90 }),
+  body("longitude").optional({ nullable: true }).isFloat({ min: -180, max: 180 }),
+  body("active").optional().isBoolean(),
+  body("notes").optional({ nullable: true }).isString().trim().isLength({ max: 500 }),
+]
+
+router.put("/stations/:stationId", updateStationValidation, validate, updateStation)
 router.put("/stations/:stationId/deactivate", param("stationId").isString().trim().isLength({ min: 2, max: 40 }), validate, deactivateStation)
 router.delete("/stations/:stationId", param("stationId").isString().trim().isLength({ min: 2, max: 40 }), validate, deleteStation)
 
+// Phase 4 fix (B6) — same gap as updateStationValidation above, for the
+// allowed fields in adminService.updateAccessibility().
+const updateAccessibilityValidation = [
+  param("stationId").isString().trim().isLength({ min: 2, max: 40 }),
+  body("hasLift").optional({ nullable: true }).isBoolean(),
+  body("hasRamp").optional({ nullable: true }).isBoolean(),
+  body("hasEscalator").optional({ nullable: true }).isBoolean(),
+  body("stairCount").optional({ nullable: true }).isInt({ min: 0 }),
+  body("tactilePaving").optional({ nullable: true }).isBoolean(),
+  body("accessibleToilet").optional({ nullable: true }).isBoolean(),
+  body("wheelchairAccessible").optional({ nullable: true }).isBoolean(),
+  body("stepFreeEntrance").optional({ nullable: true }).isBoolean(),
+  body("stepFreePlatform").optional({ nullable: true }).isBoolean(),
+  body("notes").optional({ nullable: true }).isString().trim().isLength({ max: 500 }),
+]
+
 router.get("/accessibility", listAccessibility)
-router.put("/accessibility/:stationId", param("stationId").isString().trim().isLength({ min: 2, max: 40 }), validate, updateAccessibility)
+router.put("/accessibility/:stationId", updateAccessibilityValidation, validate, updateAccessibility)
 router.put(
   "/accessibility/:stationId/lift",
   [
