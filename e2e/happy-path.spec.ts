@@ -96,8 +96,11 @@ test("register, plan a trip, save it, and submit feedback", async ({ page }) => 
 
   // The feedback form is behind a per-journey expand/collapse toggle
   // (HistoryPage.tsx's expandedId state) — open the first journey's details
-  // before looking for its "Submit Feedback" button.
-  await page.getByRole("button", { name: "Open journey details" }).first().click()
+  // before looking for its "Submit Feedback" button. This icon-only button
+  // has no text content or aria-label, only a `title` attribute, which
+  // getByRole's accessible-name matching did not reliably resolve — the
+  // title attribute selector is unambiguous regardless of that computation.
+  await page.locator('button[title="Open journey details"]').first().click()
 
   const submitFeedbackButton = page.getByRole("button", { name: "Submit Feedback" }).first()
   await expect(submitFeedbackButton).toBeVisible({ timeout: 10_000 })

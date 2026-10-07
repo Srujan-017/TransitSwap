@@ -86,7 +86,16 @@ const journeySchema = new Schema<IJourney>(
       comment: { type: String, maxlength: 500 },
       issues: [{ type: String }],
       actualDurationMinutes: { type: Number, min: 1, max: 1440 },
-      createdAt: { type: Date, default: Date.now },
+      // Phase 10 — found by E2E testing: a `default` on ANY subfield of this
+      // nested (non-subdocument) object makes Mongoose auto-populate the
+      // whole `userFeedback` object (as {createdAt: <now>}) on every journey,
+      // even when feedback was never submitted. That made `journey.userFeedback`
+      // truthy immediately on save, so HistoryPage.tsx's `existingFeedback`
+      // check (and its "Submit Feedback" vs "Update Feedback" label) treated
+      // every brand-new journey as already having feedback. submitFeedback()
+      // in journeyService.ts already sets createdAt explicitly when real
+      // feedback is submitted, so this default was redundant as well as harmful.
+      createdAt: { type: Date },
     },
     reliabilityObservationRecorded: { type: Boolean, default: false },
   },

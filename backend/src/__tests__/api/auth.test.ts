@@ -89,11 +89,11 @@ async function run() {
   // ── PUT /preferences ───────────────────────────────────────────────────
 
   console.log("9️⃣ Testing PUT /api/auth/preferences (happy path)...")
-  const prefsRes = await request(app).put("/api/auth/preferences").set(...authHeader(token)).send({ prioritize: "cost" })
+  const prefsRes = await request(app).put("/api/auth/preferences").set(...authHeader(token)).send({ prioritize: "speed" })
   if (assert(prefsRes.status === 200, `Expected 200, got ${prefsRes.status}`)) console.log("   ✅ Preferences updated.\n")
 
   console.log("🔟 Testing PUT /api/auth/preferences with no token (auth failure)...")
-  const prefsNoAuthRes = await request(app).put("/api/auth/preferences").send({ prioritize: "cost" })
+  const prefsNoAuthRes = await request(app).put("/api/auth/preferences").send({ prioritize: "speed" })
   if (assert(prefsNoAuthRes.status === 401, `Expected 401, got ${prefsNoAuthRes.status}`)) console.log("   ✅ 401 with no token.\n")
 
   console.log("1️⃣1️⃣ Testing PUT /api/auth/preferences validation failure (invalid enum)...")

@@ -256,7 +256,15 @@ export default function HistoryPage() {
           {filtered.map((journey) => {
             const expanded = expandedId === journey._id
             const selectedRoute = journey.selectedRoute
-            const existingFeedback = journey.userFeedback
+            // Phase 10 — found by E2E testing: Mongoose auto-vivifies a plain
+            // nested object path (journey.userFeedback) the moment ANY of its
+            // children has default-like behavior (the `issues` array defaults
+            // to [] on every document, with or without real feedback), so
+            // `journey.userFeedback` was truthy — as {issues: []} — even for a
+            // journey that never received feedback. Checking `rating` (the one
+            // field real feedback submission always sets, per
+            // journeyService.submitFeedback) is what "has feedback" actually means.
+            const existingFeedback = journey.userFeedback?.rating != null ? journey.userFeedback : undefined
             const currentRating = ratingMap[journey._id] ?? existingFeedback?.rating ?? 5
             const currentComment = commentMap[journey._id] ?? existingFeedback?.comment ?? ""
             const currentIssues = issuesMap[journey._id] ?? existingFeedback?.issues ?? []

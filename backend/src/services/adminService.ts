@@ -42,7 +42,11 @@ export const adminService = {
     let feedbackCount: number | "N/A" = "N/A"
     if (dbReady()) {
       try {
-        feedbackCount = await Journey.countDocuments({ userFeedback: { $exists: true } })
+        // Phase 10 fix — {userFeedback: {$exists: true}} matched every
+        // journey: Mongoose's `issues` array sub-field always persists as
+        // `[]` even with no real feedback, so the parent object was never
+        // actually absent. "Has feedback" means a rating was submitted.
+        feedbackCount = await Journey.countDocuments({ "userFeedback.rating": { $exists: true } })
       } catch {
         feedbackCount = "N/A"
       }
@@ -198,7 +202,8 @@ export const adminService = {
 
   async listFeedback(filters: { rating?: number; issue?: string } = {}) {
     if (!dbReady()) return []
-    const query: Record<string, unknown> = { userFeedback: { $exists: true } }
+    // Phase 10 fix — see the matching comment on feedbackCount above.
+    const query: Record<string, unknown> = { "userFeedback.rating": { $exists: true } }
     if (filters.rating) query["userFeedback.rating"] = filters.rating
     if (filters.issue) query["userFeedback.issues"] = filters.issue
 
