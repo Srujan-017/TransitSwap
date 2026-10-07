@@ -39,10 +39,18 @@ const osrmLikeProvider: RoadLegProvider = {
 // Phase 5 — migrated from the original Mumbai seed (Borivali/Goregaon bus
 // stops) to Bengaluru. Kempegowda Bus Station <-> Shivajinagar Bus Stand is
 // connected by exactly one bus route (R1) end-to-end AND both endpoints are
-// within walking distance of Purple Line metro stations, so — like the
-// original Borivali/Goregaon pair — it generates all 4 candidate patterns.
-// Verified by direct probe against the compiled dataset before writing
-// these assertions (see PHASE_5_VERIFICATION.md).
+// within walking distance of Purple Line metro stations.
+// Phase 6 — the graph search (multimodalService.ts) finds a walk+auto
+// candidate the 4 fixed patterns never could (Majestic Metro, a hasAutoHub
+// station, is only ~93m from Kempegowda Bus Station), and the new exact
+// Pareto-dominance filter correctly drops the walk-metro-walk and
+// bus-walk-metro-walk patterns the old 4-pattern-only engine used to return
+// here — both are strictly worse on every one of (duration, fare, walking,
+// transfers) than one of the 3 remaining candidates. 4 -> 3 is the CORRECT
+// new count, not a regression: the old count included Pareto-dominated
+// routes Phase 6 exists specifically to stop returning. Verified by direct
+// probe against the compiled dataset before writing these assertions (see
+// PHASE_6_VERIFICATION.md).
 const kempegowdaBusStation = { name: "Kempegowda Bus Station", latitude: 12.9770, longitude: 77.5705 }
 const shivajinagarBusStand = { name: "Shivajinagar Bus Stand", latitude: 12.9868, longitude: 77.6047 }
 const hebbalBusStop = { name: "Hebbal Bus Stop", latitude: 13.0355, longitude: 77.5971 }
@@ -130,6 +138,31 @@ function assertLabels(routes: MultimodalRoute[]) {
   }
 }
 
+/**
+ * Phase 6 — direct regression test for the stated success criterion "0
+ * Pareto-dominated routes returned": no route in a candidate set should be
+ * strictly worse than another on every one of (duration, fare, walking,
+ * transfers). This mirrors multimodalService.ts's own
+ * filterParetoOptimalRouteCandidates() exactly, so this test catches a
+ * regression there independently of any one hard-coded scenario.
+ */
+function assertNoDominatedRoute(routes: MultimodalRoute[]) {
+  for (const route of routes) {
+    const dominatedBy = routes.find((other) => (
+      other !== route &&
+      other.totalDurationSeconds <= route.totalDurationSeconds &&
+      other.totalFare <= route.totalFare &&
+      other.totalWalkingMeters <= route.totalWalkingMeters &&
+      other.transferCount <= route.transferCount &&
+      (other.totalDurationSeconds < route.totalDurationSeconds ||
+        other.totalFare < route.totalFare ||
+        other.totalWalkingMeters < route.totalWalkingMeters ||
+        other.transferCount < route.transferCount)
+    ))
+    assert.ok(!dominatedBy, `Route ${modes(route)} is Pareto-dominated by ${dominatedBy ? modes(dominatedBy) : ""} — should have been filtered out`)
+  }
+}
+
 function signatures(routes: MultimodalRoute[]) {
   return routes.map((route) =>
     route.segments.map((segment) => (
@@ -144,22 +177,19 @@ async function run() {
   setMultimodalRoadLegProviderForTesting(offlineProvider)
   try {
     const routes = await multimodalService.generateRoutes({ origin: kempegowdaBusStation, destination: shivajinagarBusStand })
-    assert.equal(routes.length, 4, "Kempegowda Bus Station -> Shivajinagar Bus Stand should preserve four supported candidate patterns")
+    assert.equal(routes.length, 3, "Kempegowda Bus Station -> Shivajinagar Bus Stand: 3 Pareto-optimal candidates (see comment above)")
 
-    // Phase 4 fix (B12) — both endpoints are, in the demo dataset, the EXACT
-    // coordinates of bus stops b-03/b-01, so the walk-bus-walk pattern's
-    // access/egress walks are both 0m and are correctly omitted (see
-    // omitNegligibleWalks() in multimodalService.ts) instead of surfacing a
-    // degenerate "Walk 0 m to X" instruction. Same reasoning for the
-    // walk-bus-metro-walk pattern's leading walk.
-    findByModes(routes, "walking>metro>walking")
+    findByModes(routes, "walking>auto")
     findByModes(routes, "bus")
     findByModes(routes, "walking>metro>auto")
-    findByModes(routes, "bus>walking>metro>walking")
 
     routes.forEach(assertCandidateIntegrity)
     assertLabels(routes)
     assert.equal(new Set(signatures(routes)).size, routes.length, "duplicate candidates must be removed")
+
+    // Phase 6 — the final Pareto filter is itself tested directly below
+    // (assertNoDominatedRoute); this just confirms it ran on this scenario.
+    assertNoDominatedRoute(routes)
 
     const directBus = findByModes(routes, "bus").segments.find((segment) => segment.mode === "bus")!
     assert.equal(directBus.transitDetails?.lineName, "1 — Kempegowda Bus Station ↔ Shivajinagar (via MG Road)")
@@ -169,7 +199,7 @@ async function run() {
       "Shivajinagar Bus Stand",
     ])
 
-    const metro = findByModes(routes, "walking>metro>walking").segments.find((segment) => segment.mode === "metro")!
+    const metro = findByModes(routes, "walking>metro>auto").segments.find((segment) => segment.mode === "metro")!
     assert.equal(metro.transitDetails?.lineName, "Purple Line")
     assert.ok(metro.transitDetails?.stops.includes("Cubbon Park Metro"))
 
@@ -183,6 +213,7 @@ async function run() {
         .filter((segment) => segment.mode === "bus")
         .forEach((segment) => assert.notEqual(segment.transitDetails?.lineName, "BMTC Bus"))
     })
+    assertNoDominatedRoute(unrelatedBusRoutes)
 
     // Phase 5 — exercises the generalized stationsOnPath() interchange
     // (Madavara is Green-Line-only, Whitefield is Purple-Line-only; no
@@ -194,6 +225,7 @@ async function run() {
       .find((segment) => segment.mode === "metro" && segment.transitDetails?.stops.includes("Majestic Metro"))
     assert.ok(interchangeMetro, "metro interchange path should be generated")
     assert.equal(interchangeMetro!.transitDetails?.lineName, "Green Line + Purple Line")
+    assertNoDominatedRoute(interchangeRoutes)
 
     const outside = await multimodalService.generateRoutes({ origin: outsideA, destination: outsideB })
     assert.deepEqual(outside, [], "outside demo network should return no routes")
@@ -204,6 +236,7 @@ async function run() {
     const autoRoutes = await multimodalService.generateRoutes({ origin: kempegowdaBusStation, destination: farEast })
     findByModes(autoRoutes, "walking>metro>auto")
     autoRoutes.forEach(assertCandidateIntegrity)
+    assertNoDominatedRoute(autoRoutes)
 
     setMultimodalRoadLegProviderForTesting(osrmLikeProvider)
     const osrmRoutes = await multimodalService.generateRoutes({ origin: kempegowdaBusStation, destination: farEast })

@@ -747,6 +747,433 @@ async function tryWalkBusMetroWalk(
   return null
 }
 
+// ── Phase 6 — Graph-based candidate generation engine ───────────────────────
+//
+// The 4 tryWalk*() pattern functions above are kept completely unchanged
+// (per PROJECT_MASTER_PLAN.md Phase 6's explicit risk mitigation: never
+// remove them). This section ADDS a second, independent candidate source: a
+// bounded multi-criteria search over a small stop graph built from every
+// metro station and bus stop, which can find candidates none of the 4 fixed
+// patterns can — multi-interchange metro journeys beyond one hop, bus->bus
+// transfers, and journeys that simply don't match any of the 4 shapes.
+//
+// This is NOT an exact k-shortest-paths or RAPTOR implementation — it is a
+// bounded label-expanding search (cap the number of times any node is
+// expanded, cap total hops/transfers, cap the search queue to the most
+// promising labels by duration) that trades search completeness for
+// guaranteed termination on this small demo graph. What IS exact is the
+// final Pareto-dominance filter (filterParetoOptimalRouteCandidates, below
+// removeDuplicateCandidates), applied to every candidate — old patterns and
+// new search alike — using the real, materialized route totals. That filter
+// is what actually guarantees "no Pareto-dominated route is ever returned,"
+// not the search's own pruning, which is a performance heuristic only.
+
+const TRANSFER_WALK_RADIUS_M = 600
+const AUTO_EGRESS_MIN_M = 500
+const AUTO_EGRESS_MAX_M = 8000
+const MAX_SEARCH_HOPS = 6
+const MAX_SEARCH_TRANSFERS = 3
+const MAX_NODE_EXPANSIONS = 3
+const MAX_SEARCH_ITERATIONS = 1500
+const SEARCH_QUEUE_CAP = 300
+const MAX_GRAPH_CANDIDATES = 8
+
+type GraphNodeType = "metro" | "bus"
+
+interface GraphNode {
+  key: string
+  type: GraphNodeType
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  hasAutoHub: boolean
+}
+
+type GraphHop =
+  | { mode: "metro"; fromId: string; toId: string; stationPath: string[]; durationSeconds: number; distanceMeters: number; fareEstimate: number }
+  | { mode: "bus"; fromStop: (typeof BUS_STOPS)[0]; toStop: (typeof BUS_STOPS)[0]; durationSeconds: number; distanceMeters: number; fareEstimate: number }
+  | { mode: "walking"; durationSeconds: number; distanceMeters: number }
+  | { mode: "auto"; durationSeconds: number; distanceMeters: number; fareEstimate: number }
+
+interface GraphEdge {
+  toNodeKey: string
+  hop: GraphHop
+}
+
+interface TransitGraph {
+  nodes: Map<string, GraphNode>
+  edges: Map<string, GraphEdge[]>
+}
+
+let cachedGraph: TransitGraph | null = null
+
+function nodeKey(type: GraphNodeType, id: string): string {
+  return `${type}:${id}`
+}
+
+/**
+ * Builds the stop graph once (cached for the process lifetime — the
+ * underlying transitData.ts arrays are static, so this never needs
+ * rebuilding). Three edge types:
+ *   - metro ride edges: every pair of stations sharing a line (not just
+ *     adjacent ones — each edge IS a complete ride, built via the existing
+ *     metroSegment(), exactly as the old patterns already build one), both
+ *     directions.
+ *   - bus ride edges: every pair of stops connected by some direct route
+ *     (selectBusRoute() already picks the best one if several exist), via
+ *     the existing busSegment(), both directions.
+ *   - transfer walk edges: any two distinct nodes (cross-mode included —
+ *     this is what makes bus<->metro and bus<->bus transfers possible
+ *     anywhere they're geographically close, not just at designated
+ *     interchange stations) within TRANSFER_WALK_RADIUS_M.
+ */
+function buildTransitGraph(): TransitGraph {
+  const nodes = new Map<string, GraphNode>()
+  for (const s of METRO_STATIONS) {
+    nodes.set(nodeKey("metro", s.id), { key: nodeKey("metro", s.id), type: "metro", id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude, hasAutoHub: s.hasAutoHub })
+  }
+  for (const s of BUS_STOPS) {
+    nodes.set(nodeKey("bus", s.id), { key: nodeKey("bus", s.id), type: "bus", id: s.id, name: s.name, latitude: s.latitude, longitude: s.longitude, hasAutoHub: false })
+  }
+
+  const edges = new Map<string, GraphEdge[]>()
+  function addEdge(fromKey: string, toKey: string, hop: GraphHop) {
+    const list = edges.get(fromKey)
+    if (list) list.push({ toNodeKey: toKey, hop })
+    else edges.set(fromKey, [{ toNodeKey: toKey, hop }])
+  }
+
+  for (const lineDef of METRO_LINES) {
+    for (let i = 0; i < lineDef.stations.length; i++) {
+      for (let j = i + 1; j < lineDef.stations.length; j++) {
+        const fromId = lineDef.stations[i]
+        const toId = lineDef.stations[j]
+        const forwardPath = lineDef.stations.slice(i, j + 1)
+        const forwardSegment = metroSegment(fromId, toId, forwardPath)
+        if (forwardSegment) {
+          addEdge(nodeKey("metro", fromId), nodeKey("metro", toId), {
+            mode: "metro", fromId, toId, stationPath: forwardPath,
+            durationSeconds: forwardSegment.durationSeconds, distanceMeters: forwardSegment.distanceMeters, fareEstimate: forwardSegment.estimatedFare,
+          })
+        }
+        const backwardPath = [...forwardPath].reverse()
+        const backwardSegment = metroSegment(toId, fromId, backwardPath)
+        if (backwardSegment) {
+          addEdge(nodeKey("metro", toId), nodeKey("metro", fromId), {
+            mode: "metro", fromId: toId, toId: fromId, stationPath: backwardPath,
+            durationSeconds: backwardSegment.durationSeconds, distanceMeters: backwardSegment.distanceMeters, fareEstimate: backwardSegment.estimatedFare,
+          })
+        }
+      }
+    }
+  }
+
+  const busStopIds = BUS_STOPS.map((s) => s.id)
+  for (let i = 0; i < busStopIds.length; i++) {
+    for (let j = i + 1; j < busStopIds.length; j++) {
+      const fromStop = getStop(busStopIds[i])!
+      const toStop = getStop(busStopIds[j])!
+      const forward = busSegment(fromStop, toStop)
+      if (forward) {
+        addEdge(nodeKey("bus", fromStop.id), nodeKey("bus", toStop.id), {
+          mode: "bus", fromStop, toStop, durationSeconds: forward.durationSeconds, distanceMeters: forward.distanceMeters, fareEstimate: forward.estimatedFare,
+        })
+      }
+      const backward = busSegment(toStop, fromStop)
+      if (backward) {
+        addEdge(nodeKey("bus", toStop.id), nodeKey("bus", fromStop.id), {
+          mode: "bus", fromStop: toStop, toStop: fromStop, durationSeconds: backward.durationSeconds, distanceMeters: backward.distanceMeters, fareEstimate: backward.estimatedFare,
+        })
+      }
+    }
+  }
+
+  const allNodes = [...nodes.values()]
+  for (let i = 0; i < allNodes.length; i++) {
+    for (let j = i + 1; j < allNodes.length; j++) {
+      const a = allNodes[i]
+      const b = allNodes[j]
+      const d = haversine(a.latitude, a.longitude, b.latitude, b.longitude)
+      if (d <= 0 || d > TRANSFER_WALK_RADIUS_M) continue
+      addEdge(a.key, b.key, { mode: "walking", durationSeconds: Math.round(d / WALK_SPEED_MPS), distanceMeters: Math.round(d) })
+      addEdge(b.key, a.key, { mode: "walking", durationSeconds: Math.round(d / WALK_SPEED_MPS), distanceMeters: Math.round(d) })
+    }
+  }
+
+  return { nodes, edges }
+}
+
+function getTransitGraph(): TransitGraph {
+  if (!cachedGraph) cachedGraph = buildTransitGraph()
+  return cachedGraph
+}
+
+function isRideMode(mode: MultimodalMode): boolean {
+  return mode === "metro" || mode === "bus" || mode === "auto"
+}
+
+interface SearchPathStep {
+  mode: MultimodalMode
+  hop: GraphHop
+  fromNodeKey: string
+  toNodeKey: string
+}
+
+interface SearchLabel {
+  nodeKey: string
+  durationSeconds: number
+  fareEstimate: number
+  walkingMeters: number
+  transferCount: number
+  lastRideMode: MultimodalMode | null
+  path: SearchPathStep[]
+  visited: Set<string>
+}
+
+function labelSignature(label: SearchLabel): string {
+  return label.path.map((step) => `${step.mode}:${step.fromNodeKey}>${step.toNodeKey}`).join("|")
+}
+
+function dedupeLabelsBySignature(labels: SearchLabel[]): SearchLabel[] {
+  const seen = new Set<string>()
+  const result: SearchLabel[] = []
+  for (const label of labels) {
+    const signature = labelSignature(label)
+    if (seen.has(signature)) continue
+    seen.add(signature)
+    result.push(label)
+  }
+  return result
+}
+
+function labelMetricsDominate(a: SearchLabel, b: SearchLabel): boolean {
+  const leOrEq = a.durationSeconds <= b.durationSeconds && a.fareEstimate <= b.fareEstimate &&
+    a.walkingMeters <= b.walkingMeters && a.transferCount <= b.transferCount
+  const strictlyBetter = a.durationSeconds < b.durationSeconds || a.fareEstimate < b.fareEstimate ||
+    a.walkingMeters < b.walkingMeters || a.transferCount < b.transferCount
+  return leOrEq && strictlyBetter
+}
+
+function paretoFilterLabels(labels: SearchLabel[]): SearchLabel[] {
+  return labels.filter((candidate) => !labels.some((other) => other !== candidate && labelMetricsDominate(other, candidate)))
+}
+
+function nodeLocation(key: string): { name: string; latitude: number; longitude: number } | null {
+  const node = getTransitGraph().nodes.get(key)
+  return node ? { name: node.name, latitude: node.latitude, longitude: node.longitude } : null
+}
+
+/**
+ * Converts a label's abstract hop sequence into real RouteSegment objects —
+ * calling the SAME segment builders (walkSegment/metroSegment/busSegment/
+ * autoSegment) the 4 fixed patterns already use, so a graph-search
+ * candidate is built identically to a pattern-search one. Walking/auto hops
+ * go through the real async builder (which tries OSRM, then falls back),
+ * not the search's own synchronous estimate — the estimate is only ever
+ * used to decide which paths are worth materializing.
+ */
+async function materializeLabel(
+  ctx: RoadContext,
+  origin: SegmentLocation,
+  destination: SegmentLocation,
+  label: SearchLabel,
+): Promise<RouteSegment[] | null> {
+  const segments: RouteSegment[] = []
+  for (const step of label.path) {
+    const fromLoc = step.fromNodeKey === "ORIGIN" ? origin : nodeLocation(step.fromNodeKey)
+    const toLoc = step.toNodeKey === "DESTINATION" ? destination : nodeLocation(step.toNodeKey)
+    if (!fromLoc || !toLoc) return null
+
+    if (step.mode === "walking") {
+      segments.push(await walkSegment(ctx, fromLoc.name, fromLoc.latitude, fromLoc.longitude, toLoc.name, toLoc.latitude, toLoc.longitude))
+    } else if (step.mode === "auto") {
+      segments.push(await autoSegment(ctx, fromLoc.name, fromLoc.latitude, fromLoc.longitude, toLoc.name, toLoc.latitude, toLoc.longitude))
+    } else if (step.mode === "metro") {
+      const hop = step.hop as Extract<GraphHop, { mode: "metro" }>
+      const segment = metroSegment(hop.fromId, hop.toId, hop.stationPath)
+      if (!segment) return null
+      segments.push(segment)
+    } else if (step.mode === "bus") {
+      const hop = step.hop as Extract<GraphHop, { mode: "bus" }>
+      const segment = busSegment(hop.fromStop, hop.toStop)
+      if (!segment) return null
+      segments.push(segment)
+    }
+  }
+  return segments
+}
+
+/**
+ * Bounded multi-criteria label-expanding search from origin to destination
+ * over the stop graph. See the section comment above for exactly what
+ * "bounded" means and why the real correctness guarantee is the separate
+ * filterParetoOptimalRouteCandidates() step, not this search's pruning.
+ */
+async function searchGraphCandidates(
+  ctx: RoadContext,
+  origin: SegmentLocation,
+  destination: SegmentLocation,
+): Promise<RouteSegment[][]> {
+  const graph = getTransitGraph()
+
+  const startEdges: Array<{ toNodeKey: string; durationSeconds: number; distanceMeters: number }> = []
+  const endEdges: Array<{ fromNodeKey: string; mode: "walking" | "auto"; durationSeconds: number; distanceMeters: number; fareEstimate: number }> = []
+
+  for (const node of graph.nodes.values()) {
+    if (ctx.excludeIds.has(node.id)) continue
+    const maxAccessM = node.type === "metro" ? MAX_WALK_TO_METRO_M : MAX_WALK_TO_BUS_M
+
+    const dOrigin = haversine(origin.latitude, origin.longitude, node.latitude, node.longitude)
+    if (dOrigin > 0 && dOrigin <= maxAccessM) {
+      startEdges.push({ toNodeKey: node.key, durationSeconds: Math.round(dOrigin / WALK_SPEED_MPS), distanceMeters: Math.round(dOrigin) })
+    }
+
+    const dDest = haversine(node.latitude, node.longitude, destination.latitude, destination.longitude)
+    if (dDest > 0 && dDest <= maxAccessM) {
+      endEdges.push({ fromNodeKey: node.key, mode: "walking", durationSeconds: Math.round(dDest / WALK_SPEED_MPS), distanceMeters: Math.round(dDest), fareEstimate: 0 })
+    }
+    if (node.hasAutoHub && dDest > AUTO_EGRESS_MIN_M && dDest <= AUTO_EGRESS_MAX_M) {
+      const autoDistance = Math.round(dDest * 1.25)
+      endEdges.push({
+        fromNodeKey: node.key, mode: "auto",
+        durationSeconds: Math.round(autoDistance / AUTO_SPEED_MPS), distanceMeters: autoDistance,
+        fareEstimate: Math.round(FARE_CONFIG.auto.basefare + (autoDistance / 1000) * FARE_CONFIG.auto.perKm),
+      })
+    }
+  }
+
+  if (startEdges.length === 0 || endEdges.length === 0) return []
+
+  const endEdgesByNode = new Map<string, typeof endEdges>()
+  for (const e of endEdges) {
+    const list = endEdgesByNode.get(e.fromNodeKey)
+    if (list) list.push(e); else endEdgesByNode.set(e.fromNodeKey, [e])
+  }
+
+  const finalLabels: SearchLabel[] = []
+  const expansionsAtNode = new Map<string, number>()
+
+  let queue: SearchLabel[] = startEdges.map((e) => ({
+    nodeKey: e.toNodeKey,
+    durationSeconds: e.durationSeconds,
+    fareEstimate: 0,
+    walkingMeters: e.distanceMeters,
+    transferCount: 0,
+    lastRideMode: null,
+    path: [{ mode: "walking" as MultimodalMode, hop: { mode: "walking", durationSeconds: e.durationSeconds, distanceMeters: e.distanceMeters }, fromNodeKey: "ORIGIN", toNodeKey: e.toNodeKey }],
+    visited: new Set([e.toNodeKey]),
+  }))
+
+  let iterations = 0
+  while (queue.length > 0 && iterations < MAX_SEARCH_ITERATIONS) {
+    iterations++
+    queue.sort((a, b) => a.durationSeconds - b.durationSeconds)
+    const current = queue.shift()!
+
+    const endsHere = endEdgesByNode.get(current.nodeKey)
+    if (endsHere) {
+      for (const endEdge of endsHere) {
+        finalLabels.push({
+          nodeKey: "DESTINATION",
+          durationSeconds: current.durationSeconds + endEdge.durationSeconds,
+          fareEstimate: current.fareEstimate + endEdge.fareEstimate,
+          walkingMeters: current.walkingMeters + (endEdge.mode === "walking" ? endEdge.distanceMeters : 0),
+          transferCount: current.transferCount,
+          lastRideMode: current.lastRideMode,
+          path: [...current.path, {
+            mode: endEdge.mode,
+            hop: endEdge.mode === "walking"
+              ? { mode: "walking", durationSeconds: endEdge.durationSeconds, distanceMeters: endEdge.distanceMeters }
+              : { mode: "auto", durationSeconds: endEdge.durationSeconds, distanceMeters: endEdge.distanceMeters, fareEstimate: endEdge.fareEstimate },
+            fromNodeKey: current.nodeKey, toNodeKey: "DESTINATION",
+          }],
+          visited: current.visited,
+        })
+      }
+    }
+
+    if (current.path.length < MAX_SEARCH_HOPS) {
+      const expansions = expansionsAtNode.get(current.nodeKey) ?? 0
+      if (expansions < MAX_NODE_EXPANSIONS) {
+        expansionsAtNode.set(current.nodeKey, expansions + 1)
+        const outgoing = graph.edges.get(current.nodeKey)
+        const lastStep = current.path[current.path.length - 1]
+
+        if (outgoing) {
+          for (const edge of outgoing) {
+            // No two consecutive walking hops — a direct walk already covers
+            // whatever an intermediate walk-then-walk would, and this keeps
+            // the search from wasting its bounded budget on redundant paths.
+            if (edge.hop.mode === "walking" && lastStep.mode === "walking") continue
+
+            const targetNode = graph.nodes.get(edge.toNodeKey)
+            if (targetNode && ctx.excludeIds.has(targetNode.id)) continue
+            if (current.visited.has(edge.toNodeKey)) continue
+
+            const isNewRide = isRideMode(edge.hop.mode) && edge.hop.mode !== current.lastRideMode
+            const newTransferCount = current.transferCount + (isNewRide && current.lastRideMode !== null ? 1 : 0)
+            if (newTransferCount > MAX_SEARCH_TRANSFERS) continue
+
+            const fare = edge.hop.mode === "walking" ? 0 : (edge.hop as { fareEstimate: number }).fareEstimate
+            const walking = edge.hop.mode === "walking" ? edge.hop.distanceMeters : 0
+
+            queue.push({
+              nodeKey: edge.toNodeKey,
+              durationSeconds: current.durationSeconds + edge.hop.durationSeconds,
+              fareEstimate: current.fareEstimate + fare,
+              walkingMeters: current.walkingMeters + walking,
+              transferCount: newTransferCount,
+              lastRideMode: isRideMode(edge.hop.mode) ? edge.hop.mode : current.lastRideMode,
+              path: [...current.path, { mode: edge.hop.mode, hop: edge.hop, fromNodeKey: current.nodeKey, toNodeKey: edge.toNodeKey }],
+              visited: new Set([...current.visited, edge.toNodeKey]),
+            })
+          }
+        }
+      }
+    }
+
+    if (queue.length > SEARCH_QUEUE_CAP) {
+      queue.sort((a, b) => a.durationSeconds - b.durationSeconds)
+      queue = queue.slice(0, SEARCH_QUEUE_CAP)
+    }
+  }
+
+  const dedupedLabels = dedupeLabelsBySignature(finalLabels)
+  const paretoLabels = paretoFilterLabels(dedupedLabels).slice(0, MAX_GRAPH_CANDIDATES)
+
+  const materialized = await Promise.all(paretoLabels.map((label) => materializeLabel(ctx, origin, destination, label)))
+  return materialized.filter((segments): segments is RouteSegment[] => segments !== null)
+}
+
+/**
+ * Phase 6 — the actual correctness guarantee behind "no Pareto-dominated
+ * route is ever returned." Applied to the FULL combined candidate set (the
+ * 4 fixed patterns + the graph search), using the real materialized route
+ * totals rather than the search's own estimates.
+ */
+function routeMetricsFor(segments: RouteSegment[]) {
+  return {
+    dur: segments.reduce((s, seg) => s + seg.durationSeconds, 0),
+    fare: segments.reduce((s, seg) => s + seg.estimatedFare, 0),
+    walking: segments.filter((s) => s.mode === "walking").reduce((s, seg) => s + seg.distanceMeters, 0),
+    transfers: calculateTransferCount(segments),
+  }
+}
+
+function routeMetricsDominate(a: ReturnType<typeof routeMetricsFor>, b: ReturnType<typeof routeMetricsFor>): boolean {
+  const leOrEq = a.dur <= b.dur && a.fare <= b.fare && a.walking <= b.walking && a.transfers <= b.transfers
+  const strictlyBetter = a.dur < b.dur || a.fare < b.fare || a.walking < b.walking || a.transfers < b.transfers
+  return leOrEq && strictlyBetter
+}
+
+function filterParetoOptimalRouteCandidates(candidates: RouteSegment[][]): RouteSegment[][] {
+  const metrics = candidates.map(routeMetricsFor)
+  return candidates.filter((_, index) => (
+    !metrics.some((other, otherIndex) => otherIndex !== index && routeMetricsDominate(other, metrics[index]))
+  ))
+}
+
 interface CandidateMetrics {
   segs: RouteSegment[]
   signature: string
@@ -830,12 +1257,21 @@ export const multimodalService = {
     // of every candidate pattern generated below (see RoadContext.excludeIds).
     const inactiveIds = await accessibilityService.getInactiveStationIds()
     const ctx = createRoadContext(inactiveIds)
-    const generated = await Promise.all([
-      tryWalkMetroWalk(ctx, origin, destination),
-      tryWalkBusWalk(ctx, origin, destination),
-      tryWalkMetroAuto(ctx, origin, destination),
-      tryWalkBusMetroWalk(ctx, origin, destination),
+
+    // Phase 6 — the 4 fixed patterns (unchanged) run alongside the new
+    // bounded graph search, not instead of it. Every candidate from both
+    // sources goes through the exact same validation/dedup/Pareto pipeline
+    // below, so neither source gets preferential treatment.
+    const [patternResults, graphResults] = await Promise.all([
+      Promise.all([
+        tryWalkMetroWalk(ctx, origin, destination),
+        tryWalkBusWalk(ctx, origin, destination),
+        tryWalkMetroAuto(ctx, origin, destination),
+        tryWalkBusMetroWalk(ctx, origin, destination),
+      ]),
+      searchGraphCandidates(ctx, origin, destination),
     ])
+    const generated: Array<RouteSegment[] | null> = [...patternResults, ...graphResults]
 
     // Phase 4 fix (B12) — drop degenerate near-zero walking segments (e.g. an
     // access walk of 0m when the origin IS the station) before validation,
@@ -848,9 +1284,14 @@ export const multimodalService = {
     ))
     const uniqueCandidates = removeDuplicateCandidates(validCandidates)
 
-    if (uniqueCandidates.length === 0) return []
+    // Phase 6 — strip any candidate that is strictly worse than another on
+    // every one of (duration, fare, walking, transfers), from either
+    // source. This is the guarantee, not the search's own pruning.
+    const paretoOptimalCandidates = filterParetoOptimalRouteCandidates(uniqueCandidates)
 
-    return assignLabels(uniqueCandidates).map(({ segments, label }) => buildRoute(segments, label))
+    if (paretoOptimalCandidates.length === 0) return []
+
+    return assignLabels(paretoOptimalCandidates).map(({ segments, label }) => buildRoute(segments, label))
   },
 
   getNearbyTransit(latitude: number, longitude: number): { metro: NearbyTransitResult | null; bus: NearbyTransitResult | null } {
