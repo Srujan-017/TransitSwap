@@ -45,12 +45,18 @@ function makeRoute(id: string, mode: "metro" | "bus" | "walking", durationSec: n
 let passed = 0
 let failed = 0
 
-function assert(condition: boolean, msg: string) {
+// Problem 6 / Phase 4 fix (B9) — assert() now returns whether the condition
+// held, so each call site can gate its "✅ ... passed" message on the actual
+// result instead of printing it unconditionally right after a possible
+// "❌ FAILED" line for the same assertion.
+function assert(condition: boolean, msg: string): boolean {
   if (condition) {
     passed++
+    return true
   } else {
     failed++
     console.error(`   ❌ FAILED: ${msg}`)
+    return false
   }
 }
 
@@ -75,14 +81,16 @@ async function runPreferenceTests() {
   console.log("1️⃣ Testing Preferred Mode (Metro Preference)...")
   const prefsMetro: UserPreferences = { preferredMode: "metro", walkingTolerance: "medium", prioritize: "reliability" }
   const rankMetro = await mlPreferenceService.rankRoutes(undefined, [metroRoute, busRoute], "standard", prefsMetro)
-  assert(rankMetro.rankedRoutes[0].id === "route-metro", "Metro preferred mode boosts Metro route above Bus route")
-  console.log("   ✅ Preferred mode (Metro) test passed.\n")
+  if (assert(rankMetro.rankedRoutes[0].id === "route-metro", "Metro preferred mode boosts Metro route above Bus route")) {
+    console.log("   ✅ Preferred mode (Metro) test passed.\n")
+  }
 
   console.log("2️⃣ Testing Preferred Mode (Bus Preference)...")
   const prefsBus: UserPreferences = { preferredMode: "bus", walkingTolerance: "medium", prioritize: "reliability" }
   const rankBus = await mlPreferenceService.rankRoutes(undefined, [metroRoute, busRoute], "standard", prefsBus)
-  assert(rankBus.rankedRoutes[0].id === "route-bus", "Bus preferred mode boosts Bus route above Metro route")
-  console.log("   ✅ Preferred mode (Bus) test passed.\n")
+  if (assert(rankBus.rankedRoutes[0].id === "route-bus", "Bus preferred mode boosts Bus route above Metro route")) {
+    console.log("   ✅ Preferred mode (Bus) test passed.\n")
+  }
 
   // ── Test 2: Walking Tolerance (Low vs High) ───────────────────────────────
 
@@ -93,14 +101,16 @@ async function runPreferenceTests() {
 
   const prefsWalkLow: UserPreferences = { preferredMode: "any", walkingTolerance: "low", prioritize: "speed" }
   const rankWalkLow = await mlPreferenceService.rankRoutes(undefined, [shortWalkRoute, longWalkRoute], "standard", prefsWalkLow)
-  assert(rankWalkLow.rankedRoutes[0].id === "route-shortwalk", "Low walking tolerance penalizes 1200m walk strongly")
-  console.log("   ✅ Walking tolerance (Low) test passed.\n")
+  if (assert(rankWalkLow.rankedRoutes[0].id === "route-shortwalk", "Low walking tolerance penalizes 1200m walk strongly")) {
+    console.log("   ✅ Walking tolerance (Low) test passed.\n")
+  }
 
   console.log("4️⃣ Testing Walking Tolerance (High Tolerance)...")
   const prefsWalkHigh: UserPreferences = { preferredMode: "any", walkingTolerance: "high", prioritize: "speed" }
   const rankWalkHigh = await mlPreferenceService.rankRoutes(undefined, [shortWalkRoute, longWalkRoute], "standard", prefsWalkHigh)
-  assert(rankWalkHigh.rankedRoutes[0].id === "route-longwalk", "High walking tolerance allows faster 1200m walk route to win")
-  console.log("   ✅ Walking tolerance (High) test passed.\n")
+  if (assert(rankWalkHigh.rankedRoutes[0].id === "route-longwalk", "High walking tolerance allows faster 1200m walk route to win")) {
+    console.log("   ✅ Walking tolerance (High) test passed.\n")
+  }
 
   // ── Test 3: Priority = Reliability (Problem 2 & 3 Integration) ───────────
 
@@ -118,8 +128,9 @@ async function runPreferenceTests() {
 
   const prefsRel: UserPreferences = { preferredMode: "any", walkingTolerance: "medium", prioritize: "reliability" }
   const rankRel = await mlPreferenceService.rankRoutes(undefined, [reliableRoute, riskyRoute], "standard", prefsRel)
-  assert(rankRel.rankedRoutes[0].id === "route-reliable", "Reliability priority ranks high reliability & low transfer risk route first")
-  console.log("   ✅ Priority (Reliability) test passed.\n")
+  if (assert(rankRel.rankedRoutes[0].id === "route-reliable", "Reliability priority ranks high reliability & low transfer risk route first")) {
+    console.log("   ✅ Priority (Reliability) test passed.\n")
+  }
 
   // ── Test 4: Priority = Cost ───────────────────────────────────────────────
 
@@ -129,8 +140,9 @@ async function runPreferenceTests() {
 
   const prefsCost: UserPreferences = { preferredMode: "any", walkingTolerance: "medium", prioritize: "cost" }
   const rankCost = await mlPreferenceService.rankRoutes(undefined, [cheapRoute, expensiveRoute], "standard", prefsCost)
-  assert(rankCost.rankedRoutes[0].id === "route-cheap", "Cost priority gives preference advantage to cheaper route (₹15 vs ₹60)")
-  console.log("   ✅ Priority (Cost) test passed.\n")
+  if (assert(rankCost.rankedRoutes[0].id === "route-cheap", "Cost priority gives preference advantage to cheaper route (₹15 vs ₹60)")) {
+    console.log("   ✅ Priority (Cost) test passed.\n")
+  }
 
   // ── Test 5: Priority = Speed / Time ───────────────────────────────────────
 
@@ -140,8 +152,9 @@ async function runPreferenceTests() {
 
   const prefsSpeed: UserPreferences = { preferredMode: "any", walkingTolerance: "medium", prioritize: "speed" }
   const rankSpeed = await mlPreferenceService.rankRoutes(undefined, [fastRoute, slowRoute], "standard", prefsSpeed)
-  assert(rankSpeed.rankedRoutes[0].id === "route-fast", "Speed priority ranks faster route (25 min vs 45 min) first")
-  console.log("   ✅ Priority (Speed) test passed.\n")
+  if (assert(rankSpeed.rankedRoutes[0].id === "route-fast", "Speed priority ranks faster route (25 min vs 45 min) first")) {
+    console.log("   ✅ Priority (Speed) test passed.\n")
+  }
 
   // ── Test 6: Hard Accessibility Constraint Precedence ─────────────────────
 
@@ -170,8 +183,9 @@ async function runPreferenceTests() {
   // User prefers Metro and reliability, BUT uses Wheelchair profile
   const prefsWheelchairMetro: UserPreferences = { preferredMode: "metro", walkingTolerance: "low", prioritize: "reliability" }
   const filteredRoutes = await accessibilityService.filterRoutes([inaccessibleMetroRoute, accessibleBusRoute], "wheelchair")
-  assert(filteredRoutes.length === 1 && filteredRoutes[0].id === "route-accessible-bus", "Wheelchair hard constraints REJECT inaccessible Metro route despite user's preferredMode = metro")
-  console.log("   ✅ Hard accessibility constraint precedence test passed.\n")
+  if (assert(filteredRoutes.length === 1 && filteredRoutes[0].id === "route-accessible-bus", "Wheelchair hard constraints REJECT inaccessible Metro route despite user's preferredMode = metro")) {
+    console.log("   ✅ Hard accessibility constraint precedence test passed.\n")
+  }
 
   // ── Summary ────────────────────────────────────────────────────────────
 
