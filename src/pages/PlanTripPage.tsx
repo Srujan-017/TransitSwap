@@ -659,7 +659,7 @@ export default function PlanTripPage() {
                 </div>
               </div>
               <p className="text-xs text-navy-500 px-1">
-                The selected locations may be outside the demo transit service area (Mumbai Metropolitan area).
+                The selected locations may be outside the demo transit service area (Bengaluru Metropolitan area).
                 Try the Road Routing mode instead.
               </p>
             </div>

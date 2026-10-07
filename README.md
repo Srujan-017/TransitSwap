@@ -113,7 +113,7 @@ The Transit Intelligence Engine runs the following pipeline on every route reque
 |-------|---------|
 | 1 | Project scaffold — React 19 + Vite 8 + Tailwind CSS v4 |
 | 2 | Express.js backend with TypeScript and Mongoose |
-| 3 | Demo transit dataset (Mumbai Metro + BEST bus network) |
+| 3 | Demo transit dataset (Bengaluru Namma Metro + BMTC bus network) |
 | 4 | Geolocation & location search (Nominatim OSM geocoding) |
 | 5 | Road routing via OSRM (Walk / Drive / Cycle) |
 | 6 | Interactive Leaflet map with route polylines |
@@ -403,7 +403,7 @@ Navigate to **http://localhost:5173** and use demo mode (no API keys required).
 |---------|--------------|
 | Weather | `isDemoData: true` — deterministic weather seeded from the requested coordinate (current conditions only — never a forecast) |
 | Crowd levels | `source: "DEMO_DATA"` — historical pattern estimates |
-| Transit routes | Mumbai Metro Line 1 (Versova ↔ Ghatkopar) + BEST bus routes |
+| Transit routes | Bengaluru Namma Metro (Purple/Green/Yellow Lines) + BMTC bus routes |
 | Accessibility | `verificationSource: "Demo Accessibility Dataset"` |
 | MongoDB | If absent, database-backed features return clear 503 errors; routing, weather fallback, accessibility, crowd estimates, reliability, TransitDNA scoring, and evaluation remain available where they do not require persistence |
 
@@ -560,8 +560,8 @@ These metrics are displayed on the Dashboard page, clearly labelled `isSimulated
 
 | Data | Source | Label |
 |------|--------|-------|
-| Metro network | Approximate Mumbai Metro Lines 1 & 2A geography (19 stations) | Seeded demo dataset |
-| Bus routes | Approximate BEST bus route corridors (12 stops, 4 routes) | Seeded demo dataset |
+| Metro network | Real Bengaluru Namma Metro line names/station names (Purple, Green, Yellow); coordinates approximate, not surveyed (41 stations) | Seeded demo dataset |
+| Bus routes | Real BMTC-served locality names; route numbers illustrative, not an official feed (24 stops, 10 routes) | Seeded demo dataset |
 | Accessibility info | Synthetic prototype dataset — no station was physically surveyed (see §12) | `synthetic_demo` |
 | Weather | OpenWeatherMap API, or a coordinate-seeded deterministic value when no API key is set | Live / Demo clearly labelled |
 | Crowd levels | Real authenticated user reports, blended with a small synthetic historical baseline | `RECENT_USER_REPORT` / `DEMO_DATA` |
@@ -589,32 +589,31 @@ These metrics are displayed on the Dashboard page, clearly labelled `isSimulated
 
 ## 18. Baseline Evaluation Results
 
-> **Phase 4 correction — the table that used to be here was fabricated.** It
-> claimed TransitSwap improved reliability by ~15% and walking by ~29% over
-> the shortest-time baseline, and a "92% CI coverage" figure. Running the
-> exact same benchmark (`evaluationService.runEvaluation()`, captured below)
-> shows **0% difference on every metric** — the code's own comment at
-> `evaluationService.ts:6` already flagged the 92% figure as *"the fake 92%
-> hardcoded confidence coverage"* that a previous fix had removed; the old
-> README text had simply never been updated to match.
+> **Phase 4 correction, re-verified in Phase 5 after the Bengaluru data
+> migration** — this table previously (before Phase 4) showed a fabricated
+> ~15%/~29%/92% improvement. Phase 4 replaced it with a real captured run on
+> the (then Mumbai-based) network, which showed 0% difference on every
+> metric. Phase 5 migrated the network to Bengaluru and substantially
+> expanded it; the numbers below are a fresh real captured run on the new
+> network — re-run `GET /api/evaluation` yourself for a live number.
 
-Actual captured run (`node dist/utils/test-full-pipeline.ts`-equivalent call to `evaluationService.runEvaluation()`, OSRM unreachable so all road legs used the haversine fallback — re-run `GET /api/evaluation` yourself for a live number):
+Actual captured run (`evaluationService.runEvaluation()`, OSRM unreachable so all road legs used the haversine fallback):
 
 | Metric | TransitSwap | Shortest-Time Baseline | Lowest-Cost Baseline |
 |--------|-------------|------------------------|-----------------------|
-| Agreement rate | — | **100%** | **100%** |
+| Agreement rate | — | **100%** | **60%** (was 100% pre-Phase-5) |
 | Avg. Reliability Score | 99/100 | 99/100 | — |
 | Avg. Walking Distance | 0 m | 0 m | — |
 | Missed-Connection Risk | 0% | 0% | — |
 | CI 90% Coverage | `null` (never fabricated — see §15) | — | — |
-| Avg. Computation (total, 5 scenarios) | 17 ms | — | — |
+| Avg. Computation (total, 5 scenarios) | 16 ms | — | — |
 
-**Honest observation, and why:** on these 5 scenarios, TransitSwap's ranking engine picks the *exact same route* as both baselines every time, so every difference is exactly 0. This is not a bug in the ranker — it is a direct consequence of two upstream facts, verified independently:
+**Honest observation, and why:** TransitSwap still agrees with the shortest-time baseline on every one of these 5 scenarios (duration, walking and reliability differences are all exactly 0). It now **disagrees with the lowest-cost baseline on 2 of 5** (Majestic→Vidhana Soudha and Silk Board→Electronic City, where the cheapest candidate isn't the one TransitSwap/shortest-time pick) — a genuinely new, non-fabricated signal that the larger Phase 5 network has started producing real cost/speed trade-offs, where the pre-Phase-5 network had none at all. The underlying cause of the *remaining* 100% agreement with shortest-time is the same as before Phase 5, just less severe:
 
-1. All 5 scenarios use **exact metro station coordinates** as origin/destination, so every access/egress walk is 0m (see §13's walking-segment note).
-2. Candidate generation (§3) typically returns only 1–2 routes per corridor, and one is usually **Pareto-dominated on every axis** by the other (faster, cheaper, and less walking, all at once) — there is no genuine trade-off for any ranking strategy, simple or sophisticated, to resolve differently.
+1. These 5 scenarios use exact metro station coordinates as origin/destination, so access/egress walks are 0m (see §13's walking-segment note) — unchanged by Phase 5.
+2. Candidate generation (§3) is still 4 fixed patterns, not a path search, so most corridors still produce only 1-2 candidates, often Pareto-dominated — Phase 5 only expanded the *data* those patterns run against, not the pattern-generation logic itself (that's Phase 6).
 
-A meaningful benchmark needs scenarios with real trade-offs between candidate routes; building that is tracked as future work (see §19).
+A benchmark scenario set deliberately chosen for genuine trade-offs (rather than this demonstration set, inherited from the original Mumbai seed) is tracked as future work (see §19).
 
 ---
 
@@ -622,7 +621,7 @@ A meaningful benchmark needs scenarios with real trade-offs between candidate ro
 
 | Limitation | Future Enhancement |
 |-----------|-------------------|
-| Seeded demo transit network covers ~14% of the Mumbai area by straight-line distance to the nearest stop/station; ~99% of random origin/destination pairs return no route at all | Integrate GTFS feeds, or substantially expand the seeded network |
+| Seeded demo transit network covers ~30% of the Bengaluru area by straight-line distance to the nearest stop/station (up from ~14% pre-Phase-5, over a 2x improvement); ~93% of random origin/destination pairs still return no route | Integrate GTFS feeds, or substantially expand the seeded network further — closing the remaining gap by hand-authored data alone would need 50-100+ more stations |
 | Candidate generation is 4 fixed journey patterns, not a path search — see §3 | A real multimodal shortest-path / k-shortest-paths search over a stop graph |
 | The current benchmark shows 0% difference from both baselines (see §18) because the candidate sets it tests have no genuine trade-off | A scenario set, and underlying network, with real trade-offs to rank |
 | Missed-connection risk and transfer count are computed and shown, but not yet part of the ranking engine's scoring | Add them to the 7-feature vector |
@@ -679,7 +678,7 @@ A meaningful benchmark needs scenarios with real trade-offs between candidate ro
 
 **Q: Your benchmark shows 100% agreement with the shortest-time baseline — doesn't that mean the multi-criteria engine adds nothing?**
 
-> On these specific 5 scenarios, yes — and I can explain exactly why: each scenario's candidate set has at most one route that isn't Pareto-dominated on every axis by another, so there's no genuine trade-off for any ranking strategy to resolve differently. That's a property of the current seeded dataset's limited size, not evidence that multi-criteria scoring is pointless — it just means this particular benchmark hasn't yet been given a scenario where it matters, which is exactly what the next phase of work targets.
+> On these specific 5 scenarios it does still agree with shortest-time every time — but after the Phase 5 network expansion it now disagrees with the lowest-cost baseline on 2 of 5, which it didn't before. That's a real, if small, signal that a richer network starts giving the ranker genuine trade-offs to resolve. The remaining 100% agreement with shortest-time has a concrete, explainable cause: most of these candidate sets still have at most one route that isn't Pareto-dominated by another, since candidate generation is still 4 fixed journey patterns, not a path search (that's the next phase of work, not a property of the ranker itself).
 
 ---
 
@@ -718,8 +717,8 @@ This project is submitted as part of a Bachelor of Engineering final-year projec
 - **OpenStreetMap / Nominatim** — Geocoding API
 - **OSRM** — Open Source Routing Machine for road routing
 - **OpenWeatherMap** — Weather data API
-- **Mumbai Metro Rail Corporation** — Public station data (approximate, used for demo)
-- **BEST Undertaking Mumbai** — Public bus route data (approximate, used for demo)
+- **Bangalore Metro Rail Corporation (BMRCL) / Namma Metro** — Public line and station names (approximate coordinates, used for demo)
+- **BMTC (Bangalore Metropolitan Transport Corporation)** — Public corridor/locality names (illustrative route numbers, used for demo)
 - **Leaflet.js** — Open source interactive maps
 - **Lucide** — Icon library
 - React, Vite, Tailwind CSS, Express.js, MongoDB open source communities

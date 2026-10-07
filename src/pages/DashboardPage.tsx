@@ -18,9 +18,9 @@ import Badge from "../components/ui/Badge"
 import Button from "../components/ui/Button"
 
 const QUICK_DESTINATIONS = [
-  { label: "Andheri Metro Station", address: "Andheri West, Mumbai", icon: "🚇" },
-  { label: "Ghatkopar Station", address: "Ghatkopar East, Mumbai", icon: "🏢" },
-  { label: "Bandra Bus Depot", address: "Bandra West, Mumbai", icon: "🚌" },
+  { label: "MG Road Metro Station", address: "MG Road, Bengaluru", icon: "🚇" },
+  { label: "Majestic Metro Station", address: "Kempegowda Bus Station, Bengaluru", icon: "🏢" },
+  { label: "Shivajinagar Bus Stand", address: "Shivajinagar, Bengaluru", icon: "🚌" },
 ]
 
 export default function DashboardPage() {

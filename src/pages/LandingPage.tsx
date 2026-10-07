@@ -258,7 +258,7 @@ export default function LandingPage() {
               {
                 icon: <MapPin className="w-6 h-6 text-brand-500" />,
                 title: "Multimodal Routing",
-                desc: "Metro, bus, walking, and auto-rickshaw combinations over a demonstration transit dataset for the Mumbai metropolitan area.",
+                desc: "Metro, bus, walking, and auto-rickshaw combinations over a demonstration transit dataset for the Bengaluru metropolitan area.",
                 badge: "Multimodal",
               },
             ].map((f) => (
