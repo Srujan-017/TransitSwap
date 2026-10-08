@@ -14,6 +14,8 @@ import {
   deleteCrowdReport,
   listFeedback,
   getDataset,
+  listAccessibilityReports,
+  updateAccessibilityReportStatus,
 } from "../controllers/adminController"
 import { requireAuth, requireAdmin } from "../middleware/auth"
 import { validate } from "../middleware/validate"
@@ -98,5 +100,23 @@ router.get(
 )
 
 router.get("/dataset", getDataset)
+
+// Phase 12 — community accessibility reports (accessibilityService.reportIssue()),
+// written since Phase 7 and never surfaced in admin until now.
+router.get(
+  "/accessibility-reports",
+  query("status").optional().isIn(["pending", "confirmed", "resolved", "rejected"]),
+  validate,
+  listAccessibilityReports,
+)
+router.put(
+  "/accessibility-reports/:reportId",
+  [
+    param("reportId").isMongoId(),
+    body("status").isIn(["pending", "confirmed", "resolved", "rejected"]).withMessage("Invalid status"),
+  ],
+  validate,
+  updateAccessibilityReportStatus,
+)
 
 export default router

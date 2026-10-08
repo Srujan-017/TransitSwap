@@ -1,7 +1,14 @@
 import { Fragment, useEffect, useState } from "react"
 import { ShieldAlert, Star, Database, AlertTriangle, Trash2 } from "lucide-react"
 import { adminService } from "../services/adminService"
-import type { AdminOverview, AdminStation, AdminCrowdReport, AdminFeedbackRecord, AdminDatasetInfo } from "../types/admin"
+import type {
+  AdminOverview,
+  AdminStation,
+  AdminCrowdReport,
+  AdminFeedbackRecord,
+  AdminDatasetInfo,
+  AdminAccessibilityReport,
+} from "../types/admin"
 import Card from "../components/ui/Card"
 import Badge from "../components/ui/Badge"
 import Button from "../components/ui/Button"
@@ -696,7 +703,12 @@ function DatasetSection() {
 function ReportsSection() {
   const [stations, setStations] = useState<AdminStation[] | null>(null)
   const [feedback, setFeedback] = useState<AdminFeedbackRecord[] | null>(null)
+  const [accessibilityReports, setAccessibilityReports] = useState<AdminAccessibilityReport[] | null>(null)
   const [error, setError] = useState("")
+
+  function loadAccessibilityReports() {
+    adminService.listAccessibilityReports().then(setAccessibilityReports).catch(() => setAccessibilityReports([]))
+  }
 
   useEffect(() => {
     Promise.all([adminService.listStations(), adminService.listFeedback()])
@@ -705,7 +717,17 @@ function ReportsSection() {
         setFeedback(f)
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load reports."))
+    loadAccessibilityReports()
   }, [])
+
+  async function handleStatusChange(reportId: string, status: AdminAccessibilityReport["status"]) {
+    try {
+      await adminService.updateAccessibilityReportStatus(reportId, status)
+      loadAccessibilityReports()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update report status.")
+    }
+  }
 
   if (error) return <ErrorState message={error} />
   if (!stations || !feedback) return <LoadingSpinner text="Loading reports…" />
@@ -713,10 +735,66 @@ function ReportsSection() {
   const brokenLifts = stations.filter((s) => s.hasLift === false)
   const lowRated = feedback.filter((f) => f.userFeedback.rating <= 2)
 
-  if (brokenLifts.length === 0 && lowRated.length === 0) return <EmptyState message="No reports." />
+  if (brokenLifts.length === 0 && lowRated.length === 0 && !accessibilityReports?.length) {
+    return <EmptyState message="No reports." />
+  }
 
   return (
     <div className="space-y-4">
+      {/* Phase 12 — community accessibility reports (accessibilityService.reportIssue()),
+          written since Phase 7 and never surfaced in admin until now. */}
+      <Card>
+        <h3 className="font-semibold text-navy-900 mb-2 flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-brand-600" /> Community accessibility reports
+          {accessibilityReports && ` (${accessibilityReports.length})`}
+        </h3>
+        {!accessibilityReports ? (
+          <p className="text-sm text-navy-400">Loading…</p>
+        ) : accessibilityReports.length === 0 ? (
+          <p className="text-sm text-navy-500">No community accessibility reports submitted yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {accessibilityReports.map((r) => {
+              const reporter = typeof r.userId === "object" ? r.userId : null
+              return (
+                <div key={r._id} className="flex items-center justify-between gap-3 rounded-xl border border-navy-100 px-3.5 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-navy-900">
+                      {r.stationName} <span className="text-navy-400">·</span>{" "}
+                      <span className="text-navy-600">{r.issueType.replace(/_/g, " ")}</span>
+                    </p>
+                    <p className="text-xs text-navy-500 mt-0.5 truncate">{r.description}</p>
+                    <p className="text-[11px] text-navy-400 mt-0.5">
+                      {reporter?.name ?? "Unknown user"} · {new Date(r.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Badge
+                      variant={
+                        r.status === "resolved" ? "success" : r.status === "rejected" ? "danger" : r.status === "confirmed" ? "warning" : "default"
+                      }
+                    >
+                      {r.status}
+                    </Badge>
+                    <select
+                      aria-label={`Update status for ${r.stationName} report`}
+                      value={r.status}
+                      onChange={(e) => handleStatusChange(r._id, e.target.value as AdminAccessibilityReport["status"])}
+                      className="text-xs rounded-lg border border-navy-200 bg-white px-2 py-1.5 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
       {brokenLifts.length > 0 && (
         <Card>
           <h3 className="font-semibold text-navy-900 mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-danger" /> Broken lift reports ({brokenLifts.length})</h3>

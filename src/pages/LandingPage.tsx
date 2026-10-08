@@ -29,8 +29,26 @@ export default function LandingPage() {
   const [profile, setProfile] = useState("standard")
   const navigate = useNavigate()
 
+  // Phase 12 fix — this used to discard origin/destination/profile entirely
+  // and just navigate to /register (PROJECT_MASTER_PLAN.md §9/§32: "search
+  // form collects 3 fields and discards them"). An unauthenticated visitor
+  // can't search routes directly (routing is behind auth), so this carries
+  // what they typed through sessionStorage instead — PlanTripPage reads it
+  // once after they register/log in and pre-fills the real search, rather
+  // than making them retype everything from scratch.
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
+    if (origin.trim() || destination.trim()) {
+      try {
+        sessionStorage.setItem(
+          "ts_landing_search",
+          JSON.stringify({ origin: origin.trim(), destination: destination.trim(), profile }),
+        )
+      } catch {
+        // Private-browsing contexts can throw on sessionStorage access —
+        // never block navigation over a convenience feature.
+      }
+    }
     navigate("/register")
   }
 

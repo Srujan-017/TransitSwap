@@ -16,3 +16,6 @@ logs/
 playwright-report/
 test-results/
 blob-report/
+
+# Phase 12 — Claude Code session-local tooling state (not project source)
+.claude/scheduled_tasks.lock

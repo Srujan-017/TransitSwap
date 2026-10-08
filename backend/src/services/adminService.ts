@@ -4,6 +4,7 @@ import { Journey } from "../models/Journey"
 import { SavedRoute } from "../models/SavedRoute"
 import { SavedDestination } from "../models/SavedDestination"
 import { CrowdReport } from "../models/CrowdReport"
+import { AccessibilityReport } from "../models/AccessibilityReport"
 import { Accessibility } from "../models/Accessibility"
 import { DEMO_ACCESSIBILITY_DATA } from "../data/accessibilityData"
 import { AppError } from "../middleware/errorHandler"
@@ -232,6 +233,39 @@ export const adminService = {
       }
       return obj
     })
+  },
+
+  // ── Community accessibility reports (Phase 12) — these were written by
+  // accessibilityService.reportIssue() since Phase 7 but never surfaced
+  // anywhere (PROJECT_MASTER_PLAN.md §32 "AccessibilityReport records are
+  // written and never surfaced in any UI"). Reuses the existing collection —
+  // no new model, no new submission flow. ──────────────────────────────────
+
+  async listAccessibilityReports(filters: { status?: string } = {}) {
+    if (!dbReady()) return []
+    const query: Record<string, unknown> = {}
+    if (filters.status) query.status = filters.status
+
+    const reports = await AccessibilityReport.find(query)
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .populate("userId", "name email")
+      .select("userId stationId stationName issueType description status createdAt")
+
+    return reports.map((r) => {
+      const obj = r.toObject() as any
+      if (obj.userId && typeof obj.userId === "object") {
+        delete obj.userId.password
+      }
+      return obj
+    })
+  },
+
+  async updateAccessibilityReportStatus(reportId: string, status: string) {
+    if (!dbReady()) throw new AppError("Database not configured.", 503)
+    const report = await AccessibilityReport.findByIdAndUpdate(reportId, { status }, { new: true })
+    if (!report) throw new AppError("Accessibility report not found.", 404)
+    return report
   },
 
   // ── Dataset (Part 24-26) ────────────────────────────────────────────────────

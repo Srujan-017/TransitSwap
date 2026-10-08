@@ -1,5 +1,12 @@
 import api from "./api"
-import type { AdminOverview, AdminStation, AdminCrowdReport, AdminFeedbackRecord, AdminDatasetInfo } from "../types/admin"
+import type {
+  AdminOverview,
+  AdminStation,
+  AdminCrowdReport,
+  AdminFeedbackRecord,
+  AdminDatasetInfo,
+  AdminAccessibilityReport,
+} from "../types/admin"
 
 export const adminService = {
   async getOverview(): Promise<AdminOverview> {
@@ -63,6 +70,19 @@ export const adminService = {
 
   async getDataset(): Promise<AdminDatasetInfo[]> {
     const { data } = await api.get("/admin/dataset")
+    return data.data
+  },
+
+  async listAccessibilityReports(status?: string): Promise<AdminAccessibilityReport[]> {
+    const { data } = await api.get("/admin/accessibility-reports", { params: status ? { status } : undefined })
+    return data.data
+  },
+
+  async updateAccessibilityReportStatus(
+    reportId: string,
+    status: AdminAccessibilityReport["status"],
+  ): Promise<AdminAccessibilityReport> {
+    const { data } = await api.put(`/admin/accessibility-reports/${reportId}`, { status })
     return data.data
   },
 }

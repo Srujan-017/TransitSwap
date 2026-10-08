@@ -21,6 +21,7 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"))
 const HistoryPage = lazy(() => import("./pages/HistoryPage"))
 const SavedRoutesPage = lazy(() => import("./pages/SavedRoutesPage"))
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"))
+const ResearchPage = lazy(() => import("./pages/ResearchPage"))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthContext()
@@ -95,6 +96,14 @@ function AppRoutes() {
           element={
             <Suspense fallback={<LoadingSpinner fullPage size="lg" text="Loading…" />}>
               <SavedRoutesPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/research"
+          element={
+            <Suspense fallback={<LoadingSpinner fullPage size="lg" text="Loading…" />}>
+              <ResearchPage />
             </Suspense>
           }
         />

@@ -204,6 +204,7 @@ export default function HistoryPage() {
                     onClick={() => void deleteDestination(destination._id)}
                     className="p-1.5 rounded-lg text-navy-400 hover:bg-red-50 hover:text-danger"
                     title="Delete destination"
+                    aria-label={`Delete destination ${destination.name}`}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -316,6 +317,7 @@ export default function HistoryPage() {
                         onClick={() => setExpandedId(expanded ? null : journey._id)}
                         className="p-2 rounded-lg border border-navy-200 text-navy-500 hover:bg-navy-50"
                         title="Open journey details"
+                        aria-label={expanded ? "Collapse journey details" : "Open journey details"}
                       >
                         {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
@@ -324,6 +326,7 @@ export default function HistoryPage() {
                         onClick={() => void deleteJourney(journey._id)}
                         className="p-2 rounded-lg border border-red-200 text-danger hover:bg-red-50"
                         title="Delete journey"
+                        aria-label="Delete journey"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

@@ -19,6 +19,7 @@ export default function Navbar() {
     { to: "/plan", label: "Plan Trip" },
     { to: "/history", label: "History" },
     { to: "/saved-routes", label: "Saved Routes" },
+    { to: "/research", label: "Research" },
     ...(user?.role === "admin" ? [{ to: "/admin", label: "Admin" }] : []),
   ]
 
@@ -63,6 +64,9 @@ export default function Navbar() {
                 <div className="relative hidden md:block">
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
+                    aria-haspopup="true"
+                    aria-expanded={dropdownOpen}
+                    aria-label="Account menu"
                     className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-navy-100 transition-colors"
                   >
                     <div className="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center">
@@ -111,6 +115,8 @@ export default function Navbar() {
                 <button
                   className="md:hidden p-2 rounded-lg hover:bg-navy-100 transition-colors"
                   onClick={() => setMenuOpen(!menuOpen)}
+                  aria-expanded={menuOpen}
+                  aria-label={menuOpen ? "Close menu" : "Open menu"}
                 >
                   {menuOpen ? <X className="w-5 h-5 text-navy-700" /> : <Menu className="w-5 h-5 text-navy-700" />}
                 </button>

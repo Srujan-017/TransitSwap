@@ -65,3 +65,14 @@ export interface AdminDatasetInfo {
   source: string
   status: string
 }
+
+export interface AdminAccessibilityReport {
+  _id: string
+  userId: { _id: string; name: string; email: string } | string
+  stationId: string
+  stationName: string
+  issueType: string
+  description: string
+  status: "pending" | "confirmed" | "resolved" | "rejected"
+  createdAt: string
+}

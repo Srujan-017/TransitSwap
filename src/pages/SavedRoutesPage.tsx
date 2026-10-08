@@ -104,6 +104,7 @@ export default function SavedRoutesPage() {
                   onClick={() => void handleDelete(route._id)}
                   className="p-1.5 rounded-lg text-navy-400 hover:bg-red-50 hover:text-danger flex-shrink-0"
                   title="Delete saved route"
+                  aria-label={`Delete saved route ${route.name}`}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

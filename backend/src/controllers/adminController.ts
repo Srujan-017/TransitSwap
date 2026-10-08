@@ -113,3 +113,22 @@ export async function getDataset(_req: AuthenticatedRequest, res: Response, next
     next(err)
   }
 }
+
+export async function listAccessibilityReports(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const status = typeof req.query.status === "string" ? req.query.status : undefined
+    sendSuccess(res, await adminService.listAccessibilityReports({ status }))
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function updateAccessibilityReportStatus(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const { status } = req.body
+    const report = await adminService.updateAccessibilityReportStatus(req.params.reportId, status)
+    sendSuccess(res, report, "Accessibility report status updated")
+  } catch (err) {
+    next(err)
+  }
+}

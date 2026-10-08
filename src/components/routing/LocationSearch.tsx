@@ -13,6 +13,11 @@ interface LocationSearchProps {
   showLocateButton?: boolean
   onLocate?: () => void
   locating?: boolean
+  // Phase 12 — pre-fills the search text (e.g. carried over from the
+  // landing page's search box) and runs a real geocoding search for it on
+  // mount, instead of silently discarding what the user already typed.
+  // Never fabricates a selected location — the user still picks a result.
+  initialQuery?: string
 }
 
 export default function LocationSearch({
@@ -25,8 +30,9 @@ export default function LocationSearch({
   showLocateButton = false,
   onLocate,
   locating = false,
+  initialQuery,
 }: LocationSearchProps) {
-  const [inputValue, setInputValue] = useState("")
+  const [inputValue, setInputValue] = useState(initialQuery ?? "")
   const [suggestions, setSuggestions] = useState<GeoLocation[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
@@ -86,6 +92,16 @@ export default function LocationSearch({
     }, 350)
   }, [])
 
+  // Fires the real search for a carried-over initial query exactly once on
+  // mount, so the dropdown is already populated rather than leaving the
+  // user to retype what they entered on the landing page.
+  useEffect(() => {
+    if (initialQuery && initialQuery.trim().length >= 2) {
+      handleInput(initialQuery)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleSelect = (location: GeoLocation) => {
     onSelect(location)
     setInputValue(location.name)
@@ -135,6 +151,7 @@ export default function LocationSearch({
               onClick={onLocate}
               disabled={locating}
               title="Use my current location"
+              aria-label="Use my current location"
               className="p-1.5 rounded-lg text-navy-400 hover:text-brand-500 hover:bg-brand-50 transition-all disabled:opacity-50"
             >
               {locating ? (
@@ -148,6 +165,8 @@ export default function LocationSearch({
             <button
               type="button"
               onClick={handleClear}
+              title={`Clear ${label.toLowerCase()}`}
+              aria-label={`Clear ${label.toLowerCase()}`}
               className="p-1.5 rounded-lg text-navy-400 hover:text-danger hover:bg-red-50 transition-all"
             >
               <X className="w-4 h-4" />

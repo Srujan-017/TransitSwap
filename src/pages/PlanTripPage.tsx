@@ -13,6 +13,7 @@ import RouteInstructions from "../components/routing/RouteInstructions"
 import TransportModeSelector from "../components/routing/TransportModeSelector"
 import MultimodalResults from "../components/multimodal/MultimodalResults"
 import NearbyTransit from "../components/multimodal/NearbyTransit"
+import WhyNoRoute from "../components/multimodal/WhyNoRoute"
 import { routingService } from "../services/routingService"
 import { multimodalService } from "../services/multimodalService"
 import { tripService } from "../services/tripService"
@@ -60,17 +61,50 @@ const ACCESSIBILITY_LABELS: Record<string, string> = {
   stroller: "Stroller", luggage: "Heavy Luggage", reduced_mobility: "Reduced Mobility",
 }
 
+// Phase 12 — carried over from the landing page's search box (see
+// LandingPage.tsx's handleSearch). Read synchronously via a lazy useState
+// initializer (runs once, during the component's first render, before
+// LocationSearch ever mounts) rather than a useEffect — a useEffect-based
+// read happens AFTER the first render, by which point LocationSearch has
+// already mounted with an empty `initialQuery` and captured that into its
+// own internal state; a later prop change doesn't retroactively seed it.
+//
+// This is a PURE read with no side effect — React.StrictMode (see main.tsx)
+// double-invokes lazy useState initializers in development specifically to
+// catch side effects during render. An earlier version of this function
+// also called sessionStorage.removeItem() here; the first of the two
+// StrictMode invocations removed it, so the second saw it already gone and
+// the whole feature silently did nothing. The removal now happens in a
+// separate useEffect below, which is where side effects belong.
+function readLandingSearch(): { origin?: string; destination?: string; profile?: string } | null {
+  try {
+    const raw = sessionStorage.getItem("ts_landing_search")
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
 export default function PlanTripPage() {
   const { user } = useAuthContext()
   const navigate = useNavigate()
+
+  const [landingSearch] = useState(readLandingSearch)
 
   const [origin, setOrigin]           = useState<GeoLocation | null>(null)
   const [destination, setDestination] = useState<GeoLocation | null>(null)
   const [routingMode, setRoutingMode] = useState<RoutingMode>("multimodal")
   const [transportMode, setTransportMode] = useState<TransportMode>("driving")
   // Problem 23 — initialize from the user's saved accessibility profile instead
-  // of always defaulting to "standard".
-  const [profile, setProfile]         = useState<RoutingProfile>(user?.accessibilityProfile || "standard")
+  // of always defaulting to "standard". Phase 12 — a carried-over landing-page
+  // profile selection takes priority when present and valid.
+  const [profile, setProfile]         = useState<RoutingProfile>(() => {
+    if (landingSearch?.profile && PROFILES.some((p) => p.id === landingSearch.profile)) {
+      return landingSearch.profile as RoutingProfile
+    }
+    return user?.accessibilityProfile || "standard"
+  })
   const [date, setDate]               = useState("")
   const [time, setTime]               = useState("")
 
@@ -111,6 +145,21 @@ export default function PlanTripPage() {
       setOrigin(state.useRouteOrigin)
       setDestination(state.useRouteDestination)
       setRoutingMode("multimodal")
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Phase 12 — the side-effecting half of the landingSearch pickup above:
+  // clears the sessionStorage entry so it's only ever consumed once. Safe
+  // to no-op on StrictMode's extra dev effect invocation (removeItem on an
+  // already-removed key does nothing).
+  useEffect(() => {
+    if (landingSearch) {
+      try {
+        sessionStorage.removeItem("ts_landing_search")
+      } catch {
+        // ignore
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -346,6 +395,7 @@ export default function PlanTripPage() {
                 showLocateButton
                 onLocate={requestLocation}
                 locating={geoLoading}
+                initialQuery={landingSearch?.origin ?? ""}
               />
 
               {/* Swap button */}
@@ -355,6 +405,7 @@ export default function PlanTripPage() {
                   onClick={handleSwap}
                   disabled={!origin && !destination}
                   title="Swap origin and destination"
+                  aria-label="Swap origin and destination"
                   className="p-2 rounded-xl border border-navy-200 bg-navy-50 text-navy-500 hover:text-brand-600 hover:border-brand-300 hover:bg-brand-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ArrowLeftRight className="w-4 h-4" />
@@ -369,6 +420,7 @@ export default function PlanTripPage() {
                 onSelect={setDestination}
                 onClear={() => { setDestination(null); clearResults() }}
                 iconColor="#ef4444"
+                initialQuery={landingSearch?.destination ?? ""}
               />
 
               {/* Date / Time */}
@@ -658,10 +710,16 @@ export default function PlanTripPage() {
                   <p className="text-sm text-navy-600 mt-0.5">{multimodalError}</p>
                 </div>
               </div>
-              <p className="text-xs text-navy-500 px-1">
-                The selected locations may be outside the demo transit service area (Bengaluru Metropolitan area).
-                Try the Road Routing mode instead.
-              </p>
+              {/* Phase 12 — "why no route?" (see WhyNoRoute.tsx): a real,
+                  data-driven answer instead of a generic "try Road Routing"
+                  hint, using the actual nearby-transit lookup for both points. */}
+              {origin && destination ? (
+                <WhyNoRoute origin={origin} destination={destination} />
+              ) : (
+                <p className="text-xs text-navy-500 px-1">
+                  The selected locations may be outside the demo transit service area. Try the Road Routing mode instead.
+                </p>
+              )}
             </div>
           )}
         </div>

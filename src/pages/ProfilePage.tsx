@@ -120,11 +120,19 @@ export default function ProfilePage() {
 
   const handleResetDna = async () => {
     setResetting(true)
+    setSavedMessageIsError(false)
     try {
       await intelligenceService.resetTransitDna()
       setSavedMessage("TransitDNA preference weights reset to baseline defaults!")
-    } catch {
-      setSavedMessage("TransitDNA reset in local mode.")
+    } catch (err) {
+      // Phase 12 fix — this used to report "TransitDNA reset in local mode."
+      // on a genuine failure, rendered with the same success styling as a
+      // real reset (the same class of dishonesty B11 fixed for handleSave
+      // above). Nothing was actually reset, but the user was told it was.
+      setSavedMessageIsError(true)
+      setSavedMessage(
+        err instanceof Error ? `Could not reset TransitDNA: ${err.message}` : "Could not reset TransitDNA. Please try again.",
+      )
     } finally {
       setResetting(false)
       setTimeout(() => setSavedMessage(""), 4000)

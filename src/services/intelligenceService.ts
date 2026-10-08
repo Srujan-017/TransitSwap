@@ -53,6 +53,79 @@ export interface EvaluationMetrics {
   }>
 }
 
+// Phase 12 — types for the 3 research/diagnostic endpoint groups that were
+// built since Phase 8/9 but never had a UI (PROJECT_MASTER_PLAN.md §32
+// "research endpoints... unauthenticated; no UI"). Mirrors each backend
+// response shape exactly (mlEvaluationService.MLEvaluationReport,
+// mlPreferenceService.MLStatusResponse, historicalReliabilityService's
+// CoverageEvaluationReport / HistoricalErrorStats) rather than inventing a
+// new shape on the frontend.
+
+export interface LogisticModelWeights {
+  time: number
+  cost: number
+  walking: number
+  reliability: number
+  accessibility: number
+  crowd: number
+  weather: number
+  connectionRisk: number
+  transfers: number
+}
+
+export interface MLEvaluationReport {
+  isSimulatedBenchmark: true
+  totalSamplesCount: number
+  trainingSamplesCount: number
+  testSamplesCount: number
+  mlPairwiseAccuracyPercent: number
+  baselineRuleAccuracyPercent: number
+  accuracyImprovementPercent: number
+  logLoss: number
+  learnedWeights: LogisticModelWeights
+  disclaimer: string
+  evaluatedAt: string
+}
+
+export interface MLStatusResponse {
+  isPersonalized: boolean
+  sampleCount: number
+  statusMessage: string
+  weights: LogisticModelWeights
+  modelMetrics?: {
+    trainAccuracy: number
+    testAccuracy?: number
+    logLoss?: number
+    lastTrainedAt?: string
+  }
+}
+
+export interface CoverageEvaluationReport {
+  isSimulatedBenchmark: boolean
+  dataSource: "real" | "synthetic_demo"
+  totalTestJourneys: number
+  covered90Count: number
+  covered95Count: number
+  empiricalCoverage90Percent: number
+  empiricalCoverage95Percent: number
+  meanObservedError: number
+  stdDevObservedError: number
+  disclaimer: string
+  evaluatedAt: string
+}
+
+export interface HistoricalErrorStats {
+  sampleSize: number
+  meanErrorMinutes: number
+  standardDeviationMinutes: number
+  varianceMinutes: number
+  minErrorMinutes: number
+  maxErrorMinutes: number
+  isSufficientData: boolean
+  groupingLevel: "route_specific" | "mode_specific" | "overall_transit" | "insufficient_data"
+  isSyntheticDemoData: boolean
+}
+
 export const intelligenceService = {
   async getAccessibilityStations(): Promise<AccessibilityStation[]> {
     const { data } = await api.get<{ success: boolean; data: AccessibilityStation[] }>("/accessibility/stations")
@@ -79,6 +152,26 @@ export const intelligenceService = {
 
   async getEvaluationMetrics(): Promise<EvaluationMetrics> {
     const { data } = await api.get<{ success: boolean; data: EvaluationMetrics }>("/evaluation")
+    return data.data
+  },
+
+  async getMLEvaluation(): Promise<MLEvaluationReport> {
+    const { data } = await api.get<{ success: boolean; data: MLEvaluationReport }>("/evaluation/ml")
+    return data.data
+  },
+
+  async getMLStatus(): Promise<MLStatusResponse> {
+    const { data } = await api.get<{ success: boolean; data: MLStatusResponse }>("/evaluation/ml/status")
+    return data.data
+  },
+
+  async getReliabilityCoverageEvaluation(): Promise<CoverageEvaluationReport> {
+    const { data } = await api.get<{ success: boolean; data: CoverageEvaluationReport }>("/evaluation/reliability/evaluation")
+    return data.data
+  },
+
+  async getHistoricalReliabilityStats(): Promise<HistoricalErrorStats> {
+    const { data } = await api.get<{ success: boolean; data: HistoricalErrorStats }>("/evaluation/reliability/stats")
     return data.data
   },
 
