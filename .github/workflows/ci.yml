@@ -71,3 +71,48 @@ jobs:
       - run: npm --prefix backend ci
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
+
+  smoke-test:
+    name: Post-deploy smoke test (non-blocking)
+    # Phase 13 — PROJECT_MASTER_PLAN.md §39: "a post-deploy smoke test in CI."
+    # Read-only checks against the LIVE deployed URLs, never the local dev
+    # servers the other jobs use. Skips cleanly (rather than failing) until
+    # vars.DEPLOYED_BACKEND_URL is set as a repository/environment Actions
+    # variable (Settings → Secrets and variables → Actions → Variables) —
+    # these are plain URLs, not secrets, so they belong in vars, not secrets.
+    # Runs after every push to main once deployed, plus on-demand.
+    needs: [backend, frontend]
+    if: vars.DEPLOYED_BACKEND_URL != ''
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: GET /api/health on the deployed backend
+        run: |
+          res="$(curl -sS -w '\n%{http_code}' "${{ vars.DEPLOYED_BACKEND_URL }}/api/health")"
+          body="$(echo "$res" | head -n -1)"
+          status="$(echo "$res" | tail -n 1)"
+          echo "$body"
+          if [ "$status" != "200" ]; then
+            echo "::error::Expected 200 from /api/health, got $status"
+            exit 1
+          fi
+          connected="$(echo "$body" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{console.log(JSON.parse(d).data?.database)}catch{console.log("parse-error")}})')"
+          echo "database connectivity: $connected"
+          # PROJECT_MASTER_PLAN.md §39 Phase 13 success criterion: "/api/health
+          # returns database: 'connected'". A hard failure here (the whole job
+          # stays non-blocking via continue-on-error above) rather than a
+          # warning, so an un-configured MONGODB_URI or Atlas network-access
+          # list is never silently missed in a green CI run.
+          if [ "$connected" != "connected" ]; then
+            echo "::error::Deployed backend's /api/health reports database='$connected', not 'connected' — check MONGODB_URI and MongoDB Atlas network access."
+            exit 1
+          fi
+      - name: GET the deployed frontend
+        if: vars.DEPLOYED_FRONTEND_URL != ''
+        run: |
+          status="$(curl -sS -o /dev/null -w '%{http_code}' "${{ vars.DEPLOYED_FRONTEND_URL }}")"
+          echo "frontend status: $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::Expected 200 from the deployed frontend, got $status"
+            exit 1
+          fi

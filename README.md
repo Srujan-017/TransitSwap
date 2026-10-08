@@ -797,6 +797,8 @@ npm run build      # outputs static assets to dist/
 ```
 On your host: set the build command to `npm run build`, the output directory to `dist`, and add the `VITE_API_URL` environment variable pointing at your deployed backend (e.g. `https://your-backend.onrender.com/api`). Framework/provider choice is not hard-coded into the app.
 
+**SPA routing (Phase 13):** this is a client-side-routed single-page app (React Router) — without a rewrite rule, a static host returns a real 404 on any direct load or refresh of a non-root path (e.g. `/dashboard`), because no file actually exists at that path. `vercel.json` (repo root) and `public/_redirects` (served at `dist/_redirects` by the Vite build) already provide this for Vercel and Netlify respectively — no extra host configuration needed on either.
+
 ### 25.5 Backend build & deployment (Render / Railway or equivalent)
 ```bash
 cd backend
