@@ -7,7 +7,7 @@ import { sendSuccess } from "../utils/response"
 
 export async function getEvaluationMetrics(_req: Request, res: Response, next: NextFunction) {
   try {
-    const metrics = await evaluationService.runEvaluation()
+    const metrics = await evaluationService.getEvaluation()
     sendSuccess(
       res,
       metrics,

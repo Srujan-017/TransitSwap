@@ -4,6 +4,7 @@ import { transitDnaService } from "./transitDnaService"
 import { getProfileWeights } from "./ml/mlPreferenceService"
 import { createSeededRandom } from "./ml/seededRandom"
 import { getStation, getStop } from "../data/transitData"
+import { createTtlCache } from "../utils/ttlCache"
 import type { LogisticModelWeights } from "./ml/logisticRegression"
 import type { EnrichedRoute } from "../types/intelligence"
 
@@ -232,6 +233,19 @@ export async function enrichScenarioRoutes(scenario: {
   )
 }
 
+// Phase 11 (P1) — the full 22-scenario benchmark (route generation + weather/
+// accessibility/crowd enrichment + reliability + Monte Carlo + ablation for
+// each) is expensive (measured ~2s+ offline, more with live OSRM) and was
+// recomputed from scratch on every GET /api/evaluation call, including every
+// DashboardPage mount (PROJECT_MASTER_PLAN.md §26 P1). A single-entry TTL
+// cache is enough here — the whole endpoint takes no parameters, so there is
+// only ever one possible result to cache. Kept OUTSIDE runEvaluation() itself
+// (see getEvaluation() below) so evaluationHarness.test.ts's determinism
+// check — two INDEPENDENT calls to runEvaluation() must agree — still
+// exercises two genuinely fresh computations, not a cache hit.
+const EVALUATION_CACHE_KEY = "evaluation"
+const evaluationCache = createTtlCache<EvaluationMetrics>({ ttlMs: 5 * 60 * 1000, maxEntries: 1 })
+
 export const evaluationService = {
   async runEvaluation(): Promise<EvaluationMetrics> {
     const scenarioResults = []
@@ -381,5 +395,21 @@ export const evaluationService = {
       evaluatedAt: new Date().toISOString(),
       scenarios: scenarioResults,
     }
+  },
+
+  /**
+   * Phase 11 (P1) — cached entry point for the HTTP endpoint. Returns the
+   * same benchmark runEvaluation() computes, served from a 5-minute TTL
+   * cache when a fresh run already exists, instead of re-running 22
+   * scenarios' worth of route generation + enrichment + Monte Carlo on
+   * every call.
+   */
+  async getEvaluation(): Promise<EvaluationMetrics> {
+    const cached = evaluationCache.get(EVALUATION_CACHE_KEY)
+    if (cached) return cached
+
+    const metrics = await evaluationService.runEvaluation()
+    evaluationCache.set(EVALUATION_CACHE_KEY, metrics)
+    return metrics
   },
 }

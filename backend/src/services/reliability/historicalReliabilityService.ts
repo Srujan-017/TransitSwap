@@ -62,6 +62,16 @@ export interface CoverageEvaluationReport {
 
 const MINIMUM_SAMPLE_THRESHOLD = 5
 
+// Phase 11 (P5) — getHistoricalDelayStats needs the raw delay VALUES (for
+// Monte Carlo resampling and the deterministic transfer-risk count), so it
+// can't be reduced to a pure aggregation the way getHistoricalStatistics was.
+// Bounding it to the most recent N observations keeps memory/compute bounded
+// as real observations accumulate, instead of the previous unbounded
+// `JourneyObservation.find()` (PROJECT_MASTER_PLAN.md §26 P5) — and biasing
+// toward recent data is a reasonable choice for a delay DISTRIBUTION anyway
+// (old delay patterns are less representative of current service).
+const MAX_DELAY_SAMPLE_SIZE = 500
+
 // Phase 9 — the coverage evaluation does its own 80/20 train/test split, so
 // it needs enough real observations for that split to be meaningful on both
 // sides, not just enough to compute a mean/stdDev (MINIMUM_SAMPLE_THRESHOLD).
@@ -71,6 +81,69 @@ const MINIMUM_COVERAGE_SPLIT_THRESHOLD = 10
 // so the synthetic fallback dataset (and therefore its coverage numbers) is
 // reproducible run to run, same principle as ml/seededRandom.ts elsewhere.
 const SYNTHETIC_OBSERVATION_SEED = 99
+
+export interface HistoricalDelayStats {
+  sampleSize: number
+  meanDelayMinutes: number
+  standardDeviationMinutes: number
+  delays: number[]
+  isSufficientData: boolean
+  groupingLevel: "route_specific" | "mode_specific" | "overall_transit" | "insufficient_data"
+  dataSource: "historical" | "synthetic_demo" | "insufficient_data"
+}
+
+interface ErrorAggregateResult {
+  count: number
+  meanError: number
+  stdDev: number
+  minError: number
+  maxError: number
+  isSyntheticDemoData: boolean
+}
+
+/**
+ * Phase 11 — computes mean / sample standard deviation / min / max of
+ * errorMinutes inside MongoDB via $group, instead of pulling every matching
+ * document into Node and reducing them there. $stdDevSamp is MongoDB's
+ * built-in sample standard deviation (N-1 denominator) — the same formula
+ * getHistoricalStatistics() computed by hand before.
+ */
+async function aggregateErrorStats(filter: Record<string, unknown>): Promise<ErrorAggregateResult | null> {
+  const result = await JourneyObservation.aggregate<{
+    _id: null
+    count: number
+    meanError: number
+    stdDev: number | null
+    minError: number
+    maxError: number
+    anySynthetic: number
+  }>([
+    { $match: filter },
+    {
+      $group: {
+        _id: null,
+        count: { $sum: 1 },
+        meanError: { $avg: "$errorMinutes" },
+        stdDev: { $stdDevSamp: "$errorMinutes" },
+        minError: { $min: "$errorMinutes" },
+        maxError: { $max: "$errorMinutes" },
+        anySynthetic: { $max: { $cond: ["$isSyntheticDemoData", 1, 0] } },
+      },
+    },
+  ])
+
+  const doc = result[0]
+  if (!doc) return null
+
+  return {
+    count: doc.count,
+    meanError: doc.meanError,
+    stdDev: doc.stdDev ?? 0,
+    minError: doc.minError,
+    maxError: doc.maxError,
+    isSyntheticDemoData: doc.anySynthetic === 1,
+  }
+}
 
 // In-memory fallback dataset for offline / unauthenticated demo mode
 const memoryObservations: Array<{
@@ -200,45 +273,49 @@ export const historicalReliabilityService = {
   },
 
   /**
-   * Step 6 & 8: Computes sample mean error & sample standard deviation with hierarchical fallback.
+   * Step 6 & 8: Computes sample mean error & sample standard deviation with
+   * hierarchical fallback.
+   *
+   * Phase 11 (§39 Phase 11 / §26 bottleneck list) — previously pulled every
+   * matching JourneyObservation document into Node (`.find().select(...)`)
+   * and reduced them there, with no limit on the overall-transit fallback.
+   * Now computed inside MongoDB via $group (aggregateErrorStats below), so
+   * only one aggregated summary document crosses the wire no matter how many
+   * observations match — a real aggregation pipeline, not just a smaller query.
    */
   async getHistoricalStatistics(
     transportMode?: string,
     routeId?: string,
   ): Promise<HistoricalErrorStats> {
-    let rawErrors: number[] = []
+    let agg: ErrorAggregateResult | null = null
     let groupingLevel: HistoricalErrorStats["groupingLevel"] = "insufficient_data"
-    let isSyntheticDemoData = false
 
     if (mongoose.connection.readyState === 1) {
       try {
         // Hierarchical Fallback Step 1: Route-specific historical data
         if (routeId) {
-          const routeObs = await JourneyObservation.find({ routeId }).select("errorMinutes isSyntheticDemoData")
-          if (routeObs.length >= MINIMUM_SAMPLE_THRESHOLD) {
-            rawErrors = routeObs.map((o) => o.errorMinutes)
+          const routeAgg = await aggregateErrorStats({ routeId })
+          if (routeAgg && routeAgg.count >= MINIMUM_SAMPLE_THRESHOLD) {
+            agg = routeAgg
             groupingLevel = "route_specific"
-            isSyntheticDemoData = routeObs.some((o) => o.isSyntheticDemoData)
           }
         }
 
         // Hierarchical Fallback Step 2: Mode-specific historical data
-        if (rawErrors.length < MINIMUM_SAMPLE_THRESHOLD && transportMode) {
-          const modeObs = await JourneyObservation.find({ transportMode }).select("errorMinutes isSyntheticDemoData")
-          if (modeObs.length >= MINIMUM_SAMPLE_THRESHOLD) {
-            rawErrors = modeObs.map((o) => o.errorMinutes)
+        if (!agg && transportMode) {
+          const modeAgg = await aggregateErrorStats({ transportMode })
+          if (modeAgg && modeAgg.count >= MINIMUM_SAMPLE_THRESHOLD) {
+            agg = modeAgg
             groupingLevel = "mode_specific"
-            isSyntheticDemoData = modeObs.some((o) => o.isSyntheticDemoData)
           }
         }
 
         // Hierarchical Fallback Step 3: Overall transit historical data
-        if (rawErrors.length < MINIMUM_SAMPLE_THRESHOLD) {
-          const allObs = await JourneyObservation.find().select("errorMinutes isSyntheticDemoData")
-          if (allObs.length >= MINIMUM_SAMPLE_THRESHOLD) {
-            rawErrors = allObs.map((o) => o.errorMinutes)
+        if (!agg) {
+          const overallAgg = await aggregateErrorStats({})
+          if (overallAgg && overallAgg.count >= MINIMUM_SAMPLE_THRESHOLD) {
+            agg = overallAgg
             groupingLevel = "overall_transit"
-            isSyntheticDemoData = allObs.some((o) => o.isSyntheticDemoData)
           }
         }
       } catch (err) {
@@ -246,21 +323,33 @@ export const historicalReliabilityService = {
       }
     }
 
-    // Memory cache fallback if DB unavailable or empty
-    if (rawErrors.length < MINIMUM_SAMPLE_THRESHOLD && memoryObservations.length > 0) {
+    // Memory cache fallback if DB unavailable or empty — this in-process
+    // array is always small (offline demo mode only), so reducing it in
+    // Node (rather than via an aggregation pipeline) is not the bottleneck
+    // this phase is fixing.
+    if (!agg && memoryObservations.length > 0) {
       const modeFiltered = memoryObservations.filter((o) => !transportMode || o.transportMode === transportMode)
       const target = modeFiltered.length >= MINIMUM_SAMPLE_THRESHOLD ? modeFiltered : memoryObservations
       if (target.length >= MINIMUM_SAMPLE_THRESHOLD) {
-        rawErrors = target.map((o) => o.errorMinutes)
+        const rawErrors = target.map((o) => o.errorMinutes)
+        const N = rawErrors.length
+        const meanError = rawErrors.reduce((sum, err) => sum + err, 0) / N
+        const ss = rawErrors.reduce((sum, err) => sum + Math.pow(err - meanError, 2), 0)
+        agg = {
+          count: N,
+          meanError,
+          stdDev: N > 1 ? Math.sqrt(ss / (N - 1)) : 0,
+          minError: Math.min(...rawErrors),
+          maxError: Math.max(...rawErrors),
+          isSyntheticDemoData: target.some((o) => o.isSyntheticDemoData),
+        }
         groupingLevel = modeFiltered.length >= MINIMUM_SAMPLE_THRESHOLD ? "mode_specific" : "overall_transit"
-        isSyntheticDemoData = target.some((o) => o.isSyntheticDemoData)
       }
     }
 
-    const N = rawErrors.length
-    if (N < MINIMUM_SAMPLE_THRESHOLD) {
+    if (!agg) {
       return {
-        sampleSize: N,
+        sampleSize: 0,
         meanErrorMinutes: 0,
         standardDeviationMinutes: 0,
         varianceMinutes: 0,
@@ -272,24 +361,18 @@ export const historicalReliabilityService = {
       }
     }
 
-    // Mathematical Mean: mu = sum(error_i) / N
-    const meanError = rawErrors.reduce((sum, err) => sum + err, 0) / N
-
-    // Sample Variance & Standard Deviation: s = sqrt( sum((x_i - mu)^2) / (N - 1) )
-    const ss = rawErrors.reduce((sum, err) => sum + Math.pow(err - meanError, 2), 0)
-    const variance = N > 1 ? ss / (N - 1) : 0
-    const stdDev = Math.sqrt(variance)
-
     return {
-      sampleSize: N,
-      meanErrorMinutes: Number(meanError.toFixed(2)),
-      standardDeviationMinutes: Number(stdDev.toFixed(2)),
-      varianceMinutes: Number(variance.toFixed(2)),
-      minErrorMinutes: Math.min(...rawErrors),
-      maxErrorMinutes: Math.max(...rawErrors),
+      sampleSize: agg.count,
+      meanErrorMinutes: Number(agg.meanError.toFixed(2)),
+      standardDeviationMinutes: Number(agg.stdDev.toFixed(2)),
+      // variance = stdDev^2 is mathematically identical to the sample
+      // variance formula this replaced (s = sqrt(sum((x-mu)^2) / (N-1))).
+      varianceMinutes: Number((agg.stdDev * agg.stdDev).toFixed(2)),
+      minErrorMinutes: agg.minError,
+      maxErrorMinutes: agg.maxError,
       isSufficientData: true,
       groupingLevel,
-      isSyntheticDemoData,
+      isSyntheticDemoData: agg.isSyntheticDemoData,
     }
   },
 
@@ -491,15 +574,7 @@ export const historicalReliabilityService = {
   async getHistoricalDelayStats(
     transportMode?: string,
     routeId?: string,
-  ): Promise<{
-    sampleSize: number
-    meanDelayMinutes: number
-    standardDeviationMinutes: number
-    delays: number[]
-    isSufficientData: boolean
-    groupingLevel: "route_specific" | "mode_specific" | "overall_transit" | "insufficient_data"
-    dataSource: "historical" | "synthetic_demo" | "insufficient_data"
-  }> {
+  ): Promise<HistoricalDelayStats> {
     let rawDelays: number[] = []
     let groupingLevel: "route_specific" | "mode_specific" | "overall_transit" | "insufficient_data" = "insufficient_data"
     let dataSource: "historical" | "synthetic_demo" | "insufficient_data" = "insufficient_data"
@@ -508,7 +583,10 @@ export const historicalReliabilityService = {
       try {
         // Hierarchical Fallback Step 1: Route-specific historical delays
         if (routeId) {
-          const routeObs = await JourneyObservation.find({ routeId }).select("delayMinutes errorMinutes isSyntheticDemoData")
+          const routeObs = await JourneyObservation.find({ routeId })
+            .select("delayMinutes errorMinutes isSyntheticDemoData")
+            .sort({ createdAt: -1 })
+            .limit(MAX_DELAY_SAMPLE_SIZE)
           if (routeObs.length >= MINIMUM_SAMPLE_THRESHOLD) {
             rawDelays = routeObs.map((o) => typeof o.delayMinutes === "number" ? o.delayMinutes : Math.max(0, o.errorMinutes))
             groupingLevel = "route_specific"
@@ -518,7 +596,10 @@ export const historicalReliabilityService = {
 
         // Hierarchical Fallback Step 2: Mode-specific historical delays
         if (rawDelays.length < MINIMUM_SAMPLE_THRESHOLD && transportMode) {
-          const modeObs = await JourneyObservation.find({ transportMode }).select("delayMinutes errorMinutes isSyntheticDemoData")
+          const modeObs = await JourneyObservation.find({ transportMode })
+            .select("delayMinutes errorMinutes isSyntheticDemoData")
+            .sort({ createdAt: -1 })
+            .limit(MAX_DELAY_SAMPLE_SIZE)
           if (modeObs.length >= MINIMUM_SAMPLE_THRESHOLD) {
             rawDelays = modeObs.map((o) => typeof o.delayMinutes === "number" ? o.delayMinutes : Math.max(0, o.errorMinutes))
             groupingLevel = "mode_specific"
@@ -526,9 +607,16 @@ export const historicalReliabilityService = {
           }
         }
 
-        // Hierarchical Fallback Step 3: Overall transit historical delays
+        // Hierarchical Fallback Step 3: Overall transit historical delays.
+        // Phase 11 (P5) — this was previously `JourneyObservation.find()` with
+        // NO limit at all, the unbounded find() PROJECT_MASTER_PLAN.md §26 P5
+        // and §13 both call out — it now pulls at most the MAX_DELAY_SAMPLE_SIZE
+        // most recent observations, same as the two more specific fallbacks above.
         if (rawDelays.length < MINIMUM_SAMPLE_THRESHOLD) {
-          const allObs = await JourneyObservation.find().select("delayMinutes errorMinutes isSyntheticDemoData")
+          const allObs = await JourneyObservation.find()
+            .select("delayMinutes errorMinutes isSyntheticDemoData")
+            .sort({ createdAt: -1 })
+            .limit(MAX_DELAY_SAMPLE_SIZE)
           if (allObs.length >= MINIMUM_SAMPLE_THRESHOLD) {
             rawDelays = allObs.map((o) => typeof o.delayMinutes === "number" ? o.delayMinutes : Math.max(0, o.errorMinutes))
             groupingLevel = "overall_transit"
@@ -583,12 +671,22 @@ export const historicalReliabilityService = {
   /**
    * Step 15 & 16: Data-Driven Monte Carlo simulation using Empirical Resampling
    * (randomly samples from actual stored historical delay observations for 1,000 trials).
+   *
+   * Phase 11 (P2) fix — reliabilityService.calculateMissedConnectionRisk()
+   * used to call this AND getHistoricalDelayStats() separately for the same
+   * (transportMode, routeId) per transfer, issuing the same DB query twice
+   * (PROJECT_MASTER_PLAN.md §26 P2). precomputedDelayStats lets a caller that
+   * already has the stats (because it also needs the raw `delays` array,
+   * e.g. for a joint whole-journey simulation) pass them in instead of this
+   * function re-fetching them. Optional, so every other existing caller
+   * (which doesn't already have the stats) is unaffected.
    */
   async runDataDrivenMonteCarlo(
     transportMode: string,
     scheduledBufferMinutes: number,
     routeId?: string,
     trialsCount = 1000,
+    precomputedDelayStats?: HistoricalDelayStats,
   ): Promise<{
     missProbabilityPercent: number
     simulatedTrialsCount: number
@@ -598,7 +696,7 @@ export const historicalReliabilityService = {
     dataSource: "historical" | "synthetic_demo" | "insufficient_data"
     isDataDriven: boolean
   }> {
-    const delayStats = await this.getHistoricalDelayStats(transportMode, routeId)
+    const delayStats = precomputedDelayStats ?? (await this.getHistoricalDelayStats(transportMode, routeId))
 
     if (!delayStats.isSufficientData || delayStats.delays.length === 0) {
       return {

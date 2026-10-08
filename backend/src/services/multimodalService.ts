@@ -11,6 +11,7 @@ import {
 } from "../data/transitData"
 import { routingService } from "./routingService"
 import { accessibilityService } from "./accessibilityService"
+import { createTtlCache } from "../utils/ttlCache"
 import type { NormalizedRoute, TransportMode } from "../types/routing"
 import type {
   MultimodalRoute,
@@ -179,6 +180,15 @@ interface RoadContext {
   // Phase 4 fix (B4) — stationIds/stopIds an admin has deactivated, carried
   // through the whole candidate-generation call tree for this one request.
   excludeIds: ReadonlySet<string>
+  // Phase 11 (P4) — whether this request may read/populate the cross-request
+  // road-leg cache below. False only when a test has installed an override
+  // provider (setMultimodalRoadLegProviderForTesting) — tests swap providers
+  // mid-file to exercise different OSRM response scenarios for the SAME
+  // coordinates, and a shared cache keyed only on mode+coordinates would
+  // return a stale result from a previous provider instead of calling the
+  // newly-installed one. The real server never sets an override, so
+  // production traffic always benefits from the shared cache.
+  sharedCacheEnabled: boolean
 }
 
 let roadLegProviderOverride: RoadLegProvider | null = null
@@ -187,8 +197,23 @@ export function setMultimodalRoadLegProviderForTesting(provider: RoadLegProvider
   roadLegProviderOverride = provider
 }
 
+// Phase 11 (P4) — the per-request `cache` above was Map()'d fresh on every
+// /routes/multimodal call, so the same walk/auto leg between two coordinates
+// was refetched from OSRM on every single search (PROJECT_MASTER_PLAN.md §26
+// P4 / §15 "Caching: per-request Map keyed on mode + 6-dp coordinates. Not
+// shared across requests"). This module-level cache is shared across every
+// request this server process handles. Bounded by TTL and size — see
+// ttlCache.ts — and only ever populated with a genuine resolved OSRM result,
+// never a failure/fallback, so a transient OSRM outage can't poison it.
+const sharedRoadLegCache = createTtlCache<RoadLegEstimate>({ ttlMs: 10 * 60 * 1000, maxEntries: 2000 })
+
 function createRoadContext(excludeIds: ReadonlySet<string> = new Set()): RoadContext {
-  return { provider: roadLegProviderOverride ?? routingService, cache: new Map(), excludeIds }
+  return {
+    provider: roadLegProviderOverride ?? routingService,
+    cache: new Map(),
+    excludeIds,
+    sharedCacheEnabled: roadLegProviderOverride === null,
+  }
 }
 
 function fallbackRoadLeg(
@@ -240,6 +265,15 @@ async function roadLeg(
   const cached = ctx.cache.get(key)
   if (cached) return cached
 
+  if (ctx.sharedCacheEnabled) {
+    const shared = sharedRoadLegCache.get(key)
+    if (shared) {
+      const resolved = Promise.resolve(shared)
+      ctx.cache.set(key, resolved)
+      return resolved
+    }
+  }
+
   const request = (async () => {
     try {
       const routes = await ctx.provider.getRoute({
@@ -249,11 +283,13 @@ async function roadLeg(
       })
       const route = routes.find((candidate) => isUsableRoadRoute(candidate, mode))
       if (!route) return null
-      return {
+      const estimate: RoadLegEstimate = {
         distanceMeters: Math.round(route.distanceMeters),
         durationSeconds: Math.round(route.durationSeconds),
         geometry: route.geometry,
       }
+      if (ctx.sharedCacheEnabled) sharedRoadLegCache.set(key, estimate)
+      return estimate
     } catch {
       return null
     }

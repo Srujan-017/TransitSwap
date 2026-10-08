@@ -57,7 +57,13 @@ async function run() {
   console.log("═══════════════════════════════════════════════════════")
   console.log(failed === 0 ? `🎉 ALL ${passed} /api/weather/* TESTS PASSED!` : `⚠️  ${passed} PASSED, ${failed} FAILED`)
   console.log("═══════════════════════════════════════════════════════\n")
-  if (failed > 0) process.exit(1)
+  // Phase 11 fix — this file connects to MongoDB via registerTestUser()/
+  // ensureDbConnected() but never disconnected, so an open mongoose
+  // connection's keep-alive handles blocked Node's natural process exit —
+  // spawnSync had to wait out the full per-entry timeout every single run
+  // (see run-tests.js), even though every assertion above already passed.
+  // Exiting explicitly, on both the success and failure path, fixes that.
+  process.exit(failed > 0 ? 1 : 0)
 }
 
 run().catch((err) => {

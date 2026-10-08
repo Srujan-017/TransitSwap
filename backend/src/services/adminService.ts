@@ -169,7 +169,16 @@ export const adminService = {
       record.wheelchairAccessible = false
       record.status = "not_accessible"
     } else if ("hasLift" in updates && updates.hasLift === true) {
-      record.status = record.hasRamp || record.wheelchairAccessible ? "accessible" : "partially_accessible"
+      // Phase 11 fix — restoring the lift recomputed `status` but never
+      // reset `wheelchairAccessible` back from the `false` the break branch
+      // above forces it to. getBlockReason() checks `wheelchairAccessible
+      // === false` directly, independent of `status`, so a wheelchair-profile
+      // route through this station stayed rejected forever after the first
+      // lift outage even though both the record's status and a fresh lift
+      // said otherwise. Mirrors the break branch: hasLift is the one signal
+      // this transition is authoritative over, same as the `false` case.
+      record.wheelchairAccessible = true
+      record.status = "accessible"
     }
 
     record.lastVerified = new Date()

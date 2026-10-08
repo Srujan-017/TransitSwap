@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from "express"
 import cors from "cors"
+import helmet from "helmet"
 import morgan from "morgan"
 import rateLimit from "express-rate-limit"
 import { env } from "./config/env"
@@ -10,6 +11,12 @@ const app = express()
 
 // Trust proxy (for deployment behind Vercel/Render)
 app.set("trust proxy", 1)
+
+// Phase 11 (S7) — security headers (X-Content-Type-Options, HSTS, frame
+// deny, etc.). This API serves JSON only — no HTML templates or inline
+// scripts of its own — so helmet's default CSP (meant for HTML responses)
+// is left at its default rather than hand-tuned for a page that doesn't exist.
+app.use(helmet())
 
 // CORS
 // In development we allow any localhost/127.0.0.1 origin (any port) so switching the

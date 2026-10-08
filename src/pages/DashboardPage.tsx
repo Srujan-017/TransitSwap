@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [journeysError, setJourneysError] = useState("")
   const [evaluation, setEvaluation] = useState<EvaluationMetrics | null>(null)
   const [evalLoading, setEvalLoading] = useState(false)
+  const [evalError, setEvalError] = useState("")
 
   // Problem 16 — Saved destinations & saved routes summaries for the dashboard.
   const [destinations, setDestinations] = useState<SavedDestinationRecord[]>([])
@@ -82,21 +83,25 @@ export default function DashboardPage() {
     }
   }, [])
 
-  // Load Research Evaluation metrics for viva demo
-  useEffect(() => {
-    async function loadEval() {
-      setEvalLoading(true)
-      try {
-        const data = await intelligenceService.getEvaluationMetrics()
-        setEvaluation(data)
-      } catch {
-        // Fallback for offline demo mode
-      } finally {
-        setEvalLoading(false)
-      }
+  // Phase 11 (P1/P7) — this used to auto-fire on every dashboard mount,
+  // running the full 22-scenario evaluation benchmark (route generation +
+  // enrichment + Monte Carlo per scenario) every time the page loaded
+  // (PROJECT_MASTER_PLAN.md §26 P1/P7). It's now loaded on demand via the
+  // "Load Research Metrics" button below — the backend also caches the
+  // result for 5 minutes (evaluationService.getEvaluation()), so a repeat
+  // click within that window is effectively free.
+  async function loadEvaluationMetrics() {
+    setEvalLoading(true)
+    setEvalError("")
+    try {
+      const data = await intelligenceService.getEvaluationMetrics()
+      setEvaluation(data)
+    } catch (err) {
+      setEvalError(err instanceof Error ? err.message : "Could not load research evaluation metrics.")
+    } finally {
+      setEvalLoading(false)
     }
-    loadEval()
-  }, [])
+  }
 
   // Problem 16 — Saved destinations (reuses existing saved-destination API).
   useEffect(() => {
@@ -357,18 +362,32 @@ export default function DashboardPage() {
           </Card>
 
           {/* Research Evaluation Metrics Card (Phase 16 - Viva Paper Support) */}
-          {evaluation && (
-            <Card className="border-navy-200">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-indigo-600" />
-                  <h2 className="font-display font-bold text-navy-900">Research Paper Benchmark Metrics (Phase 16)</h2>
-                </div>
-                <Badge variant="info">Simulated Benchmark</Badge>
+          <Card className="border-navy-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-indigo-600" />
+                <h2 className="font-display font-bold text-navy-900">Research Paper Benchmark Metrics (Phase 16)</h2>
               </div>
-              <p className="text-xs text-navy-500 mb-4">
-                Comparison of TransitSwap Multi-Criteria Engine vs Shortest-Time and Lowest-Cost Baselines across evaluated scenarios.
-              </p>
+              <Badge variant="info">Simulated Benchmark</Badge>
+            </div>
+            <p className="text-xs text-navy-500 mb-4">
+              Comparison of TransitSwap Multi-Criteria Engine vs Shortest-Time and Lowest-Cost Baselines across evaluated scenarios.
+            </p>
+
+            {!evaluation && (
+              <div className="text-center py-4">
+                {evalError && <p className="text-sm text-danger mb-3">{evalError}</p>}
+                <Button variant="outline" onClick={loadEvaluationMetrics} loading={evalLoading}>
+                  Load Research Metrics
+                </Button>
+                <p className="text-xs text-navy-400 mt-2">
+                  Runs the 22-scenario benchmark on demand — not automatically, since it's computationally heavy.
+                </p>
+              </div>
+            )}
+
+            {evaluation && (
+              <>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 <div className="p-3 bg-navy-50 rounded-xl border border-navy-100">
@@ -423,8 +442,9 @@ export default function DashboardPage() {
                   </tbody>
                 </table>
               </div>
-            </Card>
-          )}
+              </>
+            )}
+          </Card>
 
           {/* Quick Destinations — demo hubs, distinct from the user's personal Saved Destinations below */}
           <Card>

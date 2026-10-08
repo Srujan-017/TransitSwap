@@ -208,18 +208,26 @@ export const reliabilityService = {
         // is kept only for API compatibility / potential direct callers.
         const scheduledBufferMinutes = (segA.mode === "bus" ? 6 : segA.mode === "metro" ? 4 : 5) + bufferOffsetMinutes
 
+        // Phase 11 (P2) fix — fetch the empirical delay data ONCE per transfer
+        // and pass it into runDataDrivenMonteCarlo, instead of that call doing
+        // its own getHistoricalDelayStats query and then this function
+        // immediately re-querying the exact same (mode, routeId) for the
+        // joint whole-journey simulation below (PROJECT_MASTER_PLAN.md §26 P2:
+        // "a duplicate getHistoricalDelayStats query" per transfer).
+        const delayStats = await historicalReliabilityService.getHistoricalDelayStats(segA.mode, route.id)
+
         // Per-transfer empirical risk (used for the per-transfer display below)
         const mcResult = await historicalReliabilityService.runDataDrivenMonteCarlo(
           segA.mode,
           scheduledBufferMinutes,
           route.id,
           1000,
+          delayStats,
         )
 
         // Same empirical delay data, kept so the joint whole-journey simulation
         // below samples from the real per-transfer distribution rather than
         // reusing the aggregate percentage.
-        const delayStats = await historicalReliabilityService.getHistoricalDelayStats(segA.mode, route.id)
         transferDelaySets.push({ delays: delayStats.delays, bufferMinutes: scheduledBufferMinutes })
 
         const riskPercent = mcResult.missProbabilityPercent

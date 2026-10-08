@@ -1,17 +1,26 @@
+import { Suspense, lazy } from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuthContext } from "./context/AuthContext"
 import MainLayout from "./layouts/MainLayout"
 import LandingPage from "./pages/LandingPage"
 import LoginPage from "./pages/LoginPage"
 import RegisterPage from "./pages/RegisterPage"
-import DashboardPage from "./pages/DashboardPage"
-import PlanTripPage from "./pages/PlanTripPage"
-import ProfilePage from "./pages/ProfilePage"
-import HistoryPage from "./pages/HistoryPage"
-import SavedRoutesPage from "./pages/SavedRoutesPage"
-import AdminDashboardPage from "./pages/AdminDashboardPage"
 import NotFoundPage from "./pages/NotFoundPage"
 import LoadingSpinner from "./components/ui/LoadingSpinner"
+
+// Phase 11 (P11) — Landing/Login/Register stay eager (they're the first
+// screen an unauthenticated visitor loads), but everything behind
+// ProtectedRoute is route-split into its own chunk and only fetched once a
+// user actually navigates there, instead of all 6 pages — including the
+// admin console most users never open — inflating the one 459 kB main
+// bundle every visitor downloads upfront (PROJECT_MASTER_PLAN.md §26 P11 /
+// §9 "459 kB main chunk"). MapView.tsx was already lazy-loaded this same way.
+const DashboardPage = lazy(() => import("./pages/DashboardPage"))
+const PlanTripPage = lazy(() => import("./pages/PlanTripPage"))
+const ProfilePage = lazy(() => import("./pages/ProfilePage"))
+const HistoryPage = lazy(() => import("./pages/HistoryPage"))
+const SavedRoutesPage = lazy(() => import("./pages/SavedRoutesPage"))
+const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthContext()
@@ -49,12 +58,56 @@ function AppRoutes() {
 
       {/* Protected app */}
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/plan" element={<PlanTripPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/saved-routes" element={<SavedRoutesPage />} />
-        <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+        <Route
+          path="/dashboard"
+          element={
+            <Suspense fallback={<LoadingSpinner fullPage size="lg" text="Loading…" />}>
+              <DashboardPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/plan"
+          element={
+            <Suspense fallback={<LoadingSpinner fullPage size="lg" text="Loading…" />}>
+              <PlanTripPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <Suspense fallback={<LoadingSpinner fullPage size="lg" text="Loading…" />}>
+              <ProfilePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <Suspense fallback={<LoadingSpinner fullPage size="lg" text="Loading…" />}>
+              <HistoryPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/saved-routes"
+          element={
+            <Suspense fallback={<LoadingSpinner fullPage size="lg" text="Loading…" />}>
+              <SavedRoutesPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Suspense fallback={<LoadingSpinner fullPage size="lg" text="Loading…" />}>
+                <AdminDashboardPage />
+              </Suspense>
+            </AdminRoute>
+          }
+        />
       </Route>
 
       {/* 404 */}

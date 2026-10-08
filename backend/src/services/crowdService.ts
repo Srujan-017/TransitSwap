@@ -53,6 +53,78 @@ function estimateLevel(levels: CrowdLevel[]) {
   return SCORE_LEVEL[Math.round(avg)]
 }
 
+/**
+ * Phase 11 (P8) — the actual rule-based fusion logic from stationEstimate(),
+ * pulled out so it can be run against ALREADY-FETCHED report data. Pure/no
+ * DB access, so routeSummary() below can batch one query for every station
+ * on a route and call this per station, instead of stationEstimate() issuing
+ * its own CrowdReport.find() for each one (the N+1 pattern named in
+ * PROJECT_MASTER_PLAN.md §26 P8).
+ */
+function buildEstimate(
+  stationId: string,
+  stationName: string | undefined,
+  recentLevels: CrowdLevel[],
+  recentStationName: string | undefined,
+): CrowdStationEstimate {
+  const slot = nearestSlot()
+  const demo = DEMO_CROWD_DATA.find(
+    (r) => r.stationId === stationId && r.dayType === currentDayType() && r.timeSlot === slot,
+  ) ?? DEMO_CROWD_DATA.find((r) => r.stationId === stationId)
+
+  const resolvedName = recentStationName ?? demo?.stationName ?? stationName ?? stationId
+
+  if (recentLevels.length > 0 && demo) {
+    // Rule-based fusion, not machine learning: recent reports get 70% weight, the demo
+    // historical baseline gets 30%, so a handful of live reports can override a stale
+    // demo pattern while still smoothing out a single noisy report.
+    const RECENT_WEIGHT = 0.7
+    const DEMO_WEIGHT = 0.3
+    const recentAvgScore = recentLevels.reduce((sum, level) => sum + LEVEL_SCORE[level], 0) / recentLevels.length
+    const blendedScore = recentAvgScore * RECENT_WEIGHT + LEVEL_SCORE[demo.crowdLevel] * DEMO_WEIGHT
+    const level = SCORE_LEVEL[Math.round(blendedScore)]
+    return {
+      stationId,
+      stationName: resolvedName,
+      crowdLevel: level,
+      source: "RECENT_USER_REPORT",
+      confidence: Math.min(0.95, 0.7 + recentLevels.length * 0.05),
+      summary: `Rule-based estimate blending ${recentLevels.length} recent user report${recentLevels.length === 1 ? "" : "s"} (70% weight) with historical demonstration data (30% weight).`,
+    }
+  }
+
+  if (recentLevels.length > 0) {
+    const level = estimateLevel(recentLevels)
+    return {
+      stationId,
+      stationName: resolvedName,
+      crowdLevel: level,
+      source: "RECENT_USER_REPORT",
+      confidence: Math.min(0.95, 0.65 + recentLevels.length * 0.06),
+      summary: `Based on ${recentLevels.length} recent authenticated user report${recentLevels.length === 1 ? "" : "s"}.`,
+    }
+  }
+
+  if (demo) {
+    return {
+      stationId,
+      stationName: resolvedName,
+      crowdLevel: demo.crowdLevel,
+      source: "DEMO_DATA",
+      confidence: 0.45,
+      summary: "Based on historical demonstration crowd data — no recent user reports for this station.",
+    }
+  }
+
+  return {
+    stationId,
+    stationName: resolvedName,
+    source: "UNAVAILABLE",
+    confidence: 0,
+    summary: "Crowd information unavailable — no recent reports or historical demo data for this station.",
+  }
+}
+
 export const crowdService = {
   async reportCrowd(
     userId: string,
@@ -90,64 +162,7 @@ export const crowdService = {
       recentStationName = recent[0]?.stationName
     }
 
-    // Historical demo data for this station at the closest time slot, weighted lightly —
-    // it describes a typical pattern, not what's happening right now.
-    const slot = nearestSlot()
-    const demo = DEMO_CROWD_DATA.find(
-      (r) => r.stationId === stationId && r.dayType === currentDayType() && r.timeSlot === slot,
-    ) ?? DEMO_CROWD_DATA.find((r) => r.stationId === stationId)
-
-    const resolvedName = recentStationName ?? demo?.stationName ?? stationName ?? stationId
-
-    if (recentLevels.length > 0 && demo) {
-      // Rule-based fusion, not machine learning: recent reports get 70% weight, the demo
-      // historical baseline gets 30%, so a handful of live reports can override a stale
-      // demo pattern while still smoothing out a single noisy report.
-      const RECENT_WEIGHT = 0.7
-      const DEMO_WEIGHT = 0.3
-      const recentAvgScore = recentLevels.reduce((sum, level) => sum + LEVEL_SCORE[level], 0) / recentLevels.length
-      const blendedScore = recentAvgScore * RECENT_WEIGHT + LEVEL_SCORE[demo.crowdLevel] * DEMO_WEIGHT
-      const level = SCORE_LEVEL[Math.round(blendedScore)]
-      return {
-        stationId,
-        stationName: resolvedName,
-        crowdLevel: level,
-        source: "RECENT_USER_REPORT",
-        confidence: Math.min(0.95, 0.7 + recentLevels.length * 0.05),
-        summary: `Rule-based estimate blending ${recentLevels.length} recent user report${recentLevels.length === 1 ? "" : "s"} (70% weight) with historical demonstration data (30% weight).`,
-      }
-    }
-
-    if (recentLevels.length > 0) {
-      const level = estimateLevel(recentLevels)
-      return {
-        stationId,
-        stationName: resolvedName,
-        crowdLevel: level,
-        source: "RECENT_USER_REPORT",
-        confidence: Math.min(0.95, 0.65 + recentLevels.length * 0.06),
-        summary: `Based on ${recentLevels.length} recent authenticated user report${recentLevels.length === 1 ? "" : "s"}.`,
-      }
-    }
-
-    if (demo) {
-      return {
-        stationId,
-        stationName: resolvedName,
-        crowdLevel: demo.crowdLevel,
-        source: "DEMO_DATA",
-        confidence: 0.45,
-        summary: "Based on historical demonstration crowd data — no recent user reports for this station.",
-      }
-    }
-
-    return {
-      stationId,
-      stationName: resolvedName,
-      source: "UNAVAILABLE",
-      confidence: 0,
-      summary: "Crowd information unavailable — no recent reports or historical demo data for this station.",
-    }
+    return buildEstimate(stationId, stationName, recentLevels, recentStationName)
   },
 
   async stationHistory(stationId: string) {
@@ -160,12 +175,40 @@ export const crowdService = {
 
   async routeSummary(route: MultimodalRoute): Promise<RouteCrowdSummary> {
     const names = routeStationNames(route)
-    const estimates = await Promise.all(
-      names.map((name) => {
-        const stationId = resolveStationId(name) ?? DEMO_CROWD_DATA.find((r) => r.stationName === name)?.stationId ?? name
-        return this.stationEstimate(stationId, name)
-      }),
-    )
+    const resolved = names.map((name) => ({
+      name,
+      stationId: resolveStationId(name) ?? DEMO_CROWD_DATA.find((r) => r.stationName === name)?.stationId ?? name,
+    }))
+
+    // Phase 11 (P8) fix — one CrowdReport query covering every station on
+    // this route, instead of stationEstimate() issuing its own query per
+    // station (N+1: up to 4 stations x up to 4 candidate routes per request).
+    // Same match predicate as stationEstimate()'s single-station query
+    // (stationId OR stationName), just evaluated in memory per station
+    // against this one batch instead of a separate round trip each.
+    const reportsByStationId = new Map<string, Array<{ crowdLevel: CrowdLevel; stationName: string }>>()
+    if (mongoose.connection.readyState === 1 && resolved.length > 0) {
+      const since = new Date(Date.now() - 90 * 60 * 1000)
+      const ids = resolved.map((r) => r.stationId)
+      const allRecent = await CrowdReport.find({
+        $or: [{ stationId: { $in: ids } }, { stationName: { $in: names } }],
+        reportedAt: { $gte: since },
+        status: "accepted",
+      }).sort({ reportedAt: -1 })
+
+      for (const { name, stationId } of resolved) {
+        const matches = allRecent
+          .filter((r) => r.stationId === stationId || r.stationName === name)
+          .slice(0, 5)
+          .map((r) => ({ crowdLevel: r.crowdLevel, stationName: r.stationName }))
+        reportsByStationId.set(stationId, matches)
+      }
+    }
+
+    const estimates = resolved.map(({ name, stationId }) => {
+      const matches = reportsByStationId.get(stationId) ?? []
+      return buildEstimate(stationId, name, matches.map((m) => m.crowdLevel), matches[0]?.stationName)
+    })
     const levels = estimates.map((e) => e.crowdLevel).filter((level): level is CrowdLevel => Boolean(level))
     const level = estimateLevel(levels)
     const source = estimates.some((e) => e.source === "RECENT_USER_REPORT")
