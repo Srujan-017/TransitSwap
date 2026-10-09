@@ -33,6 +33,28 @@ function write(name, svg) {
   console.log("wrote", p)
 }
 
+// Wraps a right-aligned row label onto multiple lines so it never overflows
+// past the left edge of the canvas (found live: the longest pipeline-latency
+// stage name did exactly this at a single line).
+function wrapLabel(text, maxWidth, fontSize) {
+  const avgCharW = fontSize * 0.56
+  const maxChars = Math.max(6, Math.floor(maxWidth / avgCharW))
+  const words = text.split(" ")
+  const lines = []
+  let current = ""
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word
+    if (candidate.length > maxChars && current) {
+      lines.push(current)
+      current = word
+    } else {
+      current = candidate
+    }
+  }
+  if (current) lines.push(current)
+  return lines
+}
+
 // ── Figure 1: architecture diagram ───────────────────────────────────────
 function figure1() {
   const W = 760,
@@ -85,7 +107,11 @@ function figure2() {
   stages.forEach((s, i) => {
     const y = 60 + i * (barH + gap)
     const w = Math.max(2, (s.ms / maxMs) * chartW)
-    body += `<text x="${chartLeft - 10}" y="${y + barH / 2 + 4}" text-anchor="end" font-size="11.5" fill="${NAVY}">${s.name}</text>
+    const lines = wrapLabel(s.name, chartLeft - 20, 11.5)
+    const lineH = 13
+    const startY = y + barH / 2 + 4 - ((lines.length - 1) * lineH) / 2
+    const labelTspans = lines.map((line, li) => `<tspan x="${chartLeft - 10}" y="${startY + li * lineH}">${line}</tspan>`).join("")
+    body += `<text text-anchor="end" font-size="11.5" fill="${NAVY}">${labelTspans}</text>
     <rect x="${chartLeft}" y="${y}" width="${w}" height="${barH}" rx="4" fill="${BRAND}" />
     <text x="${chartLeft + w + 8}" y="${y + barH / 2 + 4}" font-size="12" font-weight="bold" fill="${NAVY}">${s.ms} ms</text>`
   })
