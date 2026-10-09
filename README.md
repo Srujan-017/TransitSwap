@@ -33,6 +33,7 @@ TransitSwap is a full-stack, AI-assisted urban mobility web application built as
 23. [License](#23-license)
 24. [Acknowledgements](#24-acknowledgements)
 25. [Deployment](#25-deployment)
+26. [Paper, Architecture Decisions & License](#26-paper-architecture-decisions--license)
 
 ---
 
@@ -829,6 +830,15 @@ If `OPENWEATHER_API_KEY` is not configured, the platform keeps weather on clearl
 - [ ] `VITE_API_URL` on the frontend points at the deployed backend, not `localhost`
 - [ ] `GET /api/health` responds correctly from the deployed backend URL
 - [ ] Rate limiting, authentication, and journey/saved-route ownership checks are all still active (unchanged from local — nothing in this section disables them)
+
+---
+
+## 26. Paper, architecture decisions & license
+
+- **Paper** (`docs/paper/paper.md`): the full writeup — problem statement, related work, method, honest evaluation, limitations, future work — with 9 figures generated directly from `docs/paper/data.json`, itself the committed, reviewed output of `backend/scripts/generate-paper-data.ts` (reproduction steps are in the paper's own §7). Every number in the paper traces to that script or to `backend/scripts/sensitivity-sweep.ts` (Phase 9) — nothing in it is hand-estimated.
+- **Architecture decision records** (`docs/adr/001`–`004`): why candidate generation moved from 4 fixed patterns to a graph search, why ranking uses a linear scorer, why ranking features use relative (not global) normalisation, and why the backend is designed to run with no database configured at all.
+- **License**: MIT (see `LICENSE`).
+- **Phase-by-phase development history**: `PHASE_0_BASELINE.md` through `PHASE_13_VERIFICATION.md` document every phase's objective, implementation, testing, and honest accounting of what was and wasn't completed.
 
 ---
 

@@ -1,0 +1,14 @@
+<svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif">
+  <rect width="760" height="300" fill="white" />
+  <text x="380" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 2 — Pipeline latency by stage (one real scenario)</text>
+  <text x="250" y="81" text-anchor="end" font-size="11.5" fill="#0f172a">Candidate generation (graph search)</text>
+    <rect x="260" y="60" width="440" height="34" rx="4" fill="#0ea5e9" />
+    <text x="708" y="81" font-size="12" font-weight="bold" fill="#0f172a">73.31 ms</text><text x="250" y="131" text-anchor="end" font-size="11.5" fill="#0f172a">Accessibility filtering</text>
+    <rect x="260" y="110" width="7.502387123175556" height="34" rx="4" fill="#0ea5e9" />
+    <text x="275.50238712317554" y="131" font-size="12" font-weight="bold" fill="#0f172a">1.25 ms</text><text x="250" y="181" text-anchor="end" font-size="11.5" fill="#0f172a">Reliability + confidence interval + Monte Carlo risk (all candidates)</text>
+    <rect x="260" y="160" width="8.522711771927431" height="34" rx="4" fill="#0ea5e9" />
+    <text x="276.52271177192745" y="181" font-size="12" font-weight="bold" fill="#0f172a">1.42 ms</text><text x="250" y="231" text-anchor="end" font-size="11.5" fill="#0f172a">Ranking + explanation generation</text>
+    <rect x="260" y="210" width="6.3620242804528715" height="34" rx="4" fill="#0ea5e9" />
+    <text x="274.3620242804529" y="231" font-size="12" font-weight="bold" fill="#0f172a">1.06 ms</text>
+  <text x="380" y="286" text-anchor="middle" font-size="10.5" fill="#64748b">Near Whitefield Metro (~180m away) -&gt; Near RV Road Metro (~220m away) · total 77.05 ms · offline road-leg provider (no live-network variance)</text>
+  </svg>

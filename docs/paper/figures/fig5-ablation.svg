@@ -1,0 +1,18 @@
+<svg viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif">
+  <rect width="700" height="320" fill="white" />
+  <text x="350" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 5 — Ablation: decision-change rate per removed feature</text>
+  <text x="190" y="73" text-anchor="end" font-size="12" fill="#0f172a">reliability</text>
+    <rect x="200" y="55" width="440" height="28" rx="4" fill="#f59e0b" />
+    <text x="648" y="73" font-size="12" font-weight="bold" fill="#0f172a">27%</text><text x="190" y="113" text-anchor="end" font-size="12" fill="#0f172a">connectionRisk</text>
+    <rect x="200" y="95" width="440" height="28" rx="4" fill="#f59e0b" />
+    <text x="648" y="113" font-size="12" font-weight="bold" fill="#0f172a">27%</text><text x="190" y="153" text-anchor="end" font-size="12" fill="#0f172a">accessibility</text>
+    <rect x="200" y="135" width="293.3333333333333" height="28" rx="4" fill="#f59e0b" />
+    <text x="501.3333333333333" y="153" font-size="12" font-weight="bold" fill="#0f172a">18%</text><text x="190" y="193" text-anchor="end" font-size="12" fill="#0f172a">weather</text>
+    <rect x="200" y="175" width="293.3333333333333" height="28" rx="4" fill="#f59e0b" />
+    <text x="501.3333333333333" y="193" font-size="12" font-weight="bold" fill="#0f172a">18%</text><text x="190" y="233" text-anchor="end" font-size="12" fill="#0f172a">crowd</text>
+    <rect x="200" y="215" width="228.14814814814812" height="28" rx="4" fill="#f59e0b" />
+    <text x="436.14814814814815" y="233" font-size="12" font-weight="bold" fill="#0f172a">14%</text><text x="190" y="273" text-anchor="end" font-size="12" fill="#0f172a">transfers</text>
+    <rect x="200" y="255" width="146.66666666666666" height="28" rx="4" fill="#f59e0b" />
+    <text x="354.66666666666663" y="273" font-size="12" font-weight="bold" fill="#0f172a">9%</text>
+  <text x="350" y="310" text-anchor="middle" font-size="10.5" fill="#64748b">% of 22 scenarios where the top-ranked route changes when that one feature's weight is zeroed</text>
+  </svg>

@@ -1,0 +1,14 @@
+<svg viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif">
+  <rect width="640" height="480" fill="white" />
+  <text x="320" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#0f172a">Figure 4 — Candidate trade-offs for one real corridor</text>
+  <line x1="70" y1="60" x2="70" y2="410" stroke="#64748b" />
+  <line x1="70" y1="410" x2="600" y2="410" stroke="#64748b" />
+  <text x="335" y="446" text-anchor="middle" font-size="12" fill="#0f172a">Duration (minutes)</text>
+  <text x="18" y="235" text-anchor="middle" font-size="12" fill="#0f172a" transform="rotate(-90 18 235)">Fare (Rs)</text>
+  <circle cx="432.8" cy="260.7" r="9" fill="#bae6fd" stroke="#0ea5e9" stroke-width="2" />
+    <text x="432.8" y="246.7" text-anchor="middle" font-size="10.5" fill="#0f172a">Fastest</text>
+    <text x="432.8" y="284.7" text-anchor="middle" font-size="9.5" fill="#64748b">648m walk, 0 transfers</text><circle cx="530.9" cy="105.7" r="9" fill="#bae6fd" stroke="#0ea5e9" stroke-width="2" />
+    <text x="530.9" y="91.7" text-anchor="middle" font-size="10.5" fill="#0f172a">Least Walking x3</text>
+    <text x="530.9" y="129.7" text-anchor="middle" font-size="9.5" fill="#64748b">300m walk, 1 transfer</text>
+  <text x="320" y="468" text-anchor="middle" font-size="10.5" fill="#64748b">Near Madavara Metro (~250m away) -&gt; Near Bommasandra Metro (~290m away) · 4 candidates generated, 0 Pareto-dominated</text>
+  </svg>
