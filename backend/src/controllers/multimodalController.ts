@@ -73,6 +73,29 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
           crowd: await crowdService.routeSummary(route),
         }
 
+        // Bug fix — confirmed by manually testing every profile: a route
+        // through a known HIGH-crowd station was ranked and shown with no
+        // indication at all that crowding might matter for a profile like
+        // pregnant/stroller/senior/wheelchair/luggage/reduced_mobility — the
+        // soft ranking weight alone (mlPreferenceService.ts) can still be
+        // outvoted by faster/cheaper options, so the rider needs to actually
+        // SEE this, the same way they already see a walking-distance warning
+        // (accessibilityService.ts's walkingWarnings). Appended here, after
+        // crowd is computed, rather than inside accessibilityService itself,
+        // so the existing hard-constraint accessibility engine stays
+        // untouched — this is a pure warning, never a route rejection, and
+        // only fires on a genuinely known (not "UNAVAILABLE") HIGH reading.
+        if (
+          profile !== "standard" &&
+          enrichedRoute.crowd?.level === "HIGH" &&
+          enrichedRoute.crowd?.source !== "UNAVAILABLE" &&
+          enrichedRoute.accessibility
+        ) {
+          enrichedRoute.accessibility.warnings.push(
+            `This route passes through a HIGH-crowd station — may be uncomfortable or difficult to navigate for your selected profile.`,
+          )
+        }
+
         // Rule-based prototype reliability estimate (not a calibrated ML model)
         enrichedRoute.reliability = reliabilityService.calculateReliability(enrichedRoute)
 

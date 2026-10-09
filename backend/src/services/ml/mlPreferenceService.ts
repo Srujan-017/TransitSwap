@@ -115,7 +115,14 @@ export function getProfileWeights(profile?: string): LogisticModelWeights {
     case "reduced_mobility":
       return { accessibility: 0.35, walking: 0.30, reliability: 0.15, time: 0.10, cost: 0.05, crowd: 0.025, weather: 0.025, connectionRisk: 0.05, transfers: 0.15 }
     case "stroller":
-      return { accessibility: 0.40, walking: 0.25, time: 0.10, cost: 0.05, reliability: 0.10, crowd: 0.05, weather: 0.05, connectionRisk: 0.05, transfers: 0.10 }
+      // Fix — crowd was previously 0.05, LOWER than the generic standard
+      // profile's own 0.10, meaning selecting "stroller" made a route's
+      // crowding matter *less* than selecting no profile at all. A parent
+      // maneuvering a stroller genuinely cannot navigate a dense crowd the
+      // way an unencumbered rider can, so this needs to be at least on par
+      // with standard — raised to 0.12 (reduced weather/connectionRisk
+      // slightly to compensate, both lower-priority axes for this profile).
+      return { accessibility: 0.40, walking: 0.25, time: 0.10, cost: 0.05, reliability: 0.10, crowd: 0.12, weather: 0.03, connectionRisk: 0.03, transfers: 0.10 }
     case "fastest":
       return { time: 0.60, cost: 0.10, walking: 0.10, reliability: 0.10, accessibility: 0.05, crowd: 0.025, weather: 0.025, connectionRisk: 0.05, transfers: 0.05 }
     case "cheapest":
@@ -126,6 +133,51 @@ export function getProfileWeights(profile?: string): LogisticModelWeights {
     default:
       return DEFAULT_WEIGHTS
   }
+}
+
+// Bug fix — confirmed by manually testing every profile: once a logged-in
+// user has enough pairwise history to personalize (getModelStatus's
+// "stored.isPersonalized" branch below), that single learned weight vector
+// completely replaced the profile preset from getProfileWeights(), with
+// nothing re-applying it afterward (unlike explicit UserPreferences, which
+// getPreferenceAdjustedWeights() already re-applies on both paths). So a
+// pregnant or stroller profile selected by a user with any route-choice
+// history stopped affecting crowd/walking weighting at all — the learned
+// model could (and did) end up less crowd/walking-sensitive than even the
+// standard profile, silently, with no warning anywhere.
+//
+// This floors each profile's safety-relevant weights (crowd, walking,
+// accessibility) at that profile's own preset value, on top of whatever the
+// learned model or preference adjustments produced, then renormalizes —
+// so personalization can still sharpen a route ranking, but a profile's own
+// stated minimum sensitivity can never be diluted away by it. Applied on
+// both getModelStatus() return paths (not just the personalized one) since
+// getPreferenceAdjustedWeights() can itself shrink crowd/walking via a
+// prioritize/walkingTolerance preference even on the cold-start path.
+function applyProfileFloor(weights: LogisticModelWeights, profile?: string): LogisticModelWeights {
+  if (!profile || profile === "standard") return weights
+  const preset = getProfileWeights(profile)
+  const floored: LogisticModelWeights = { ...weights }
+  const FLOORED_KEYS: Array<keyof LogisticModelWeights> = ["crowd", "walking", "accessibility"]
+
+  let changed = false
+  for (const key of FLOORED_KEYS) {
+    const presetValue = preset[key] ?? 0
+    const currentValue = floored[key] ?? 0
+    if (presetValue > currentValue) {
+      floored[key] = presetValue
+      changed = true
+    }
+  }
+  if (!changed) return weights
+
+  const total = Object.values(floored).reduce((sum, value) => sum + (value ?? 0), 0)
+  if (total > 0) {
+    for (const key of Object.keys(floored) as Array<keyof LogisticModelWeights>) {
+      if (floored[key] !== undefined) floored[key] = Number((floored[key]! / total).toFixed(4))
+    }
+  }
+  return floored
 }
 
 // In-memory model cache for offline/unauthenticated demo mode
@@ -340,7 +392,10 @@ export const mlPreferenceService = {
     preferences?: UserPreferences,
   ): Promise<MLStatusResponse> {
     const baseWeights = getProfileWeights(profile)
-    const profileWeights = getPreferenceAdjustedWeights(baseWeights as any, preferences) as LogisticModelWeights
+    const profileWeights = applyProfileFloor(
+      getPreferenceAdjustedWeights(baseWeights as any, preferences) as LogisticModelWeights,
+      profile,
+    )
 
     if (!userId || mongoose.connection.readyState !== 1) {
       return {
@@ -360,10 +415,13 @@ export const mlPreferenceService = {
         // returned the learned weights untouched, silently dropping every
         // explicit preference the user had set. getPreferenceAdjustedWeights()
         // now runs on both paths, exactly like it already did for profile weights.
-        const personalizedWeights = getPreferenceAdjustedWeights(
-          stored.weights as unknown as import("../transitDnaService").LearnedWeights,
-          preferences,
-        ) as LogisticModelWeights
+        const personalizedWeights = applyProfileFloor(
+          getPreferenceAdjustedWeights(
+            stored.weights as unknown as import("../transitDnaService").LearnedWeights,
+            preferences,
+          ) as LogisticModelWeights,
+          profile,
+        )
         return {
           isPersonalized: true,
           sampleCount: stored.sampleCount,

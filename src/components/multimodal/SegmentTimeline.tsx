@@ -5,10 +5,25 @@ import { formatDuration, formatDistance } from "../../utils/formatters"
 
 interface Props {
   route: MultimodalRoute
+  profile?: string
 }
 
 const MODE_EMOJI: Record<MultimodalMode, string> = {
   walking: "🚶", metro: "🚇", bus: "🚌", auto: "🛺",
+}
+const WHEELCHAIR_WALK_EMOJI = "🧑‍🦽"
+
+// A wheelchair user's shortest step-free path to a station is still shown
+// as a "walking" segment under the hood (same as every major map app's own
+// wheelchair-accessible directions — there's no separate transport mode for
+// it), but labelling it "Walk" reads as if the route planner doesn't know
+// the difference. Reword the displayed instruction only — the underlying
+// segment, distance, geometry and routing are completely unchanged.
+function displayInstruction(instruction: string, mode: MultimodalMode, profile?: string): string {
+  if (mode === "walking" && profile === "wheelchair") {
+    return instruction.replace(/^Walk\b/, "Wheel")
+  }
+  return instruction
 }
 
 const MODE_COLOR: Record<MultimodalMode, string> = {
@@ -25,14 +40,15 @@ const MODE_DOT: Record<MultimodalMode, string> = {
   auto:    "bg-orange-500",
 }
 
-function SegmentRow({ seg }: { seg: RouteSegment }) {
+function SegmentRow({ seg, profile }: { seg: RouteSegment; profile?: string }) {
   const durationMin = Math.ceil(seg.durationSeconds / 60)
+  const isWheelchairWalk = seg.mode === "walking" && profile === "wheelchair"
   return (
     <div className={`rounded-xl border-l-4 px-4 py-3 space-y-1 ${MODE_COLOR[seg.mode]}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-base">{MODE_EMOJI[seg.mode]}</span>
-          <p className="text-sm font-semibold text-navy-800">{seg.instruction}</p>
+          <span className="text-base">{isWheelchairWalk ? WHEELCHAIR_WALK_EMOJI : MODE_EMOJI[seg.mode]}</span>
+          <p className="text-sm font-semibold text-navy-800">{displayInstruction(seg.instruction, seg.mode, profile)}</p>
         </div>
         <span className="text-xs text-navy-500 whitespace-nowrap flex-shrink-0">
           {formatDuration(durationMin)}
@@ -95,7 +111,7 @@ function SegmentRow({ seg }: { seg: RouteSegment }) {
   )
 }
 
-export default function SegmentTimeline({ route }: Props) {
+export default function SegmentTimeline({ route, profile }: Props) {
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -133,7 +149,7 @@ export default function SegmentTimeline({ route }: Props) {
               {i < route.segments.length - 1 && (
                 <div className="absolute left-[22px] top-full w-0.5 h-2 bg-navy-200 z-10" />
               )}
-              <SegmentRow seg={seg} />
+              <SegmentRow seg={seg} profile={profile} />
             </div>
           ))}
         </div>

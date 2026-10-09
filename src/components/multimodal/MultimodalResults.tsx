@@ -339,6 +339,16 @@ export default function MultimodalResults({
             {selected.accessibility?.status.replace("_", " ") ?? "unknown"}
           </Badge>
           <p className="text-xs text-navy-500">{selected.accessibility?.summary}</p>
+          {selected.accessibility && selected.accessibility.warnings.length > 0 && (
+            <ul className="space-y-1 bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-2">
+              {selected.accessibility.warnings.map((warning, i) => (
+                <li key={i} className="text-[11px] text-amber-800 flex items-start gap-1.5">
+                  <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                  <span>{warning}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="space-y-1">
             {checkedStations.slice(0, 3).map((station) => (
               <p key={station.stationId} className="text-[11px] text-navy-500">
@@ -440,7 +450,7 @@ export default function MultimodalResults({
       )}
 
       {/* Segment Details Timeline */}
-      <SegmentTimeline route={selected} />
+      <SegmentTimeline route={selected} profile={selected.accessibility?.profile} />
 
       <p className="text-xs text-navy-400 text-center flex items-center justify-center gap-1.5 pt-2">
         <Navigation className="w-3.5 h-3.5 text-brand-500" />
