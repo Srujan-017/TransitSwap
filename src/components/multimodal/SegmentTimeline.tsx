@@ -50,7 +50,7 @@ function SegmentRow({ seg }: { seg: RouteSegment }) {
       </div>
 
       {seg.transitDetails && (seg.mode === "bus" || seg.mode === "metro") && (
-        <div className="flex flex-wrap items-center gap-2 pl-7 pt-0.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-7 pt-0.5">
           {seg.transitDetails.routeNumber && (
             <span
               className="inline-flex items-center justify-center min-w-[1.75rem] h-6 px-1.5 rounded-md text-xs font-bold text-white"
@@ -59,10 +59,22 @@ function SegmentRow({ seg }: { seg: RouteSegment }) {
               {seg.transitDetails.routeNumber}
             </span>
           )}
-          <span className="text-xs text-navy-500">
-            {seg.transitDetails.estimatedBoardingTime
-              ? `Board by ~${seg.transitDetails.estimatedBoardingTime}`
-              : `Runs every ~${seg.transitDetails.waitMinutes} min (set a departure time for a boarding estimate)`}
+          {seg.mode === "bus" && seg.transitDetails.towards && (
+            <span className="text-xs font-medium text-navy-600">
+              towards {seg.transitDetails.towards}
+            </span>
+          )}
+          <span className="text-xs text-navy-500 basis-full">
+            {seg.transitDetails.estimatedBoardingTime ? (
+              <>
+                Board by ~{seg.transitDetails.estimatedBoardingTime}
+                {seg.transitDetails.upcomingBoardingTimes && seg.transitDetails.upcomingBoardingTimes.length > 0 && (
+                  <> · next: {seg.transitDetails.upcomingBoardingTimes.map((t) => `~${t}`).join(", ")}</>
+                )}
+              </>
+            ) : (
+              `Runs every ~${seg.transitDetails.waitMinutes} min (set a departure time for a boarding estimate)`
+            )}
           </span>
         </div>
       )}

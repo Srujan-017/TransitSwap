@@ -23,6 +23,11 @@ export interface TransitDetails {
   // Clock time the rider should expect to board, e.g. "8:42 AM". Only
   // present when a departure date/time was supplied with the request.
   estimatedBoardingTime?: string
+  // The next couple of departures after estimatedBoardingTime (same rule).
+  upcomingBoardingTimes?: string[]
+  // The route's real terminus in this boarding direction (buses only) —
+  // what to look for on the bus's own headboard.
+  towards?: string
 }
 
 export interface RouteSegment {

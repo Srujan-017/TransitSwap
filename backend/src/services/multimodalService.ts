@@ -380,6 +380,10 @@ function selectBusRoute(fromStop: (typeof BUS_STOPS)[0], toStop: (typeof BUS_STO
       stopPath,
       stopCount: Math.abs(destinationIndex - originIndex),
       distanceMeters: busPathDistance(stopPath),
+      // Which end of the route's own stop list this boarding direction heads
+      // toward — real buses display their final terminus on the headboard,
+      // not the rider's own alighting stop, so that's what we surface too.
+      forward: originIndex <= destinationIndex,
     }
   }).filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate))
 
@@ -477,6 +481,13 @@ function busSegment(fromStop: (typeof BUS_STOPS)[0], toStop: (typeof BUS_STOPS)[
   const durationSeconds = Math.round(waitSeconds + distanceMeters / ROUTING_CONSTANTS.BUS_SPEED_MPS)
   const fare = Math.round(FARE_CONFIG.bus.basefare + (distanceMeters / 1000) * FARE_CONFIG.bus.perKm)
   const stopNames = selected.stopPath.map((id) => getStop(id)?.name ?? id)
+  // The terminus a rider should look for on the bus's headboard — the real
+  // end of the route in this boarding direction, not just their own stop
+  // (the same physical stop serves both directions of a route).
+  const terminusStopId = selected.forward
+    ? selected.route.stops[selected.route.stops.length - 1]
+    : selected.route.stops[0]
+  const towards = getStop(terminusStopId)?.name
 
   return {
     id: crypto.randomUUID(),
@@ -494,6 +505,7 @@ function busSegment(fromStop: (typeof BUS_STOPS)[0], toStop: (typeof BUS_STOPS)[
       stopCount: selected.stopCount,
       stops: stopNames,
       waitMinutes: Math.round(waitSeconds / 60),
+      towards,
       routeNumber: selected.route.number,
     },
   }
@@ -683,12 +695,17 @@ function buildRoute(segments: RouteSegment[], label: RouteLabel): MultimodalRout
   }
 }
 
-// Fills in each transit segment's estimatedBoardingTime by walking the route
-// in order and accumulating prior segments' durationSeconds (which already
-// include each segment's own boarding wait — see metroSegment()/busSegment()
-// above) plus this segment's own waitMinutes. When no departure time was
-// supplied, every segment is left without an estimatedBoardingTime rather
-// than inventing one from "now" — the same honesty rule reliabilityService's
+const UPCOMING_DEPARTURES_SHOWN = 2
+
+// Fills in each transit segment's estimatedBoardingTime (and the next couple
+// of departures after it) by walking the route in order and accumulating
+// prior segments' durationSeconds (which already include each segment's own
+// boarding wait — see metroSegment()/busSegment() above) plus this segment's
+// own waitMinutes. Later departures are spaced by the same waitMinutes
+// again, since this dataset models wait as "one full headway" — i.e. a bus
+// this frequent is expected roughly every waitMinutes. When no departure
+// time was supplied, every segment is left without these fields rather than
+// inventing one from "now" — the same honesty rule reliabilityService's
 // calculateSmartDeparture already follows for a missing departure time.
 function attachBoardingEstimates(route: MultimodalRoute, departureDate: Date | null): MultimodalRoute {
   if (!departureDate) return route
@@ -696,8 +713,14 @@ function attachBoardingEstimates(route: MultimodalRoute, departureDate: Date | n
   let cursorMs = departureDate.getTime()
   for (const segment of route.segments) {
     if (segment.transitDetails) {
-      const boardingInstant = new Date(cursorMs + segment.transitDetails.waitMinutes * 60_000)
-      segment.transitDetails.estimatedBoardingTime = formatClockTime(boardingInstant)
+      const arriveAtStopMs = cursorMs
+      const headwayMs = segment.transitDetails.waitMinutes * 60_000
+      segment.transitDetails.estimatedBoardingTime = formatClockTime(new Date(arriveAtStopMs + headwayMs))
+      // Starts at the SECOND departure — the first is estimatedBoardingTime
+      // above, so this is only the ones after it.
+      segment.transitDetails.upcomingBoardingTimes = Array.from({ length: UPCOMING_DEPARTURES_SHOWN }, (_, i) =>
+        formatClockTime(new Date(arriveAtStopMs + (i + 2) * headwayMs)),
+      )
     }
     cursorMs += segment.durationSeconds * 1000
   }

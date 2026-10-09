@@ -26,6 +26,14 @@ export interface TransitDetails {
   // of every prior segment. Omitted (not fabricated) when no departureTime
   // was supplied — same honesty rule as calculateSmartDeparture.
   estimatedBoardingTime?: string
+  // The next couple of departures after estimatedBoardingTime, spaced by
+  // the same scheduled frequency — in case the rider misses the first one.
+  // Omitted under the same rule as estimatedBoardingTime.
+  upcomingBoardingTimes?: string[]
+  // The route's real terminus in this boarding direction (e.g. "Shivajinagar
+  // Bus Stand") — what the rider should look for on the bus's own headboard,
+  // since the same physical stop serves both directions. Buses only.
+  towards?: string
 }
 
 export interface RouteSegment {
