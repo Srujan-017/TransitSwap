@@ -35,3 +35,15 @@ export function parseLocalDateTime(value?: string | null): Date | null {
   const fallback = new Date(trimmed)
   return isNaN(fallback.getTime()) ? null : fallback
 }
+
+// Shared 12-hour clock formatter for any caller that needs to show a Date as
+// "8:05 AM" rather than a raw Date/ISO string.
+export function formatClockTime(date: Date): string {
+  let hours = date.getHours()
+  const minutes = date.getMinutes()
+  const ampm = hours >= 12 ? "PM" : "AM"
+  hours = hours % 12
+  hours = hours ? hours : 12
+  const minStr = minutes < 10 ? `0${minutes}` : `${minutes}`
+  return `${hours}:${minStr} ${ampm}`
+}

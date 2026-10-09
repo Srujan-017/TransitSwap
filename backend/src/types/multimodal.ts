@@ -13,6 +13,19 @@ export interface TransitDetails {
   lineColor: string
   stopCount: number
   stops: string[]
+  // Minutes the rider should expect to wait at the stop before boarding,
+  // derived from the line/route's own scheduled frequency — not a live
+  // GPS-tracked arrival, and labelled as such wherever it's shown.
+  waitMinutes: number
+  // The route number riders look for on the bus itself (e.g. "5"), separate
+  // from the descriptive `lineName`. Buses only — metro already identifies
+  // itself unambiguously by line name/colour.
+  routeNumber?: string
+  // Clock time ("8:42 AM") the rider should expect to board this leg,
+  // computed from the request's departureTime plus the cumulative duration
+  // of every prior segment. Omitted (not fabricated) when no departureTime
+  // was supplied — same honesty rule as calculateSmartDeparture.
+  estimatedBoardingTime?: string
 }
 
 export interface RouteSegment {

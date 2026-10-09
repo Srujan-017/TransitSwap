@@ -43,6 +43,7 @@ export interface BusStop {
 export interface BusRoute {
   id: string
   name: string
+  number: string // the route number riders look for on the bus itself (separate from the descriptive `name`)
   stops: string[] // ordered IDs
   frequencyMinutes: number
 }
@@ -185,16 +186,16 @@ export const BUS_STOPS: BusStop[] = [
 // Sarjapur Road, Bannerghatta Road, Kanakapura Road) this dataset draws on.
 
 export const BUS_ROUTES: BusRoute[] = [
-  { id: "R1", name: "1 — Kempegowda Bus Station ↔ Shivajinagar (via MG Road)", stops: ["b-03","b-02","b-01"], frequencyMinutes: 10 },
-  { id: "R2", name: "2 — Kempegowda Bus Station ↔ Jayanagar 4th Block",        stops: ["b-03","b-04","b-05","b-11","b-12"], frequencyMinutes: 8 },
-  { id: "R3", name: "3 — Shantinagar ↔ Domlur (via Indiranagar)",              stops: ["b-04","b-14","b-06"], frequencyMinutes: 12 },
-  { id: "R4", name: "4 — Shivajinagar ↔ Hebbal",                              stops: ["b-01","b-15"], frequencyMinutes: 15 },
-  { id: "R5", name: "5 — Koramangala ↔ Marathahalli (Sarjapur Road corridor)", stops: ["b-05","b-19","b-21","b-13"], frequencyMinutes: 10 },
-  { id: "R6", name: "6 — Yeshwanthpur ↔ Malleshwaram (via Peenya, Rajajinagar)", stops: ["b-07","b-08","b-09","b-10"], frequencyMinutes: 9 },
-  { id: "R7", name: "7 — Hebbal ↔ Whitefield (Old Madras Road corridor)",      stops: ["b-15","b-16","b-24"], frequencyMinutes: 14 },
-  { id: "R8", name: "8 — Silk Board ↔ Electronic City (Hosur Road corridor, Big10)", stops: ["b-21","b-19","b-20"], frequencyMinutes: 7 },
-  { id: "R9", name: "9 — Banashankari ↔ Jayanagar 4th Block (Kanakapura Road corridor, Big10)", stops: ["b-17","b-18","b-12"], frequencyMinutes: 11 },
-  { id: "R10", name: "10 — Mysuru Road ↔ Whitefield (via Vijayanagar)",        stops: ["b-23","b-22","b-24"], frequencyMinutes: 16 },
+  { id: "R1", name: "1 — Kempegowda Bus Station ↔ Shivajinagar (via MG Road)", number: "1", stops: ["b-03","b-02","b-01"], frequencyMinutes: 10 },
+  { id: "R2", name: "2 — Kempegowda Bus Station ↔ Jayanagar 4th Block",        number: "2", stops: ["b-03","b-04","b-05","b-11","b-12"], frequencyMinutes: 8 },
+  { id: "R3", name: "3 — Shantinagar ↔ Domlur (via Indiranagar)",              number: "3", stops: ["b-04","b-14","b-06"], frequencyMinutes: 12 },
+  { id: "R4", name: "4 — Shivajinagar ↔ Hebbal",                              number: "4", stops: ["b-01","b-15"], frequencyMinutes: 15 },
+  { id: "R5", name: "5 — Koramangala ↔ Marathahalli (Sarjapur Road corridor)", number: "5", stops: ["b-05","b-19","b-21","b-13"], frequencyMinutes: 10 },
+  { id: "R6", name: "6 — Yeshwanthpur ↔ Malleshwaram (via Peenya, Rajajinagar)", number: "6", stops: ["b-07","b-08","b-09","b-10"], frequencyMinutes: 9 },
+  { id: "R7", name: "7 — Hebbal ↔ Whitefield (Old Madras Road corridor)",      number: "7", stops: ["b-15","b-16","b-24"], frequencyMinutes: 14 },
+  { id: "R8", name: "8 — Silk Board ↔ Electronic City (Hosur Road corridor, Big10)", number: "8", stops: ["b-21","b-19","b-20"], frequencyMinutes: 7 },
+  { id: "R9", name: "9 — Banashankari ↔ Jayanagar 4th Block (Kanakapura Road corridor, Big10)", number: "9", stops: ["b-17","b-18","b-12"], frequencyMinutes: 11 },
+  { id: "R10", name: "10 — Mysuru Road ↔ Whitefield (via Vijayanagar)",        number: "10", stops: ["b-23","b-22","b-24"], frequencyMinutes: 16 },
 ]
 
 // ── Fare configuration ────────────────────────────────────────────────────────

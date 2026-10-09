@@ -14,6 +14,15 @@ export interface TransitDetails {
   lineColor: string
   stopCount: number
   stops: string[]
+  // Minutes the rider should expect to wait at the stop before boarding,
+  // from the line/route's own scheduled frequency — not a live GPS-tracked
+  // arrival.
+  waitMinutes: number
+  // Route number riders look for on the bus itself (buses only).
+  routeNumber?: string
+  // Clock time the rider should expect to board, e.g. "8:42 AM". Only
+  // present when a departure date/time was supplied with the request.
+  estimatedBoardingTime?: string
 }
 
 export interface RouteSegment {

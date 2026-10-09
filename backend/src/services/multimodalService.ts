@@ -12,6 +12,7 @@ import {
 import { routingService } from "./routingService"
 import { accessibilityService } from "./accessibilityService"
 import { createTtlCache } from "../utils/ttlCache"
+import { parseLocalDateTime, formatClockTime } from "../utils/dateTime"
 import type { NormalizedRoute, TransportMode } from "../types/routing"
 import type {
   MultimodalRoute,
@@ -461,7 +462,7 @@ function metroSegment(fromId: string, toId: string, stationPath: string[]): Rout
     estimatedFare: fare,
     instruction: `Take Metro from ${from.name} to ${to.name} (${stopCount} stop${stopCount === 1 ? "" : "s"})`,
     geometry: metroGeometry(stationPath),
-    transitDetails: { ...lineDetails, stopCount, stops: stopNames },
+    transitDetails: { ...lineDetails, stopCount, stops: stopNames, waitMinutes: Math.round(waitSeconds / 60) },
   }
 }
 
@@ -492,6 +493,8 @@ function busSegment(fromStop: (typeof BUS_STOPS)[0], toStop: (typeof BUS_STOPS)[
       lineColor: "#16a34a",
       stopCount: selected.stopCount,
       stops: stopNames,
+      waitMinutes: Math.round(waitSeconds / 60),
+      routeNumber: selected.route.number,
     },
   }
 }
@@ -678,6 +681,27 @@ function buildRoute(segments: RouteSegment[], label: RouteLabel): MultimodalRout
     summary: modeSummary,
     isDemoData: true,
   }
+}
+
+// Fills in each transit segment's estimatedBoardingTime by walking the route
+// in order and accumulating prior segments' durationSeconds (which already
+// include each segment's own boarding wait — see metroSegment()/busSegment()
+// above) plus this segment's own waitMinutes. When no departure time was
+// supplied, every segment is left without an estimatedBoardingTime rather
+// than inventing one from "now" — the same honesty rule reliabilityService's
+// calculateSmartDeparture already follows for a missing departure time.
+function attachBoardingEstimates(route: MultimodalRoute, departureDate: Date | null): MultimodalRoute {
+  if (!departureDate) return route
+
+  let cursorMs = departureDate.getTime()
+  for (const segment of route.segments) {
+    if (segment.transitDetails) {
+      const boardingInstant = new Date(cursorMs + segment.transitDetails.waitMinutes * 60_000)
+      segment.transitDetails.estimatedBoardingTime = formatClockTime(boardingInstant)
+    }
+    cursorMs += segment.durationSeconds * 1000
+  }
+  return route
 }
 
 async function tryWalkMetroWalk(
@@ -1350,7 +1374,10 @@ export const multimodalService = {
 
     if (paretoOptimalCandidates.length === 0) return []
 
-    return assignLabels(paretoOptimalCandidates).map(({ segments, label }) => buildRoute(segments, label))
+    const departureDate = parseLocalDateTime(request.departureTime)
+    return assignLabels(paretoOptimalCandidates).map(({ segments, label }) =>
+      attachBoardingEstimates(buildRoute(segments, label), departureDate),
+    )
   },
 
   getNearbyTransit(latitude: number, longitude: number): { metro: NearbyTransitResult | null; bus: NearbyTransitResult | null } {

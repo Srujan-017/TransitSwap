@@ -49,6 +49,24 @@ function SegmentRow({ seg }: { seg: RouteSegment }) {
         )}
       </div>
 
+      {seg.transitDetails && (seg.mode === "bus" || seg.mode === "metro") && (
+        <div className="flex flex-wrap items-center gap-2 pl-7 pt-0.5">
+          {seg.transitDetails.routeNumber && (
+            <span
+              className="inline-flex items-center justify-center min-w-[1.75rem] h-6 px-1.5 rounded-md text-xs font-bold text-white"
+              style={{ backgroundColor: seg.transitDetails.lineColor }}
+            >
+              {seg.transitDetails.routeNumber}
+            </span>
+          )}
+          <span className="text-xs text-navy-500">
+            {seg.transitDetails.estimatedBoardingTime
+              ? `Board by ~${seg.transitDetails.estimatedBoardingTime}`
+              : `Runs every ~${seg.transitDetails.waitMinutes} min (set a departure time for a boarding estimate)`}
+          </span>
+        </div>
+      )}
+
       {seg.transitDetails && seg.transitDetails.stops.length > 2 && (
         <div className="pl-7 pt-1">
           <div className="flex flex-wrap gap-x-2 gap-y-0.5">
