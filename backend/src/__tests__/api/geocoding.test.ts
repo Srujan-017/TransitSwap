@@ -2,13 +2,13 @@ import request from "supertest"
 import { app, registerTestUser, authHeader, ensureDbConnected } from "../helpers/testApp"
 
 /**
- * Phase 10 — API integration test for /api/geocoding/search (1 of 50
- * endpoints). Proxies live Nominatim with no fallback (geocodingService.ts),
- * so — same honest reasoning as plain POST /routes in routing.test.ts — the
- * happy-path assertion allows either a real 200 or a documented
- * service-unavailable error, rather than asserting a hard 200 that would
- * make this test flaky depending on real network conditions / Nominatim's
- * own rate limiting.
+ * Phase 10 — API integration test for /api/geocoding/search and
+ * /api/geocoding/reverse (2 of 50 endpoints). Both proxy live Nominatim with
+ * no fallback (geocodingService.ts), so — same honest reasoning as plain
+ * POST /routes in routing.test.ts — the happy-path assertions allow either a
+ * real 200 or a documented service-unavailable error, rather than asserting
+ * a hard 200 that would make this test flaky depending on real network
+ * conditions / Nominatim's own rate limiting.
  */
 
 let passed = 0
@@ -26,7 +26,7 @@ function assert(condition: boolean, msg: string): boolean {
 }
 
 async function run() {
-  console.log("🧪 Running Phase 10 API Integration Tests — /api/geocoding/search...\n")
+  console.log("🧪 Running Phase 10 API Integration Tests — /api/geocoding/search and /reverse...\n")
 
   const dbAvailable = await ensureDbConnected()
   if (!dbAvailable) {
@@ -46,6 +46,30 @@ async function run() {
   console.log("2️⃣ Testing GET /api/geocoding/search with no token (auth failure)...")
   const noAuthRes = await request(app).get("/api/geocoding/search").query({ q: "Whitefield" })
   if (assert(noAuthRes.status === 401, `Expected 401, got ${noAuthRes.status}`)) console.log("   ✅ 401 with no token.\n")
+
+  console.log("3️⃣ Testing GET /api/geocoding/reverse (happy path — real Nominatim or a documented error)...")
+  const reverseRes = await request(app).get("/api/geocoding/reverse").set(...authHeader(user.token)).query({ lat: 12.9767, lng: 77.5713 })
+  if (assert(acceptableStatuses.includes(reverseRes.status), `Expected one of ${acceptableStatuses.join(",")}, got ${reverseRes.status}`)) {
+    console.log(`   ✅ Status ${reverseRes.status} (${reverseRes.status === 200 ? "live Nominatim succeeded" : "documented service-unavailable error"}).\n`)
+  }
+  if (reverseRes.status === 200) {
+    const body = reverseRes.body.data
+    if (assert(body.latitude === 12.9767 && body.longitude === 77.5713, "Reverse result should echo back the requested coordinates")) {
+      console.log("   ✅ Result coordinates match the request.\n")
+    }
+  }
+
+  console.log("4️⃣ Testing GET /api/geocoding/reverse with no token (auth failure)...")
+  const reverseNoAuthRes = await request(app).get("/api/geocoding/reverse").query({ lat: 12.9767, lng: 77.5713 })
+  if (assert(reverseNoAuthRes.status === 401, `Expected 401, got ${reverseNoAuthRes.status}`)) console.log("   ✅ 401 with no token.\n")
+
+  console.log("5️⃣ Testing GET /api/geocoding/reverse with an out-of-range latitude (validation failure)...")
+  const badLatRes = await request(app).get("/api/geocoding/reverse").set(...authHeader(user.token)).query({ lat: 200, lng: 77.5713 })
+  if (assert(badLatRes.status === 400, `Expected 400, got ${badLatRes.status}`)) console.log("   ✅ 400 on out-of-range latitude.\n")
+
+  console.log("6️⃣ Testing GET /api/geocoding/reverse with a missing longitude (validation failure)...")
+  const missingLngRes = await request(app).get("/api/geocoding/reverse").set(...authHeader(user.token)).query({ lat: 12.9767 })
+  if (assert(missingLngRes.status === 400, `Expected 400, got ${missingLngRes.status}`)) console.log("   ✅ 400 on missing longitude.\n")
 
   console.log("═══════════════════════════════════════════════════════")
   console.log(failed === 0 ? `🎉 ALL ${passed} /api/geocoding/* TESTS PASSED!` : `⚠️  ${passed} PASSED, ${failed} FAILED`)

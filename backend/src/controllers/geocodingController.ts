@@ -15,3 +15,20 @@ export async function searchLocations(req: Request, res: Response, next: NextFun
     next(err)
   }
 }
+
+export async function reverseGeocode(req: Request, res: Response, next: NextFunction) {
+  try {
+    const lat = Number(req.query.lat)
+    const lng = Number(req.query.lng)
+    if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+      throw new AppError("Query parameter 'lat' must be a number between -90 and 90.", 400)
+    }
+    if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+      throw new AppError("Query parameter 'lng' must be a number between -180 and 180.", 400)
+    }
+    const result = await geocodingService.reverse(lat, lng)
+    sendSuccess(res, result)
+  } catch (err: unknown) {
+    next(err)
+  }
+}

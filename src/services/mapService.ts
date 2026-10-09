@@ -9,4 +9,13 @@ export const mapService = {
     )
     return data.data
   },
+
+  // "What's here?" — resolves a clicked map coordinate to a real place name.
+  async reverse(lat: number, lng: number): Promise<GeoLocation> {
+    const { data } = await api.get<{ success: boolean; data: GeoLocation }>(
+      "/geocoding/reverse",
+      { params: { lat, lng }, timeout: 12000 },
+    )
+    return data.data
+  },
 }

@@ -111,3 +111,38 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 0.75rem !important;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18) !important;
 }
+.leaflet-control-layers {
+  border: none !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2) !important;
+}
+
+/* Custom map icon buttons (fullscreen, locate-me) — sized and styled to
+   match the zoom control they sit beside. */
+.map-icon-btn {
+  width: 34px !important;
+  height: 34px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2) !important;
+  cursor: pointer;
+  margin-bottom: 8px !important;
+}
+.map-icon-btn:hover {
+  background: #f0f9ff !important;
+  color: #0ea5e9 !important;
+}
+
+/* The animated "blue dot" halo for a live GPS position. */
+.my-location-pulse {
+  animation: my-location-pulse-anim 2s ease-out infinite;
+}
+@keyframes my-location-pulse-anim {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  100% { transform: scale(1.6); opacity: 0; }
+}

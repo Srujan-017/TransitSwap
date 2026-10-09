@@ -1,9 +1,13 @@
-import { useEffect, useMemo } from "react"
-import { MapContainer, TileLayer, Marker, GeoJSON, ZoomControl, useMap } from "react-leaflet"
+import { useEffect, useMemo, useState, useCallback, useRef } from "react"
+import {
+  MapContainer, TileLayer, Marker, GeoJSON, ZoomControl, ScaleControl,
+  LayersControl, Popup, useMap, useMapEvents,
+} from "react-leaflet"
 import L from "leaflet"
 import type { Feature, LineString } from "geojson"
 import type { GeoLocation, RouteResult } from "../../types/map"
 import type { MultimodalRoute, MultimodalMode } from "../../types/multimodal"
+import { mapService } from "../../services/mapService"
 
 // Teardrop pin (the shape every major map app uses for a fixed point) —
 // built as inline SVG so it needs no external icon asset (avoids the
@@ -33,6 +37,20 @@ const ORIGIN_ICON = L.divIcon({
   className: "",
 })
 const DEST_ICON = makeTeardropPin("#ef4444")
+const CLICKED_PIN_ICON = makeTeardropPin("#334155")
+
+// The animated "blue dot" every major map app uses for the device's live
+// GPS position — distinct from ORIGIN_ICON (which marks a chosen, static
+// start point, not necessarily where the device actually is right now).
+const MY_LOCATION_ICON = L.divIcon({
+  html: `<div style="position:relative;width:20px;height:20px;">
+    <div class="my-location-pulse" style="position:absolute;inset:-10px;border-radius:50%;background:rgba(14,165,233,0.35);"></div>
+    <div style="position:absolute;inset:0;border-radius:50%;background:#0ea5e9;border:3px solid white;box-shadow:0 1px 4px rgba(15,23,42,0.5);"></div>
+  </div>`,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+  className: "",
+})
 
 const makeStationPin = (color: string) =>
   L.divIcon({
@@ -85,14 +103,213 @@ function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression }) {
   return null
 }
 
+const EXPAND_ICON_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`
+const COLLAPSE_ICON_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`
+const LOCATE_ICON_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line></svg>`
+
+// A single reusable imperative Leaflet button control — used for both the
+// fullscreen toggle and the locate-me button so each stays in Leaflet's own
+// control-corner layout (stacking cleanly with the zoom control) instead of
+// being absolutely positioned by hand.
+function useMapButtonControl(opts: {
+  position: L.ControlPosition
+  title: string
+  html: string
+  onClick: () => void
+  deps: unknown[]
+}) {
+  const map = useMap()
+  useEffect(() => {
+    const ButtonControl = L.Control.extend({
+      onAdd() {
+        const btn = L.DomUtil.create("button", "leaflet-bar map-icon-btn")
+        btn.type = "button"
+        btn.title = opts.title
+        btn.setAttribute("aria-label", opts.title)
+        btn.innerHTML = opts.html
+        L.DomEvent.disableClickPropagation(btn)
+        L.DomEvent.on(btn, "click", (e) => {
+          L.DomEvent.stop(e)
+          opts.onClick()
+        })
+        return btn
+      },
+    })
+    const instance = new ButtonControl({ position: opts.position })
+    instance.addTo(map)
+    return () => {
+      instance.remove()
+    }
+  }, [map, ...opts.deps])
+}
+
+function FullscreenControl() {
+  const map = useMap()
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement))
+    document.addEventListener("fullscreenchange", onChange)
+    return () => document.removeEventListener("fullscreenchange", onChange)
+  }, [])
+
+  const toggle = useCallback(() => {
+    const container = map.getContainer()
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+    } else {
+      container.requestFullscreen?.().catch(() => {})
+    }
+  }, [map])
+
+  useMapButtonControl({
+    position: "topright",
+    title: isFullscreen ? "Exit fullscreen" : "View fullscreen",
+    html: isFullscreen ? COLLAPSE_ICON_SVG : EXPAND_ICON_SVG,
+    onClick: toggle,
+    deps: [isFullscreen, toggle],
+  })
+
+  // Leaflet's internal tile grid doesn't know the container just resized —
+  // without this the map stays cropped to its pre-fullscreen pixel size.
+  useEffect(() => {
+    const id = setTimeout(() => map.invalidateSize(), 150)
+    return () => clearTimeout(id)
+  }, [map, isFullscreen])
+
+  return null
+}
+
+function LocateControl() {
+  const map = useMap()
+  const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle")
+
+  const locate = useCallback(() => {
+    if (!navigator.geolocation) {
+      setStatus("error")
+      return
+    }
+    setStatus("loading")
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const next = { lat: position.coords.latitude, lng: position.coords.longitude }
+        setMyLocation(next)
+        setStatus("idle")
+        map.flyTo([next.lat, next.lng], 16, { duration: 0.8 })
+      },
+      () => setStatus("error"),
+      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: false },
+    )
+  }, [map])
+
+  useMapButtonControl({
+    position: "topright",
+    title: "Show my location",
+    html: LOCATE_ICON_SVG,
+    onClick: locate,
+    deps: [locate],
+  })
+
+  if (!myLocation) return null
+  return (
+    <Marker position={[myLocation.lat, myLocation.lng]} icon={MY_LOCATION_ICON}>
+      <Popup>Your current location</Popup>
+    </Marker>
+  )
+}
+
+interface ClickedPlace {
+  lat: number
+  lng: number
+  status: "loading" | "ready" | "error"
+  place?: GeoLocation
+}
+
+// "What's here?" — click anywhere on the map to resolve a real address for
+// that spot, the way Google Maps' click-to-drop-a-pin popup works, with
+// quick actions to use that spot as the trip's origin or destination.
+function ClickForAddress({
+  onSetOrigin,
+  onSetDestination,
+}: {
+  onSetOrigin?: (location: GeoLocation) => void
+  onSetDestination?: (location: GeoLocation) => void
+}) {
+  const [clicked, setClicked] = useState<ClickedPlace | null>(null)
+  const markerRef = useRef<L.Marker>(null)
+
+  useMapEvents({
+    click(e) {
+      const { lat, lng } = e.latlng
+      setClicked({ lat, lng, status: "loading" })
+      mapService
+        .reverse(lat, lng)
+        .then((place) => setClicked({ lat, lng, status: "ready", place }))
+        .catch(() => setClicked({ lat, lng, status: "error" }))
+    },
+  })
+
+  // A Marker's Popup child only opens on a click directly on the marker
+  // itself — but the user's intent here is the map click that just placed
+  // it, so the info popup should appear immediately, the way Google Maps'
+  // "what's here" pin does, not require a second click on the new pin.
+  useEffect(() => {
+    if (clicked) markerRef.current?.openPopup()
+  }, [clicked])
+
+  if (!clicked) return null
+
+  return (
+    <Marker ref={markerRef} position={[clicked.lat, clicked.lng]} icon={CLICKED_PIN_ICON}>
+      <Popup minWidth={200}>
+        {clicked.status === "loading" && <span className="text-sm text-navy-500">Looking up this place…</span>}
+        {clicked.status === "error" && <span className="text-sm text-navy-500">Couldn't resolve an address here.</span>}
+        {clicked.status === "ready" && clicked.place && (
+          <div className="space-y-2 min-w-[180px]">
+            <p className="text-sm font-semibold text-navy-800">{clicked.place.name}</p>
+            <p className="text-xs text-navy-500">{clicked.place.address}</p>
+            {(onSetOrigin || onSetDestination) && (
+              <div className="flex gap-1.5 pt-1">
+                {onSetOrigin && (
+                  <button
+                    type="button"
+                    onClick={() => clicked.place && onSetOrigin(clicked.place)}
+                    className="flex-1 text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg px-2 py-1.5 transition-colors"
+                  >
+                    Set as origin
+                  </button>
+                )}
+                {onSetDestination && (
+                  <button
+                    type="button"
+                    onClick={() => clicked.place && onSetDestination(clicked.place)}
+                    className="flex-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg px-2 py-1.5 transition-colors"
+                  >
+                    Set as destination
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Popup>
+    </Marker>
+  )
+}
+
 interface MapViewProps {
   origin: GeoLocation | null
   destination: GeoLocation | null
   route: RouteResult | null
   multimodalRoute?: MultimodalRoute | null
+  onSetOrigin?: (location: GeoLocation) => void
+  onSetDestination?: (location: GeoLocation) => void
 }
 
-export default function MapView({ origin, destination, route, multimodalRoute }: MapViewProps) {
+export default function MapView({
+  origin, destination, route, multimodalRoute, onSetOrigin, onSetDestination,
+}: MapViewProps) {
   const defaultCenter: L.LatLngExpression = [19.076, 72.877]
   const defaultZoom = 11
 
@@ -148,13 +365,30 @@ export default function MapView({ origin, destination, route, multimodalRoute }:
       className="z-0"
       zoomControl={false}
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.hotosm.org/updates/working-with-the-openstreetmap-cartography-team">Humanitarian OSM Team</a>'
-        url="https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png"
-        subdomains="abc"
-        maxZoom={19}
-      />
+      <LayersControl position="topright">
+        <LayersControl.BaseLayer checked name="Street">
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.hotosm.org/updates/working-with-the-openstreetmap-cartography-team">Humanitarian OSM Team</a>'
+            url="https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png"
+            subdomains="abc"
+            maxZoom={19}
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Satellite">
+          <TileLayer
+            attribution='Tiles &copy; <a href="https://www.esri.com">Esri</a> — Source: Esri, Maxar, Earthstar Geographics'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+            maxNativeZoom={17}
+          />
+        </LayersControl.BaseLayer>
+      </LayersControl>
+
       <ZoomControl position="bottomright" />
+      <ScaleControl position="bottomleft" />
+      <FullscreenControl />
+      <LocateControl />
+      <ClickForAddress onSetOrigin={onSetOrigin} onSetDestination={onSetDestination} />
 
       {/* Road routing polyline */}
       {routeGeoJson && !multimodalRoute && (

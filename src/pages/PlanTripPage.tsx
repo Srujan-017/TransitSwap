@@ -569,6 +569,8 @@ export default function PlanTripPage() {
                 destination={destination}
                 route={routingMode === "road" ? selectedRoadRoute : null}
                 multimodalRoute={routingMode === "multimodal" ? selectedMultimodalRoute : null}
+                onSetOrigin={setOrigin}
+                onSetDestination={setDestination}
               />
             </Suspense>
 
