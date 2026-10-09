@@ -1,46 +1,80 @@
 import { useEffect, useMemo } from "react"
-import { MapContainer, TileLayer, Marker, GeoJSON, useMap } from "react-leaflet"
+import { MapContainer, TileLayer, Marker, GeoJSON, ZoomControl, useMap } from "react-leaflet"
 import L from "leaflet"
 import type { Feature, LineString } from "geojson"
 import type { GeoLocation, RouteResult } from "../../types/map"
 import type { MultimodalRoute, MultimodalMode } from "../../types/multimodal"
 
-// Custom pin markers — avoids the default Leaflet icon asset-path issue in Vite
-const makePin = (color: string, shadow: string) =>
+// Teardrop pin (the shape every major map app uses for a fixed point) —
+// built as inline SVG so it needs no external icon asset (avoids the
+// default Leaflet icon asset-path issue in Vite) and matches the app's own
+// palette instead of a generic colored circle.
+const makeTeardropPin = (fill: string) =>
   L.divIcon({
-    html: `<div style="
-      width:18px;height:18px;border-radius:50%;
-      background:${color};border:3px solid white;
-      box-shadow:0 2px 8px ${shadow};
-    "></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
+    html: `<svg width="30" height="40" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 3px 5px rgba(15,23,42,0.45))">
+      <path d="M15 0C6.7 0 0 6.7 0 15c0 10.6 15 25 15 25s15-14.4 15-25C30 6.7 23.3 0 15 0z" fill="${fill}"/>
+      <circle cx="15" cy="15" r="6" fill="white"/>
+    </svg>`,
+    iconSize: [30, 40],
+    iconAnchor: [15, 40],
     className: "",
   })
+
+// Origin uses a "current location" style dot + halo (how Google Maps and
+// every other major map app marks a start point, visually distinct from
+// the destination's fixed pin).
+const ORIGIN_ICON = L.divIcon({
+  html: `<div style="position:relative;width:24px;height:24px;">
+    <div style="position:absolute;inset:-7px;border-radius:50%;background:rgba(14,165,233,0.22);"></div>
+    <div style="position:absolute;inset:0;border-radius:50%;background:#0ea5e9;border:3px solid white;box-shadow:0 2px 6px rgba(15,23,42,0.45);"></div>
+  </div>`,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  className: "",
+})
+const DEST_ICON = makeTeardropPin("#ef4444")
 
 const makeStationPin = (color: string) =>
   L.divIcon({
     html: `<div style="
-      width:10px;height:10px;border-radius:50%;
-      background:${color};border:2px solid white;
-      box-shadow:0 1px 4px rgba(0,0,0,0.3);
+      width:12px;height:12px;border-radius:50%;
+      background:${color};border:2.5px solid white;
+      box-shadow:0 1px 5px rgba(15,23,42,0.4);
     "></div>`,
-    iconSize: [10, 10],
-    iconAnchor: [5, 5],
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
     className: "",
   })
 
-const ORIGIN_ICON = makePin("#0ea5e9", "rgba(14,165,233,0.55)")
-const DEST_ICON   = makePin("#ef4444", "rgba(239,68,68,0.55)")
-
-const ROAD_ROUTE_STYLE = { color: "#0ea5e9", weight: 5, opacity: 0.85 }
-
-const SEGMENT_STYLES: Record<MultimodalMode, L.PathOptions> = {
-  walking: { color: "#94a3b8", weight: 3, opacity: 0.8,  dashArray: "6 6" },
-  metro:   { color: "#2563eb", weight: 5, opacity: 0.9  },
-  bus:     { color: "#16a34a", weight: 4, opacity: 0.85 },
-  auto:    { color: "#ea580c", weight: 4, opacity: 0.85, dashArray: "8 4" },
+// Every route/segment line is drawn as a pair: a wider white "casing" layer
+// underneath, then the colored line on top — the layered, glossy look
+// transit-focused map apps use for route lines, instead of a single flat
+// stroke.
+const CASING_STYLE: L.PathOptions = {
+  color: "#ffffff",
+  weight: 9,
+  opacity: 0.9,
+  lineCap: "round",
+  lineJoin: "round",
 }
+
+const ROAD_ROUTE_STYLE: L.PathOptions = {
+  color: "#0ea5e9", weight: 5.5, opacity: 0.95, lineCap: "round", lineJoin: "round",
+}
+
+// Walking keeps a dotted line (the convention every major map app uses for
+// foot directions, so it reads as "walking" at a glance) — everything else
+// is a solid, cased line instead of a dash, so it never looks like an
+// approximation.
+const SEGMENT_STYLES: Record<MultimodalMode, L.PathOptions> = {
+  walking: { color: "#64748b", weight: 4, opacity: 0.9, dashArray: "1 9", lineCap: "round" },
+  metro:   { color: "#2563eb", weight: 5.5, opacity: 0.95, lineCap: "round", lineJoin: "round" },
+  bus:     { color: "#16a34a", weight: 5, opacity: 0.95, lineCap: "round", lineJoin: "round" },
+  auto:    { color: "#ea580c", weight: 5, opacity: 0.95, lineCap: "round", lineJoin: "round" },
+}
+
+// Only cased (walking's dotted line doesn't need — or visually want — a casing).
+const CASED_MODES: MultimodalMode[] = ["metro", "bus", "auto"]
 
 // Helper: fit map to route or two points
 function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression }) {
@@ -103,7 +137,7 @@ export default function MapView({ origin, destination, route, multimodalRoute }:
     metro:   "#2563eb",
     bus:     "#16a34a",
     auto:    "#ea580c",
-    walking: "#94a3b8",
+    walking: "#64748b",
   }
 
   return (
@@ -112,41 +146,41 @@ export default function MapView({ origin, destination, route, multimodalRoute }:
       zoom={defaultZoom}
       style={{ height: "100%", width: "100%", borderRadius: "1rem" }}
       className="z-0"
+      zoomControl={false}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.hotosm.org/updates/working-with-the-openstreetmap-cartography-team">Humanitarian OSM Team</a>'
+        url="https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png"
+        subdomains="abc"
         maxZoom={19}
       />
-
-      {/* Origin / destination markers */}
-      {origin && (
-        <Marker position={[origin.latitude, origin.longitude]} icon={ORIGIN_ICON} />
-      )}
-      {destination && (
-        <Marker position={[destination.latitude, destination.longitude]} icon={DEST_ICON} />
-      )}
+      <ZoomControl position="bottomright" />
 
       {/* Road routing polyline */}
       {routeGeoJson && !multimodalRoute && (
-        <GeoJSON key={route?.id} data={routeGeoJson} style={ROAD_ROUTE_STYLE} />
+        <>
+          <GeoJSON key={`${route?.id}-casing`} data={routeGeoJson} style={CASING_STYLE} />
+          <GeoJSON key={route?.id} data={routeGeoJson} style={ROAD_ROUTE_STYLE} />
+        </>
       )}
 
-      {/* Multimodal segment polylines */}
+      {/* Multimodal segment polylines — each segment's white casing is a
+          sibling layer rendered immediately before its colored line, so it
+          sits underneath (cased modes only; walking's dotted line doesn't
+          get one). */}
       {multimodalRoute &&
-        multimodalRoute.segments.map((seg) => {
+        multimodalRoute.segments.flatMap((seg) => {
           const segmentGeoJson: Feature<LineString> = {
             type: "Feature",
             geometry: seg.geometry,
             properties: {},
           }
-          return (
-          <GeoJSON
-            key={seg.id}
-            data={segmentGeoJson}
-            style={SEGMENT_STYLES[seg.mode]}
-          />
-          )
+          const layers = []
+          if (CASED_MODES.includes(seg.mode)) {
+            layers.push(<GeoJSON key={`${seg.id}-casing`} data={segmentGeoJson} style={CASING_STYLE} />)
+          }
+          layers.push(<GeoJSON key={seg.id} data={segmentGeoJson} style={SEGMENT_STYLES[seg.mode]} />)
+          return layers
         })}
 
       {/* Transit station / stop markers */}
@@ -157,6 +191,14 @@ export default function MapView({ origin, destination, route, multimodalRoute }:
           icon={makeStationPin(stationPinColors[stop.mode])}
         />
       ))}
+
+      {/* Origin / destination markers — drawn last so they sit above every line */}
+      {origin && (
+        <Marker position={[origin.latitude, origin.longitude]} icon={ORIGIN_ICON} />
+      )}
+      {destination && (
+        <Marker position={[destination.latitude, destination.longitude]} icon={DEST_ICON} />
+      )}
 
       {bounds && <FitBounds bounds={bounds} />}
     </MapContainer>
