@@ -23,6 +23,16 @@ const MODE_BG: Record<MultimodalMode, string> = {
   auto: "bg-orange-100 text-orange-700",
 }
 
+// Matches the solid leg colors MapView.tsx draws on the route polyline
+// (SEGMENT_STYLES), so the proportional journey bar below reads as the
+// same "line" the map shows, not a second unrelated color system.
+const MODE_BAR_COLOR: Record<MultimodalMode, string> = {
+  walking: "#94a3b8",
+  metro: "#2563eb",
+  bus: "#16a34a",
+  auto: "#ea580c",
+}
+
 function crowdClass(level?: string) {
   if (level === "LOW") return "text-emerald-700 bg-emerald-50"
   if (level === "HIGH") return "text-red-700 bg-red-50"
@@ -64,7 +74,7 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 flex-wrap mb-3">
+      <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
         {route.segments.map((seg, i) => (
           <div key={seg.id} className="flex items-center gap-1">
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${MODE_BG[seg.mode]}`}>
@@ -72,6 +82,25 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
             </span>
             {i < route.segments.length - 1 && <ArrowRight className="w-3 h-3 text-navy-300 flex-shrink-0" />}
           </div>
+        ))}
+      </div>
+
+      {/* Proportional journey bar — a single glance at the whole trip's mode
+          mix, the Citymapper/Google-Maps convention for a multimodal route
+          card. Each chunk's width is that segment's share of total duration;
+          colors match the live polyline MapView draws for the same route. */}
+      <div className="flex items-center gap-0.5 h-1.5 rounded-full overflow-hidden mb-3">
+        {route.segments.map((seg) => (
+          <div
+            key={seg.id}
+            className="h-full first:rounded-l-full last:rounded-r-full"
+            style={{
+              backgroundColor: MODE_BAR_COLOR[seg.mode],
+              flexGrow: Math.max(seg.durationSeconds, 1),
+              flexBasis: 0,
+            }}
+            title={`${MODE_LABEL[seg.mode]} · ${Math.ceil(seg.durationSeconds / 60)} min`}
+          />
         ))}
       </div>
 
