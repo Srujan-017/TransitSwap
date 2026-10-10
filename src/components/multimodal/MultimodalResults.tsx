@@ -131,8 +131,8 @@ export default function MultimodalResults({
   return (
     <div className="space-y-4">
       {/* Route Journey Summary Header */}
-      <div className="bg-white rounded-2xl border border-navy-200 p-4 space-y-3 shadow-xs">
-        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+      <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-3">
+        <div className="flex items-center gap-2 bg-amber-50 rounded-2xl px-3 py-2">
           <FlaskConical className="w-4 h-4 text-amber-600 flex-shrink-0" />
           <p className="text-xs text-amber-700 font-medium">
             TransitSwap Intelligence Engine active. Evaluated multimodal routes with weather, accessibility, Monte Carlo connection risk, and TransitDNA scoring.
@@ -203,7 +203,7 @@ export default function MultimodalResults({
 
       {/* Why Recommended Explainable Box */}
       {selected.whyRecommended && selected.whyRecommended.length > 0 && (
-        <div className="bg-gradient-to-r from-brand-50 via-sky-50 to-indigo-50 rounded-2xl border border-brand-200 p-4 space-y-2">
+        <div className="bg-gradient-to-r from-brand-50 via-sky-50 to-indigo-50 rounded-3xl p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-bold text-brand-900">
             <Sparkles className="w-4 h-4 text-brand-600" />
             Why TransitSwap Recommends This Route
@@ -235,7 +235,7 @@ export default function MultimodalResults({
       {/* Reliability & Predictive Intelligence Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Confidence Interval Card */}
-        <div className="bg-white rounded-2xl border border-navy-200 p-4 space-y-2">
+        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
               <Clock className="w-4 h-4 text-indigo-600" /> Arrival Confidence Interval
@@ -259,7 +259,7 @@ export default function MultimodalResults({
         </div>
 
         {/* Missed Connection Risk Card */}
-        <div className="bg-white rounded-2xl border border-navy-200 p-4 space-y-2">
+        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
               <Activity className="w-4 h-4 text-amber-600" /> Missed Connection Risk (Monte Carlo)
@@ -287,7 +287,7 @@ export default function MultimodalResults({
 
       {/* Smart Departure Suggestion */}
       {selected.departureSuggestion ? (
-        <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex items-start gap-3">
+        <div className="bg-sky-50 rounded-3xl p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-sky-600 flex-shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <p className="text-xs font-bold text-sky-900">Smart Departure Recommendation</p>
@@ -303,7 +303,7 @@ export default function MultimodalResults({
           </div>
         </div>
       ) : (
-        <div className="bg-navy-50 border border-navy-200 rounded-2xl p-4 flex items-start gap-3">
+        <div className="bg-navy-50 rounded-3xl p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-navy-400 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-navy-500">
             Select a departure time to calculate a smart departure recommendation.
@@ -313,7 +313,7 @@ export default function MultimodalResults({
 
       {/* Weather, Accessibility, Crowd Context Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl border border-navy-200 p-4 space-y-2">
+        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
             <CloudSun className="w-4 h-4 text-sky-600" /> Weather Context
           </div>
@@ -331,7 +331,7 @@ export default function MultimodalResults({
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-navy-200 p-4 space-y-2">
+        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
             <ShieldCheck className="w-4 h-4 text-brand-600" /> Accessibility Check
           </div>
@@ -358,7 +358,7 @@ export default function MultimodalResults({
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-navy-200 p-4 space-y-2">
+        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
             <Users className="w-4 h-4 text-amber-600" /> Station Crowd
           </div>
@@ -379,7 +379,7 @@ export default function MultimodalResults({
 
       {/* Last-Mile Connectivity Section */}
       {selected.lastMileOptions && selected.lastMileOptions.length > 0 && (
-        <div className="bg-white rounded-2xl border border-navy-200 p-4 space-y-2">
+        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
             <Compass className="w-4 h-4 text-brand-600" /> Last-Mile Connectivity Options
           </div>
@@ -404,7 +404,7 @@ export default function MultimodalResults({
 
       {/* User Reporting Section */}
       {reportStation && (
-        <div className="bg-white rounded-2xl border border-navy-200 p-4 space-y-3">
+        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
             <Database className="w-4 h-4 text-navy-500" /> Submit User Feedback / Crowd Report for {reportStation.from.name}
           </div>

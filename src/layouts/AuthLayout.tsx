@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {/* Content */}
         <div className="relative z-10">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-brand-500 flex items-center justify-center">
               <Bus className="w-5 h-5 text-white" />
             </div>
             <span className="text-white font-display font-bold text-xl tracking-tight">TransitSwap</span>
@@ -49,7 +49,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               { label: "Crowd Intelligence", desc: "Recent reports + demo data" },
               { label: "Journey History", desc: "MongoDB-backed and private" },
             ].map((f) => (
-              <div key={f.label} className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <div key={f.label} className="bg-white/5 rounded-2xl p-4">
                 <p className="text-brand-400 font-display font-semibold text-sm">{f.label}</p>
                 <p className="text-navy-400 text-xs mt-1">{f.desc}</p>
               </div>
@@ -66,7 +66,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 lg:hidden">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-navy-900 flex items-center justify-center">
               <Bus className="w-4 h-4 text-white" />
             </div>
             <span className="font-display font-bold text-navy-900 text-lg">TransitSwap</span>

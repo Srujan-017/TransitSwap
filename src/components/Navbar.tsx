@@ -24,12 +24,12 @@ export default function Navbar() {
   ]
 
   return (
-    <header className="bg-white border-b border-navy-200 sticky top-0 z-50">
+    <header className="bg-white/90 backdrop-blur-lg sticky top-0 z-50 shadow-[0_1px_0_rgba(15,23,42,0.06)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-navy-900 flex items-center justify-center">
               <Bus className="w-4.5 h-4.5 text-white" />
             </div>
             <span className="font-display font-bold text-navy-900 text-lg tracking-tight">TransitSwap</span>
@@ -37,16 +37,16 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           {isAuthenticated && (
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1 bg-navy-50/80 rounded-full p-1">
               {navLinks.map((l) => (
                 <NavLink
                   key={l.to}
                   to={l.to}
                   className={({ isActive }) =>
-                    `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    `px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                       isActive
-                        ? "bg-brand-50 text-brand-700"
-                        : "text-navy-600 hover:text-navy-900 hover:bg-navy-100"
+                        ? "bg-white text-navy-900 shadow-[0_1px_4px_rgba(15,23,42,0.12)]"
+                        : "text-navy-500 hover:text-navy-900"
                     }`
                   }
                 >
@@ -67,9 +67,9 @@ export default function Navbar() {
                     aria-haspopup="true"
                     aria-expanded={dropdownOpen}
                     aria-label="Account menu"
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-navy-100 transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-navy-100 transition-colors"
                   >
-                    <div className="w-7 h-7 rounded-full bg-brand-500 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-full bg-navy-900 flex items-center justify-center">
                       <span className="text-white text-xs font-semibold">
                         {user?.name?.charAt(0).toUpperCase()}
                       </span>
@@ -80,7 +80,7 @@ export default function Navbar() {
                   {dropdownOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
-                      <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-navy-200 py-1 z-20">
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-[0_8px_30px_-8px_rgba(15,23,42,0.25)] py-2 z-20">
                         <div className="px-4 py-3 border-b border-navy-100">
                           <p className="text-sm font-semibold text-navy-900">{user?.name}</p>
                           <p className="text-xs text-navy-500 mt-0.5">{user?.email}</p>
@@ -113,7 +113,7 @@ export default function Navbar() {
 
                 {/* Mobile hamburger */}
                 <button
-                  className="md:hidden p-2 rounded-lg hover:bg-navy-100 transition-colors"
+                  className="md:hidden p-2 rounded-full hover:bg-navy-100 transition-colors"
                   onClick={() => setMenuOpen(!menuOpen)}
                   aria-expanded={menuOpen}
                   aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -131,7 +131,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-2 text-sm font-semibold bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
+                  className="px-5 py-2 text-sm font-semibold bg-navy-900 text-white rounded-full hover:bg-navy-800 transition-colors"
                 >
                   Get Started
                 </Link>

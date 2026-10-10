@@ -244,7 +244,7 @@ export default function DashboardPage() {
           <p className="text-navy-500 text-sm mt-1">Travel Smarter, Safer, and More Reliably with TransitSwap Intelligence.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white border border-navy-200 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_-8px_rgba(15,23,42,0.16)] rounded-full px-3.5 py-2">
             <div className={`w-2 h-2 rounded-full ${
               apiStatus === "online" ? "bg-emerald-500 animate-pulse" :
               apiStatus === "offline" ? "bg-rose-500" : "bg-amber-400 animate-pulse"
@@ -362,7 +362,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Research Evaluation Metrics Card (Phase 16 - Viva Paper Support) */}
-          <Card className="border-navy-200">
+          <Card>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-indigo-600" />

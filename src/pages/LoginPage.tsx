@@ -51,7 +51,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-danger font-medium">
+            <div className="bg-red-50 rounded-2xl px-4 py-3 text-sm text-danger font-medium">
               {error}
             </div>
           )}
@@ -89,7 +89,7 @@ export default function LoginPage() {
         </form>
 
         {/* Demo hint */}
-        <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3">
+        <div className="bg-brand-50 rounded-2xl px-4 py-3">
           <p className="text-xs font-semibold text-brand-700 mb-1">Demo credentials</p>
           <p className="text-xs text-brand-600">
             Email: <code className="bg-brand-100 px-1 rounded">demo@transitswap.app</code>

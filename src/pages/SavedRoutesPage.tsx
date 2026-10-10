@@ -62,7 +62,7 @@ export default function SavedRoutesPage() {
         <p className="text-navy-500 text-sm mt-1">Reusable route snapshots you've saved for quick access.</p>
       </div>
 
-      <div className="mb-6 flex items-start gap-3 bg-brand-50 border border-brand-200 rounded-xl px-4 py-3">
+      <div className="mb-6 flex items-start gap-3 bg-brand-50 rounded-2xl px-4 py-3">
         <Bookmark className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-brand-800 leading-relaxed">
           A saved route is a snapshot at the time you saved it. Use "Use Route" to reload the origin and
@@ -86,7 +86,7 @@ export default function SavedRoutesPage() {
       )}
 
       {!loading && !error && routes.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-2xl border border-navy-200">
+        <div className="text-center py-16 bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)]">
           <MapPin className="w-8 h-8 text-navy-300 mx-auto mb-3" />
           <p className="text-navy-600 font-semibold">No saved routes yet.</p>
           <p className="text-xs text-navy-400 mt-1">Save a route from Plan Trip to see it here.</p>

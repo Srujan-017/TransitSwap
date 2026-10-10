@@ -61,7 +61,7 @@ describe("PlanTripPage", () => {
     const wheelchairButton = screen.getByText("Wheelchair").closest("button")!
     await user.click(wheelchairButton)
 
-    expect(wheelchairButton.className).toContain("border-brand-500")
+    expect(wheelchairButton.className).toContain("bg-brand-500")
   })
 
   it("shows the documented validation message instead of searching when no origin/destination is set", async () => {

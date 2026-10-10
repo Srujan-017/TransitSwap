@@ -7,6 +7,7 @@ import {
 import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Badge from "../components/ui/Badge"
+import PageContainer from "../layouts/PageContainer"
 import LocationSearch from "../components/routing/LocationSearch"
 import RouteSummary from "../components/routing/RouteSummary"
 import RouteInstructions from "../components/routing/RouteInstructions"
@@ -329,7 +330,7 @@ export default function PlanTripPage() {
   const activeError             = routingMode === "road" ? routeError : multimodalError
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <PageContainer width="wide">
       <div className="mb-6">
         <h1 className="font-display text-2xl font-bold text-navy-900">Plan Your Journey</h1>
         <p className="text-navy-500 text-sm mt-1">
@@ -338,14 +339,14 @@ export default function PlanTripPage() {
       </div>
 
       {/* Routing mode toggle */}
-      <div className="flex gap-2 mb-6">
+      <div className="inline-flex gap-1 mb-6 bg-navy-50 rounded-full p-1">
         <button
           type="button"
           onClick={() => { setRoutingMode("multimodal"); clearResults() }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold transition-all ${
             routingMode === "multimodal"
-              ? "border-brand-500 bg-brand-50 text-brand-700 shadow-sm"
-              : "border-navy-200 text-navy-600 hover:border-navy-300"
+              ? "bg-white text-navy-900 shadow-[0_2px_8px_rgba(15,23,42,0.1)]"
+              : "text-navy-500 hover:text-navy-800"
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -354,10 +355,10 @@ export default function PlanTripPage() {
         <button
           type="button"
           onClick={() => { setRoutingMode("road"); clearResults() }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold transition-all ${
             routingMode === "road"
-              ? "border-brand-500 bg-brand-50 text-brand-700 shadow-sm"
-              : "border-navy-200 text-navy-600 hover:border-navy-300"
+              ? "bg-white text-navy-900 shadow-[0_2px_8px_rgba(15,23,42,0.1)]"
+              : "text-navy-500 hover:text-navy-800"
           }`}
         >
           🗺️ Road Routing <span className="text-xs opacity-70 font-normal">Drive · Walk · Cycle</span>
@@ -376,7 +377,7 @@ export default function PlanTripPage() {
 
               {/* Multimodal label */}
               {routingMode === "multimodal" && (
-                <div className="flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5">
+                <div className="flex items-center gap-2 bg-brand-50 rounded-2xl px-3 py-2.5">
                   <Layers className="w-4 h-4 text-brand-600 flex-shrink-0" />
                   <p className="text-xs text-brand-700 font-medium">
                     Multimodal: combines Walk, Metro, Bus and Auto for the best journey.
@@ -406,7 +407,7 @@ export default function PlanTripPage() {
                   disabled={!origin && !destination}
                   title="Swap origin and destination"
                   aria-label="Swap origin and destination"
-                  className="p-2 rounded-xl border border-navy-200 bg-navy-50 text-navy-500 hover:text-brand-600 hover:border-brand-300 hover:bg-brand-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="p-2 rounded-full bg-navy-50 text-navy-500 hover:text-brand-600 hover:bg-brand-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ArrowLeftRight className="w-4 h-4" />
                 </button>
@@ -431,7 +432,7 @@ export default function PlanTripPage() {
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-navy-200 bg-navy-50 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
+                    className="w-full px-3 py-2.5 rounded-2xl border border-transparent bg-navy-50/70 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -440,7 +441,7 @@ export default function PlanTripPage() {
                     type="time"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-navy-200 bg-navy-50 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
+                    className="w-full px-3 py-2.5 rounded-2xl border border-transparent bg-navy-50/70 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
                   />
                 </div>
               </div>
@@ -456,10 +457,10 @@ export default function PlanTripPage() {
                       key={p.id}
                       type="button"
                       onClick={() => setProfile(p.id)}
-                      className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all ${
+                      className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-2xl text-xs font-semibold transition-all ${
                         profile === p.id
-                          ? "border-brand-500 bg-brand-50 text-brand-700 shadow-sm"
-                          : "border-navy-200 text-navy-600 hover:border-navy-300 hover:bg-navy-50"
+                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
                       <span className="text-base">{p.icon}</span>
@@ -468,14 +469,14 @@ export default function PlanTripPage() {
                   ))}
                 </div>
                 {PROFILES.find((p) => p.id === profile)?.description && (
-                  <p className="text-xs text-navy-600 bg-navy-50 border border-navy-150 rounded-xl px-3 py-2">
+                  <p className="text-xs text-navy-600 bg-navy-50 rounded-2xl px-3 py-2">
                     💡 <span className="font-medium">{PROFILES.find((p) => p.id === profile)?.description}</span>
                   </p>
                 )}
               </div>
 
               {/* Problem 23 — Active Preferences (display-only; edited on Profile) */}
-              <div className="bg-navy-50 border border-navy-150 rounded-xl px-3.5 py-3 space-y-2">
+              <div className="bg-navy-50 rounded-2xl px-3.5 py-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-semibold text-navy-500 uppercase tracking-wider">
                     Your Active Travel Preferences
@@ -530,7 +531,7 @@ export default function PlanTripPage() {
                     value={destinationSaveName}
                     onChange={(event) => setDestinationSaveName(event.target.value)}
                     placeholder="Home, College, Office"
-                    className="min-w-0 flex-1 px-3 py-2 rounded-xl border border-navy-200 bg-navy-50 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    className="min-w-0 flex-1 px-3 py-2 rounded-2xl border border-transparent bg-navy-50/70 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white"
                   />
                   <Button type="button" variant="outline" size="sm" onClick={() => void handleSaveDestination()}>
                     Save
@@ -551,8 +552,8 @@ export default function PlanTripPage() {
         <div className="lg:col-span-3 space-y-4">
           {/* Map */}
           <div
-            className="relative rounded-2xl overflow-hidden border border-navy-200 shadow-sm"
-            style={{ height: "420px" }}
+            className="relative rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.18)]"
+            style={{ height: "480px" }}
           >
             <Suspense
               fallback={
@@ -592,8 +593,8 @@ export default function PlanTripPage() {
 
             {/* Loading overlay */}
             {isLoading && (
-              <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-20 rounded-2xl">
-                <div className="bg-white rounded-2xl border border-navy-200 shadow-lg px-6 py-5 text-center space-y-3 max-w-xs">
+              <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-20 rounded-3xl">
+                <div className="bg-white rounded-3xl shadow-[0_8px_30px_-8px_rgba(15,23,42,0.25)] px-6 py-5 text-center space-y-3 max-w-xs">
                   <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
                   <p className="font-display font-semibold text-navy-800 text-sm">
                     {routingMode === "multimodal"
@@ -625,7 +626,7 @@ export default function PlanTripPage() {
           {/* Empty state */}
           {routingMode === "multimodal" && multimodalStatus === "idle" && !origin && !destination && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-navy-50 border border-navy-200 flex items-center justify-center mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-navy-50 flex items-center justify-center mb-3">
                 <Layers className="w-6 h-6 text-navy-300" />
               </div>
               <p className="font-display font-semibold text-navy-700 text-sm">
@@ -638,7 +639,7 @@ export default function PlanTripPage() {
           )}
           {routingMode === "road" && routeStatus === "idle" && !origin && !destination && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-navy-50 border border-navy-200 flex items-center justify-center mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-navy-50 flex items-center justify-center mb-3">
                 <Navigation className="w-6 h-6 text-navy-300" />
               </div>
               <p className="font-display font-semibold text-navy-700 text-sm">
@@ -726,6 +727,6 @@ export default function PlanTripPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   )
 }

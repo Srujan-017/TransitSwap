@@ -115,7 +115,7 @@ export default function SegmentTimeline({ route, profile }: Props) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="bg-white rounded-2xl border border-navy-200 overflow-hidden">
+    <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] overflow-hidden">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}

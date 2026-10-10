@@ -17,9 +17,9 @@ export default function Card({ children, padding = "md", hover = false, classNam
   return (
     <div
       className={`
-        bg-white rounded-2xl border border-navy-200 shadow-sm
+        bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.12)]
         ${paddingClasses[padding]}
-        ${hover ? "hover:shadow-md hover:border-navy-300 transition-all cursor-pointer" : ""}
+        ${hover ? "hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_32px_-12px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer" : ""}
         ${className}
       `}
       {...props}

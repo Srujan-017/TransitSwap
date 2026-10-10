@@ -10,7 +10,6 @@ import {
   CloudRain,
   Accessibility,
   Star,
-  ChevronRight,
   CheckCircle,
 } from "lucide-react"
 import Button from "../components/ui/Button"
@@ -53,12 +52,12 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="bg-navy-50 min-h-screen">
+    <div className="bg-white min-h-screen">
       {/* Nav */}
-      <header className="bg-white border-b border-navy-200 sticky top-0 z-50">
+      <header className="bg-white/90 backdrop-blur-lg sticky top-0 z-50 shadow-[0_1px_0_rgba(15,23,42,0.06)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-navy-900 flex items-center justify-center">
               <Bus className="w-4 h-4 text-white" />
             </div>
             <span className="font-display font-bold text-navy-900 text-lg">TransitSwap</span>
@@ -69,7 +68,7 @@ export default function LandingPage() {
             </Link>
             <Link
               to="/register"
-              className="px-4 py-2 text-sm font-semibold bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
+              className="px-5 py-2 text-sm font-semibold bg-navy-900 text-white rounded-full hover:bg-navy-800 transition-colors"
             >
               Get Started
             </Link>
@@ -77,33 +76,19 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-navy-900">
-        {/* Grid background */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, #0ea5e9 1px, transparent 1px), linear-gradient(to bottom, #0ea5e9 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-navy-900/80" />
-
-        {/* Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-brand-500/20 rounded-full blur-[120px]" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+      {/* Hero — clean, light, map-app style instead of a dark gradient-glow banner */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-navy-50/70 to-white">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-16">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 rounded-full px-4 py-1.5 text-brand-400 text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.08)] rounded-full px-4 py-1.5 text-brand-600 text-sm font-medium mb-6">
               <Star className="w-3.5 h-3.5" />
               Rule-Based Multimodal Urban Mobility Intelligence
             </div>
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-navy-900 leading-tight mb-6">
               Travel Smarter,{" "}
-              <span className="text-brand-400">Not Just Faster</span>
+              <span className="text-brand-500">Not Just Faster</span>
             </h1>
-            <p className="text-navy-300 text-lg leading-relaxed max-w-2xl mx-auto">
+            <p className="text-navy-500 text-lg leading-relaxed max-w-2xl mx-auto">
               TransitSwap evaluates weather, accessibility, and crowd levels using transparent rule-based logic
               to help you find a journey that actually works for you — not just the shortest one on paper.
             </p>
@@ -113,28 +98,28 @@ export default function LandingPage() {
           <div className="max-w-2xl mx-auto">
             <form
               onSubmit={handleSearch}
-              className="bg-white rounded-2xl shadow-2xl shadow-black/30 border border-navy-200 overflow-hidden"
+              className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_24px_48px_-16px_rgba(15,23,42,0.18)] overflow-hidden"
             >
               <div className="p-6 space-y-4">
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-brand-500 border-2 border-white ring-2 ring-brand-500" />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-brand-500 border-2 border-white ring-2 ring-brand-500" />
                     <input
                       type="text"
                       placeholder="From — current location or enter an address"
                       value={origin}
                       onChange={(e) => setOrigin(e.target.value)}
-                      className="w-full pl-9 pr-4 py-3 text-sm border border-navy-200 rounded-xl bg-navy-50 text-navy-900 placeholder-navy-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
+                      className="w-full pl-10 pr-4 py-3 text-sm rounded-full bg-navy-50/70 text-navy-900 placeholder-navy-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500/30 transition-all"
                     />
                   </div>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400" />
+                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400" />
                     <input
                       type="text"
                       placeholder="To — where do you want to go?"
                       value={destination}
                       onChange={(e) => setDestination(e.target.value)}
-                      className="w-full pl-9 pr-4 py-3 text-sm border border-navy-200 rounded-xl bg-navy-50 text-navy-900 placeholder-navy-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
+                      className="w-full pl-10 pr-4 py-3 text-sm rounded-full bg-navy-50/70 text-navy-900 placeholder-navy-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500/30 transition-all"
                     />
                   </div>
                 </div>
@@ -150,10 +135,10 @@ export default function LandingPage() {
                         key={p.id}
                         type="button"
                         onClick={() => setProfile(p.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                           profile === p.id
-                            ? "bg-brand-500 text-white shadow-sm"
-                            : "bg-navy-100 text-navy-600 hover:bg-navy-200"
+                            ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                            : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                         }`}
                       >
                         <span>{p.icon}</span>
@@ -168,7 +153,7 @@ export default function LandingPage() {
                 </Button>
               </div>
 
-              <div className="px-6 py-3 bg-navy-50 border-t border-navy-100 flex items-center justify-between text-xs text-navy-500">
+              <div className="px-6 py-3 bg-navy-50/80 flex items-center justify-between text-xs text-navy-500">
                 <span className="flex items-center gap-1">
                   <Shield className="w-3.5 h-3.5 text-brand-500" />
                   Accessibility-first routing
@@ -188,11 +173,11 @@ export default function LandingPage() {
       </section>
 
       {/* Sample route card */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2 pb-16">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <p className="text-center text-xs text-navy-500 uppercase tracking-widest font-semibold mt-8 mb-6">
           Sample recommendation output
         </p>
-        <div className="max-w-lg mx-auto bg-white rounded-2xl border border-navy-200 shadow-md overflow-hidden">
+        <div className="max-w-lg mx-auto bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_32px_-12px_rgba(15,23,42,0.16)] overflow-hidden">
           <div className="flex items-center gap-2 bg-brand-500 px-5 py-3">
             <Star className="w-4 h-4 text-white" />
             <span className="text-white text-sm font-bold font-display">Recommended Route</span>
@@ -213,13 +198,13 @@ export default function LandingPage() {
                 { icon: "🔄", text: "1 transfer" },
                 { icon: "💰", text: "₹35 estimated fare" },
               ].map((item) => (
-                <div key={item.text} className="flex items-center gap-2 bg-navy-50 rounded-lg px-3 py-2">
+                <div key={item.text} className="flex items-center gap-2 bg-navy-50 rounded-2xl px-3 py-2">
                   <span className="text-sm">{item.icon}</span>
                   <span className="text-xs text-navy-700 font-medium">{item.text}</span>
                 </div>
               ))}
             </div>
-            <div className="bg-brand-50 rounded-xl px-4 py-3">
+            <div className="bg-brand-50 rounded-2xl px-4 py-3">
               <p className="text-xs text-navy-500 font-medium">Weather-friendly</p>
               <p className="text-navy-900 font-bold font-display text-sm">Less walking than the alternative routes in current conditions</p>
             </div>
@@ -231,7 +216,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="bg-white border-y border-navy-200 py-20">
+      <section className="bg-navy-50/60 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="font-display text-3xl font-bold text-navy-900 mb-3">
@@ -280,12 +265,12 @@ export default function LandingPage() {
                 badge: "Multimodal",
               },
             ].map((f) => (
-              <div key={f.title} className="bg-navy-50 rounded-2xl p-6 border border-navy-200 hover:border-brand-300 hover:bg-brand-50/30 transition-all group">
+              <div key={f.title} className="bg-white rounded-3xl p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-14px_rgba(15,23,42,0.14)] hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_32px_-14px_rgba(15,23,42,0.2)] transition-all duration-200 group">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-white border border-navy-200 flex items-center justify-center shadow-sm group-hover:border-brand-200 transition-colors">
+                  <div className="w-12 h-12 rounded-2xl bg-navy-50 flex items-center justify-center group-hover:bg-brand-50 transition-colors">
                     {f.icon}
                   </div>
-                  <span className="text-xs font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-100">
+                  <span className="text-xs font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
                     {f.badge}
                   </span>
                 </div>
@@ -325,7 +310,7 @@ export default function LandingPage() {
               {i < 2 && (
                 <div className="hidden md:block absolute right-0 top-8 w-1/2 h-0.5 bg-gradient-to-r from-brand-200 to-transparent" />
               )}
-              <div className="w-14 h-14 rounded-2xl bg-brand-500 text-white font-display font-bold text-xl flex items-center justify-center mb-5 shadow-lg shadow-brand-500/25">
+              <div className="w-14 h-14 rounded-full bg-navy-900 text-white font-display font-bold text-xl flex items-center justify-center mb-5 shadow-[0_8px_20px_-6px_rgba(15,23,42,0.35)]">
                 {s.step}
               </div>
               <h3 className="font-display font-bold text-navy-900 text-lg mb-2">{s.title}</h3>
@@ -339,9 +324,9 @@ export default function LandingPage() {
       <section className="bg-navy-900 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-navy-400 text-sm font-medium uppercase tracking-widest mb-6">Built with</p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-3">
             {["React + TypeScript", "Node.js + Express", "MongoDB Atlas", "JWT Auth", "Google Maps Platform", "OpenWeatherMap"].map((t) => (
-              <span key={t} className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-navy-300 text-sm font-medium">
+              <span key={t} className="px-4 py-2 bg-white/5 rounded-full text-navy-300 text-sm font-medium">
                 {t}
               </span>
             ))}
@@ -380,10 +365,10 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-navy-200 py-8">
+      <footer className="bg-white border-t border-navy-100 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-full bg-navy-900 flex items-center justify-center">
               <Bus className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="font-display font-bold text-navy-700 text-sm">TransitSwap</span>

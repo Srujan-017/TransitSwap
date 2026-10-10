@@ -218,7 +218,7 @@ export default function ProfilePage() {
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-navy-200 bg-navy-50 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-transparent bg-navy-50/70 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
                 />
               </div>
               <div className="space-y-1.5">
@@ -227,7 +227,7 @@ export default function ProfilePage() {
                   type="email"
                   value={form.email}
                   readOnly
-                  className="w-full px-4 py-2.5 rounded-xl border border-navy-200 bg-navy-100 text-sm text-navy-600 cursor-not-allowed"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-transparent bg-navy-100 text-sm text-navy-600 cursor-not-allowed"
                 />
               </div>
             </div>
@@ -246,17 +246,17 @@ export default function ProfilePage() {
                 <button
                   key={p.id}
                   onClick={() => setForm((f) => ({ ...f, accessibilityProfile: p.id as AccessibilityProfile }))}
-                  className={`flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all ${
+                  className={`flex flex-col items-start gap-1 p-3.5 rounded-2xl text-left transition-all ${
                     form.accessibilityProfile === p.id
-                      ? "border-brand-500 bg-brand-50"
-                      : "border-navy-200 hover:border-navy-300 hover:bg-navy-50"
+                      ? "bg-brand-500 shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                      : "bg-navy-50 hover:bg-navy-100"
                   }`}
                 >
                   <span className="text-xl">{p.icon}</span>
-                  <span className={`text-sm font-semibold font-display ${form.accessibilityProfile === p.id ? "text-brand-700" : "text-navy-800"}`}>
+                  <span className={`text-sm font-semibold font-display ${form.accessibilityProfile === p.id ? "text-white" : "text-navy-800"}`}>
                     {p.label}
                   </span>
-                  <span className="text-xs text-navy-500">{p.desc}</span>
+                  <span className={`text-xs ${form.accessibilityProfile === p.id ? "text-white/80" : "text-navy-500"}`}>{p.desc}</span>
                 </button>
               ))}
             </div>
@@ -273,10 +273,10 @@ export default function ProfilePage() {
                     <button
                       key={m.id}
                       onClick={() => setForm((f) => ({ ...f, preferredMode: m.id }))}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                         form.preferredMode === m.id
-                          ? "border-brand-500 bg-brand-50 text-brand-700"
-                          : "border-navy-200 text-navy-600 hover:border-navy-300"
+                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
                       <span>{m.icon}</span> {m.label}
@@ -292,14 +292,14 @@ export default function ProfilePage() {
                     <button
                       key={w.id}
                       onClick={() => setForm((f) => ({ ...f, walkingTolerance: w.id }))}
-                      className={`flex flex-col px-4 py-2.5 rounded-xl border text-sm transition-all flex-1 text-center ${
+                      className={`flex flex-col px-4 py-2.5 rounded-2xl text-sm transition-all flex-1 text-center ${
                         form.walkingTolerance === w.id
-                          ? "border-brand-500 bg-brand-50 text-brand-700"
-                          : "border-navy-200 text-navy-600 hover:border-navy-300"
+                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
                       <span className="font-semibold">{w.label}</span>
-                      <span className="text-xs mt-0.5 text-navy-400">{w.desc}</span>
+                      <span className={`text-xs mt-0.5 ${form.walkingTolerance === w.id ? "text-white/80" : "text-navy-400"}`}>{w.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -312,14 +312,14 @@ export default function ProfilePage() {
                     <button
                       key={b.id}
                       onClick={() => setForm((f) => ({ ...f, budgetPreference: b.id }))}
-                      className={`flex flex-col px-4 py-2.5 rounded-xl border text-sm transition-all flex-1 text-center ${
+                      className={`flex flex-col px-4 py-2.5 rounded-2xl text-sm transition-all flex-1 text-center ${
                         form.budgetPreference === b.id
-                          ? "border-brand-500 bg-brand-50 text-brand-700"
-                          : "border-navy-200 text-navy-600 hover:border-navy-300"
+                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
                       <span className="font-semibold">{b.icon} {b.label}</span>
-                      <span className="text-xs mt-0.5 text-navy-400">{b.desc}</span>
+                      <span className={`text-xs mt-0.5 ${form.budgetPreference === b.id ? "text-white/80" : "text-navy-400"}`}>{b.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -332,10 +332,10 @@ export default function ProfilePage() {
                     <button
                       key={opt.id}
                       onClick={() => setForm((f) => ({ ...f, prioritize: opt.id }))}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                         form.prioritize === opt.id
-                          ? "border-brand-500 bg-brand-50 text-brand-700"
-                          : "border-navy-200 text-navy-600 hover:border-navy-300"
+                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
                       <span>{opt.icon}</span> {opt.label}

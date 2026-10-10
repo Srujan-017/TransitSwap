@@ -275,7 +275,7 @@ function ClickForAddress({
                   <button
                     type="button"
                     onClick={() => clicked.place && onSetOrigin(clicked.place)}
-                    className="flex-1 text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-lg px-2 py-1.5 transition-colors"
+                    className="flex-1 text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-full px-2.5 py-1.5 transition-colors"
                   >
                     Set as origin
                   </button>
@@ -284,7 +284,7 @@ function ClickForAddress({
                   <button
                     type="button"
                     onClick={() => clicked.place && onSetDestination(clicked.place)}
-                    className="flex-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg px-2 py-1.5 transition-colors"
+                    className="flex-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-full px-2.5 py-1.5 transition-colors"
                   >
                     Set as destination
                   </button>

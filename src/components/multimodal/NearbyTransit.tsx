@@ -15,7 +15,7 @@ function StationRow({ station }: { station: NearbyTransitStation }) {
   const label = station.transportMode === "metro" ? "Metro Station" : "Bus Stop"
 
   return (
-    <div className="flex-1 min-w-0 rounded-xl border border-navy-200 bg-navy-50/50 p-3 space-y-1.5">
+    <div className="flex-1 min-w-0 rounded-2xl bg-navy-50/70 p-3 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold text-navy-800 flex items-center gap-1.5 truncate">
           <span>{icon}</span>
@@ -82,7 +82,7 @@ export default function NearbyTransit({ origin }: Props) {
   if (!origin) return null
 
   return (
-    <div className="bg-white rounded-2xl border border-navy-200 p-4 space-y-3">
+    <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-3">
       <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
         <Compass className="w-4 h-4 text-brand-600" /> Nearby Transit
       </div>

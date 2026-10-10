@@ -223,7 +223,7 @@ export default function HistoryPage() {
             placeholder="Search journeys"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-navy-200 bg-white text-sm text-navy-900 placeholder-navy-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+            className="w-full pl-9 pr-4 py-2.5 rounded-full border border-transparent bg-navy-50/70 text-sm text-navy-900 placeholder-navy-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
           />
         </div>
         <Button variant="outline" onClick={() => void loadData()}>Refresh</Button>
@@ -245,7 +245,7 @@ export default function HistoryPage() {
       )}
 
       {!loading && !error && filtered.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-2xl border border-navy-200">
+        <div className="text-center py-16 bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)]">
           <MapPin className="w-8 h-8 text-navy-300 mx-auto mb-3" />
           <p className="text-navy-600 font-semibold">No journeys saved yet.</p>
           <p className="text-xs text-navy-400 mt-1">Save a route from Plan Trip to see it here.</p>
@@ -315,7 +315,7 @@ export default function HistoryPage() {
                       <button
                         type="button"
                         onClick={() => setExpandedId(expanded ? null : journey._id)}
-                        className="p-2 rounded-lg border border-navy-200 text-navy-500 hover:bg-navy-50"
+                        className="p-2 rounded-full text-navy-500 bg-navy-50 hover:bg-navy-100"
                         title="Open journey details"
                         aria-label={expanded ? "Collapse journey details" : "Open journey details"}
                       >
@@ -324,7 +324,7 @@ export default function HistoryPage() {
                       <button
                         type="button"
                         onClick={() => void deleteJourney(journey._id)}
-                        className="p-2 rounded-lg border border-red-200 text-danger hover:bg-red-50"
+                        className="p-2 rounded-full text-danger bg-red-50 hover:bg-red-100"
                         title="Delete journey"
                         aria-label="Delete journey"
                       >

@@ -139,7 +139,7 @@ export default function LocationSearch({
           onChange={(e) => handleInput(e.target.value)}
           onFocus={() => suggestions.length > 0 && setIsOpen(true)}
           placeholder={isSelected ? value!.name : placeholder}
-          className="w-full pl-8 pr-16 py-3 rounded-xl border border-navy-200 bg-navy-50 text-sm text-navy-900 placeholder-navy-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
+          className="w-full pl-8 pr-16 py-3 rounded-full border border-transparent bg-navy-50/70 text-sm text-navy-900 placeholder-navy-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
         />
 
         {/* Right icons */}
@@ -182,13 +182,13 @@ export default function LocationSearch({
 
       {/* Suggestions dropdown */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-navy-200 shadow-lg z-50 overflow-hidden max-h-64 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-2xl shadow-[0_8px_30px_-8px_rgba(15,23,42,0.25)] z-50 overflow-hidden max-h-64 overflow-y-auto">
           {suggestions.map((loc, i) => (
             <button
               key={i}
               type="button"
               onClick={() => handleSelect(loc)}
-              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-brand-50 transition-colors border-b border-navy-100 last:border-0"
+              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-brand-50 transition-colors border-b border-navy-100/80 last:border-0"
             >
               <MapPin className="w-4 h-4 text-navy-400 mt-0.5 flex-shrink-0" />
               <div className="min-w-0">

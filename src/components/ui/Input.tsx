@@ -36,10 +36,10 @@ export default function Input({
         <input
           id={inputId}
           className={`
-            w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-navy-900 placeholder-navy-400
+            w-full rounded-2xl border bg-navy-50/70 px-4 py-2.5 text-sm text-navy-900 placeholder-navy-400
             transition-colors
-            border-navy-200 hover:border-navy-300
-            focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
+            border-transparent hover:bg-navy-50
+            focus:outline-none focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20
             disabled:bg-navy-50 disabled:cursor-not-allowed
             ${error ? "border-danger focus:border-danger focus:ring-danger/20" : ""}
             ${leftIcon ? "pl-10" : ""}

@@ -89,7 +89,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-danger font-medium">
+            <div className="bg-red-50 rounded-2xl px-4 py-3 text-sm text-danger font-medium">
               {error}
             </div>
           )}
@@ -175,10 +175,10 @@ export default function RegisterPage() {
                   key={p.id}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, accessibilityProfile: p.id as AccessibilityProfile }))}
-                  className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border text-xs font-semibold transition-all ${
+                  className={`flex flex-col items-center gap-1 px-2 py-3 rounded-2xl text-xs font-semibold transition-all ${
                     form.accessibilityProfile === p.id
-                      ? "border-brand-500 bg-brand-50 text-brand-700"
-                      : "border-navy-200 text-navy-600 hover:border-navy-300 hover:bg-navy-50"
+                      ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                      : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                   }`}
                 >
                   <span className="text-lg">{p.icon}</span>

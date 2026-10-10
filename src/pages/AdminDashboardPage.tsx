@@ -293,7 +293,7 @@ function AddStationForm({
           <select
             value={transportMode}
             onChange={(e) => setTransportMode(e.target.value as "metro" | "bus")}
-            className="w-full rounded-xl border border-navy-200 bg-white px-4 py-2.5 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            className="w-full rounded-2xl border border-navy-100 bg-navy-50/50 px-4 py-2.5 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white"
           >
             <option value="metro">Metro</option>
             <option value="bus">Bus</option>
@@ -384,7 +384,7 @@ function EditStationForm({
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full rounded-xl border border-navy-200 bg-white px-4 py-2.5 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            className="w-full rounded-2xl border border-navy-100 bg-navy-50/50 px-4 py-2.5 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white"
           />
         </div>
         <label className="flex items-center gap-2 text-sm text-navy-700 mt-1">
@@ -575,7 +575,7 @@ function EditAccessibilityForm({
         <input
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          className="w-full rounded-xl border border-navy-200 bg-white px-4 py-2.5 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          className="w-full rounded-2xl border border-navy-100 bg-navy-50/50 px-4 py-2.5 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white"
         />
       </div>
       <div className="flex items-center gap-2 mt-3">

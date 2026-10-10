@@ -36,12 +36,13 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full text-left rounded-2xl border p-4 transition-all ${
+      className={`relative w-full text-left rounded-3xl p-4 pl-5 transition-all ${
         selected
-          ? "border-brand-500 bg-brand-50 shadow-md"
-          : "border-navy-200 bg-white hover:border-navy-300 hover:shadow-sm"
+          ? "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_28px_-10px_rgba(14,165,233,0.35)]"
+          : "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_24px_-12px_rgba(15,23,42,0.2)]"
       }`}
     >
+      {selected && <span className="absolute left-0 top-4 bottom-4 w-1 rounded-full bg-brand-500" />}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: route.labelColor }}>
@@ -74,16 +75,15 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
         ))}
       </div>
 
+      <div className="flex items-baseline gap-2 mb-2">
+        <Clock className="w-4 h-4 text-brand-500 flex-shrink-0" />
+        <span className="font-display font-bold text-xl text-navy-900">{formatDuration(durationMin)}</span>
+        <span className="text-navy-300">·</span>
+        <IndianRupee className="w-3.5 h-3.5 text-navy-400" />
+        <span className="font-semibold text-sm text-navy-600">{route.totalFare} est.</span>
+      </div>
+
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <div className="flex items-center gap-1.5 text-navy-700">
-          <Clock className="w-3.5 h-3.5 text-brand-500" />
-          <span className="font-bold">{formatDuration(durationMin)}</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-navy-700">
-          <IndianRupee className="w-3.5 h-3.5 text-green-600" />
-          <span className="font-bold">Rs {route.totalFare}</span>
-          <span className="text-xs text-navy-400">est.</span>
-        </div>
         <div className="flex items-center gap-1.5 text-navy-500 text-xs">
           <Footprints className="w-3.5 h-3.5" />
           <span>Walk {formatDistance(route.totalWalkingMeters)}</span>
@@ -131,7 +131,7 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
       </div>
 
       {route.whyRecommended && route.whyRecommended.length > 0 && (
-        <div className="mt-3 pt-2.5 border-t border-navy-100 space-y-1">
+        <div className="mt-3 pt-2.5 border-t border-navy-100/80 space-y-1">
           <p className="text-[10px] font-bold tracking-wider text-navy-400 uppercase">Why Recommended</p>
           <div className="space-y-1">
             {route.whyRecommended.slice(0, 3).map((reason, i) => (

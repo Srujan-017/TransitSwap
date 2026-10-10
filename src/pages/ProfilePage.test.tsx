@@ -54,10 +54,10 @@ describe("ProfilePage", () => {
     const wheelchairButton = screen.getByText("Wheelchair").closest("button")!
     await user.click(wheelchairButton)
 
-    // Selecting it applies the "selected" styling (border-brand-500) —
+    // Selecting it applies the "selected" styling (bg-brand-500) —
     // the most stable observable signal this component exposes for
     // selection state without reaching into internal component state.
-    expect(wheelchairButton.className).toContain("border-brand-500")
+    expect(wheelchairButton.className).toContain("bg-brand-500")
   })
 
   it("shows a real success message on save, and actually calls both update endpoints", async () => {
