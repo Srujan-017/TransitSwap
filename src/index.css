@@ -146,3 +146,20 @@ h1, h2, h3, h4, h5, h6 {
   0% { transform: scale(0.6); opacity: 0.7; }
   100% { transform: scale(1.6); opacity: 0; }
 }
+
+/* Staggered entrance animation for dashboard-style section lists — each
+   element fades/slides up once on mount, staggered via the inline
+   --fade-delay custom property each caller sets. Respects reduced-motion. */
+.animate-fade-slide-up {
+  animation: fade-slide-up-anim 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--fade-delay, 0ms);
+}
+@keyframes fade-slide-up-anim {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-slide-up {
+    animation: none;
+  }
+}

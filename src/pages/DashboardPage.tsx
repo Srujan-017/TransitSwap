@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, type CSSProperties } from "react"
 import { Link } from "react-router-dom"
 import {
   MapPin, Navigation, TrendingUp, Zap, ArrowRight,
@@ -16,6 +16,12 @@ import { intelligenceService, type EvaluationMetrics } from "../services/intelli
 import Card from "../components/ui/Card"
 import Badge from "../components/ui/Badge"
 import Button from "../components/ui/Button"
+import { IsometricSkyline, RouteLinePins, RadialGauge } from "../components/dashboard/DashboardIllustrations"
+
+// Staggered-entrance helper — see .animate-fade-slide-up in index.css.
+function fadeDelay(ms: number): CSSProperties {
+  return { "--fade-delay": `${ms}ms` } as CSSProperties
+}
 
 const QUICK_DESTINATIONS = [
   { label: "MG Road Metro Station", address: "MG Road, Bengaluru", icon: "🚇" },
@@ -235,13 +241,16 @@ export default function DashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <p className="text-navy-500 text-sm font-medium">{getGreeting()},</p>
-          <h1 className="font-display text-2xl font-bold text-navy-900 mt-0.5">
-            {user?.name?.split(" ")[0] ?? "Commuter"} 👋
-          </h1>
-          <p className="text-navy-500 text-sm mt-1">Travel Smarter, Safer, and More Reliably with TransitSwap Intelligence.</p>
+      <div className="animate-fade-slide-up flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div>
+            <p className="text-navy-500 text-sm font-medium">{getGreeting()},</p>
+            <h1 className="font-display text-2xl font-bold text-navy-900 mt-0.5">
+              {user?.name?.split(" ")[0] ?? "Commuter"} 👋
+            </h1>
+            <p className="text-navy-500 text-sm mt-1">Travel Smarter, Safer, and More Reliably with TransitSwap Intelligence.</p>
+          </div>
+          <RouteLinePins className="hidden md:block w-28 h-7 text-brand-300 flex-shrink-0" />
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_-8px_rgba(15,23,42,0.16)] rounded-full px-3.5 py-2">
@@ -260,7 +269,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Problem 16 — Quick Actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="animate-fade-slide-up grid grid-cols-2 sm:grid-cols-4 gap-3" style={fadeDelay(60)}>
         <Link to="/plan">
           <Card hover padding="sm" className="flex items-center gap-2.5">
             <Navigation className="w-4 h-4 text-brand-600 flex-shrink-0" />
@@ -288,8 +297,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Search Card */}
-      <Card className="bg-gradient-to-r from-navy-900 via-navy-800 to-brand-950 border-navy-700">
-        <div className="flex flex-col sm:flex-row gap-3">
+      <Card className="animate-fade-slide-up relative overflow-hidden bg-gradient-to-r from-navy-900 via-navy-800 to-brand-950" style={fadeDelay(120)}>
+        <IsometricSkyline className="pointer-events-none absolute -right-4 -bottom-6 w-56 h-36 opacity-80" />
+        <div className="relative flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-brand-500 border-2 border-white/30 ring-2 ring-brand-500/50" />
             <input
@@ -318,9 +328,9 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Column */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="animate-fade-slide-up lg:col-span-2 space-y-6" style={fadeDelay(180)}>
           {/* TransitDNA Intelligence Profile Card */}
-          <Card className="border-brand-200 bg-gradient-to-br from-white via-brand-50/20 to-sky-50/30">
+          <Card className="bg-gradient-to-br from-white via-brand-50/20 to-sky-50/30">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Dna className="w-5 h-5 text-brand-600" />
@@ -332,29 +342,29 @@ export default function DashboardPage() {
               Learns your preference weights via Pairwise Logistic Regression from your route choices & feedback ratings.
             </p>
             {!hasLearnedWeights && (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+              <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-4">
                 TransitDNA is using your initial preference profile — it hasn't learned from any route choices yet.
               </p>
             )}
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-              <div className="bg-white p-2.5 rounded-xl border border-navy-100 shadow-2xs">
+              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
                 <p className="text-[11px] font-semibold text-navy-500 uppercase">Speed</p>
                 <p className="text-base font-bold text-brand-700">{Math.round(weights.time * 100)}%</p>
               </div>
-              <div className="bg-white p-2.5 rounded-xl border border-navy-100 shadow-2xs">
+              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
                 <p className="text-[11px] font-semibold text-navy-500 uppercase">Cost</p>
                 <p className="text-base font-bold text-emerald-700">{Math.round(weights.cost * 100)}%</p>
               </div>
-              <div className="bg-white p-2.5 rounded-xl border border-navy-100 shadow-2xs">
+              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
                 <p className="text-[11px] font-semibold text-navy-500 uppercase">Walking</p>
                 <p className="text-base font-bold text-purple-700">{Math.round(weights.walking * 100)}%</p>
               </div>
-              <div className="bg-white p-2.5 rounded-xl border border-navy-100 shadow-2xs">
+              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
                 <p className="text-[11px] font-semibold text-navy-500 uppercase">Reliability</p>
                 <p className="text-base font-bold text-sky-700">{Math.round(weights.reliability * 100)}%</p>
               </div>
-              <div className="bg-white p-2.5 rounded-xl border border-navy-100 shadow-2xs">
+              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
                 <p className="text-[11px] font-semibold text-navy-500 uppercase">Access</p>
                 <p className="text-base font-bold text-amber-700">{Math.round(weights.accessibility * 100)}%</p>
               </div>
@@ -390,19 +400,19 @@ export default function DashboardPage() {
               <>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                <div className="p-3 bg-navy-50 rounded-xl border border-navy-100">
+                <div className="p-3 bg-navy-50 rounded-xl">
                   <p className="text-[11px] font-medium text-navy-500">Shortest-Time Agreement</p>
                   <p className="text-lg font-bold text-navy-900">{evaluation.agreementRateWithShortestTimePercent}%</p>
                 </div>
-                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                <div className="p-3 bg-emerald-50 rounded-xl">
                   <p className="text-[11px] font-medium text-emerald-800">TransitSwap Reliability</p>
                   <p className="text-lg font-bold text-emerald-900">{evaluation.transitSwapAverageReliability}/100</p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+                <div className="p-3 bg-amber-50 rounded-xl">
                   <p className="text-[11px] font-medium text-amber-800">Shortest-Time Reliability</p>
                   <p className="text-lg font-bold text-amber-900">{evaluation.baselineShortestTimeAverageReliability}/100</p>
                 </div>
-                <div className="p-3 bg-sky-50 rounded-xl border border-sky-100">
+                <div className="p-3 bg-sky-50 rounded-xl">
                   <p className="text-[11px] font-medium text-sky-800">CI 90% Empirical Coverage</p>
                   <p className="text-xs font-bold text-sky-900 mt-1">
                     {evaluation.confidenceIntervalCoveragePercent !== null
@@ -413,7 +423,7 @@ export default function DashboardPage() {
               </div>
 
               {evaluation.benchmarkDisclaimer && (
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800">
+                <div className="mb-4 p-3 bg-amber-50 rounded-xl text-[11px] text-amber-800">
                   <strong>Disclaimer:</strong> {evaluation.benchmarkDisclaimer}
                 </div>
               )}
@@ -542,7 +552,7 @@ export default function DashboardPage() {
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {TRAVEL_STATS.map((s) => (
-                    <div key={s.label} className="bg-navy-50 rounded-xl p-3 border border-navy-100">
+                    <div key={s.label} className="bg-navy-50 rounded-xl p-3">
                       <p className="text-lg font-bold text-navy-900">{s.value}</p>
                       <p className="text-[11px] text-navy-500 mt-0.5 font-medium">{s.label}</p>
                     </div>
@@ -563,7 +573,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Sidebar Column */}
-        <div className="space-y-6">
+        <div className="animate-fade-slide-up space-y-6" style={fadeDelay(240)}>
           {/* Monthly Stats */}
           <Card>
             <h2 className="font-display font-semibold text-navy-900 mb-4">This Month</h2>
@@ -719,12 +729,12 @@ export default function DashboardPage() {
               <h2 className="font-display font-semibold text-navy-900">Sustainability</h2>
             </div>
             {avgSustainabilityScore !== null ? (
-              <>
-                <p className="text-2xl font-bold text-emerald-700">{avgSustainabilityScore}/100</p>
-                <p className="text-xs text-navy-500 mt-1">
+              <div className="flex items-center gap-4">
+                <RadialGauge value={avgSustainabilityScore} fillColor="#10b981" label="/ 100" />
+                <p className="text-xs text-navy-500">
                   Average relative sustainability score across your saved journeys — higher favors walking and public transport over road-based private transport.
                 </p>
-              </>
+              </div>
             ) : (
               <p className="text-sm text-navy-500">
                 No relative sustainability data yet. It will appear once you save journeys with route details.
@@ -733,7 +743,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Smart Tip */}
-          <Card className="bg-brand-50 border-brand-100">
+          <Card className="bg-brand-50">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0">
                 <Zap className="w-4 h-4 text-white" />
