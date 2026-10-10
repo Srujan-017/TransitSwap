@@ -14,8 +14,20 @@ import {
   Dna,
 } from "lucide-react"
 import Button from "../components/ui/Button"
-import { CityTransitScene, FloatingArrivalCard } from "../components/landing/LandingIllustrations"
+import { FloatingArrivalCard } from "../components/landing/LandingIllustrations"
 import { useScrollReveal } from "../hooks/useScrollReveal"
+
+// Real photographs (not illustration) — all from Unsplash, free for
+// commercial/personal use under the Unsplash License, no attribution
+// required. Picked for subject relevance to each section, not stock-generic
+// filler: a real metro platform, a real city bus, a real accessibility
+// marking, and real commuters crossing a street.
+const PHOTOS = {
+  metroHero: "https://images.unsplash.com/photo-1728873861110-6f572ff6cc98?w=1920&q=80&auto=format&fit=crop",
+  cityBus: "https://images.unsplash.com/photo-1564694202883-46e7448c1b26?w=1600&q=75&auto=format&fit=crop",
+  accessibility: "https://images.unsplash.com/photo-1545483656-1a34ae73add1?w=1600&q=75&auto=format&fit=crop",
+  crosswalkCommuters: "https://images.unsplash.com/photo-1652793822328-47340b1b4407?w=1600&q=75&auto=format&fit=crop",
+}
 
 const PROFILES = [
   { id: "standard", icon: "🚶", label: "Standard" },
@@ -103,19 +115,27 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero — clean, light, map-app style instead of a dark gradient-glow banner */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-navy-50/70 to-white">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-6">
+      {/* Hero — a real metro-platform photograph (Unsplash, free license),
+          color-graded with the app's own navy/brand gradient overlay for
+          text contrast, instead of flat illustration. */}
+      <section className="relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${PHOTOS.metroHero})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-navy-950/90 via-navy-900/85 to-navy-950/95" />
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-900/40 via-transparent to-transparent" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-2 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.08)] rounded-full px-4 py-1.5 text-brand-600 text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-full px-4 py-1.5 text-brand-300 text-sm font-medium mb-6">
               <Star className="w-3.5 h-3.5" />
               Rule-Based Multimodal Urban Mobility Intelligence
             </div>
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-navy-900 leading-tight mb-6">
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
               Travel Smarter,{" "}
-              <span className="text-brand-500">Not Just Faster</span>
+              <span className="text-brand-400">Not Just Faster</span>
             </h1>
-            <p className="text-navy-500 text-lg leading-relaxed max-w-2xl mx-auto">
+            <p className="text-navy-200 text-lg leading-relaxed max-w-2xl mx-auto">
               TransitSwap evaluates weather, accessibility, and crowd levels using transparent rule-based logic
               to help you find a journey that actually works for you — not just the shortest one on paper.
             </p>
@@ -198,12 +218,14 @@ export default function LandingPage() {
             </form>
           </div>
         </div>
-        <CityTransitScene className="w-full h-24 sm:h-32" />
       </section>
 
-      {/* Accessibility — full-bleed color block #1 */}
-      <RevealSection className="bg-gradient-to-br from-brand-500 to-brand-700 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* Accessibility — full-bleed color block #1, a real accessibility-
+          marking photograph color-graded into the brand blue palette. */}
+      <RevealSection className="relative overflow-hidden py-20">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${PHOTOS.accessibility})` }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/92 to-brand-800/92" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <span className="inline-block text-xs font-bold text-white bg-white/15 rounded-full px-3 py-1 mb-4">
               ★ Major Innovation
@@ -246,9 +268,12 @@ export default function LandingPage() {
         </div>
       </RevealSection>
 
-      {/* Weather + crowd — full-bleed color block #2 */}
-      <RevealSection className="bg-gradient-to-br from-amber-400 to-orange-500 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* Weather + crowd — full-bleed color block #2, a real street-crossing
+          commuters photograph color-graded into a warm amber tone. */}
+      <RevealSection className="relative overflow-hidden py-20">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${PHOTOS.crosswalkCommuters})` }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/92 to-orange-700/92" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="order-2 lg:order-1 relative flex justify-center lg:justify-start">
             <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(15,23,42,0.4)] p-5 w-72 rotate-2">
               <p className="text-[10px] font-semibold text-navy-400 uppercase tracking-wide mb-2">Live context</p>
@@ -283,9 +308,12 @@ export default function LandingPage() {
         </div>
       </RevealSection>
 
-      {/* Multimodal + history — full-bleed color block #3 */}
-      <RevealSection className="bg-gradient-to-br from-navy-900 to-navy-950 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* Multimodal + history — full-bleed color block #3, a real city-bus
+          photograph color-graded into deep navy. */}
+      <RevealSection className="relative overflow-hidden py-20">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${PHOTOS.cityBus})` }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-navy-900/93 to-navy-950/95" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <span className="inline-block text-xs font-bold text-white bg-white/10 rounded-full px-3 py-1 mb-4">
               Multimodal · Phase 4

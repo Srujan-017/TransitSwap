@@ -2,22 +2,18 @@ import { Link } from "react-router-dom"
 import { Bus } from "lucide-react"
 import type { ReactNode } from "react"
 
+// Same real metro-platform photograph (Unsplash, free license) used on the
+// Landing page hero, for visual consistency between the two.
+const AUTH_PHOTO = "https://images.unsplash.com/photo-1728873861110-6f572ff6cc98?w=1200&q=75&auto=format&fit=crop"
+
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-navy-900 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background pattern */}
-        <div
-          className="absolute inset-0 opacity-5"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at center, #0ea5e9 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-          }}
-        />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-900/80 via-navy-900 to-navy-900" />
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden">
+        {/* Real photo background, color-graded navy/brand */}
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${AUTH_PHOTO})` }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-900/85 via-navy-900/90 to-navy-900/95" />
 
         {/* Content */}
         <div className="relative z-10">
