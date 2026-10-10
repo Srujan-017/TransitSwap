@@ -114,6 +114,32 @@ function line(lat1: number, lng1: number, lat2: number, lng2: number): RouteSegm
   return { type: "LineString", coordinates: [[lng1, lat1], [lng2, lat2]] }
 }
 
+// Bug fix — confirmed visually: metro/bus segments were drawn as a single
+// straight chord between their endpoint coordinates (metroGeometry/
+// busGeometry below), so a route could appear to cut diagonally through a
+// lake or straight across city blocks instead of following any real
+// infrastructure. Reusing the same OSRM-backed roadLeg() the walk/auto legs
+// already use — "driving" is the closest available proxy for a rail/road
+// corridor since OSRM carries no rail geometry — snaps the final, already-
+// selected route's metro/bus segment onto real streets instead. This is
+// purely cosmetic: distanceMeters/durationSeconds/estimatedFare for the
+// segment are computed independently (see metroSegment()/busSegment()
+// below) and are never touched here. Run ONLY on the small final candidate
+// set (after Pareto filtering), never during the exploratory search, so it
+// adds at most one extra OSRM call per metro/bus leg per returned route —
+// not per candidate evaluated. On any OSRM failure it falls back to the
+// existing straight-line geometry, exactly like every other roadLeg() use.
+async function roadSnapTransitSegment(ctx: RoadContext, segment: RouteSegment): Promise<RouteSegment> {
+  if (segment.mode !== "metro" && segment.mode !== "bus") return segment
+  const leg = await roadLeg(ctx, "driving", segment.from.latitude, segment.from.longitude, segment.to.latitude, segment.to.longitude)
+  if (!leg) return segment
+  return { ...segment, geometry: leg.geometry }
+}
+
+async function roadSnapCandidateGeometry(ctx: RoadContext, segments: RouteSegment[]): Promise<RouteSegment[]> {
+  return Promise.all(segments.map((segment) => roadSnapTransitSegment(ctx, segment)))
+}
+
 function metroGeometry(stationIds: string[]): RouteSegment["geometry"] {
   return {
     type: "LineString",
@@ -1397,8 +1423,14 @@ export const multimodalService = {
 
     if (paretoOptimalCandidates.length === 0) return []
 
+    // Road-snap metro/bus geometry only for this small final set (not the
+    // candidates discarded above) — see roadSnapCandidateGeometry().
+    const geometrySnappedCandidates = await Promise.all(
+      paretoOptimalCandidates.map((segments) => roadSnapCandidateGeometry(ctx, segments)),
+    )
+
     const departureDate = parseLocalDateTime(request.departureTime)
-    return assignLabels(paretoOptimalCandidates).map(({ segments, label }) =>
+    return assignLabels(geometrySnappedCandidates).map(({ segments, label }) =>
       attachBoardingEstimates(buildRoute(segments, label), departureDate),
     )
   },

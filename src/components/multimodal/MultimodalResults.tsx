@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import {
   CloudSun, Database, FlaskConical, MapPin, Navigation, Save, Bookmark,
-  ShieldAlert, ShieldCheck, Users, Activity, Clock, Sparkles, AlertCircle, Compass,
+  ShieldAlert, ShieldCheck, Users, Activity, Clock, Sparkles, AlertCircle, Compass, Bus,
 } from "lucide-react"
 import RouteCard from "./RouteCard"
 import SegmentTimeline from "./SegmentTimeline"
@@ -25,6 +25,10 @@ interface Props {
   onSaveRoute?: (route: MultimodalRoute) => Promise<void>
   saveRouteStatus?: "idle" | "saving" | "saved" | "error"
   saveRouteMessage?: string
+  // Set only when a bus stop exists near both origin and destination but no
+  // bus-involving route won the ranking — explains an absence that would
+  // otherwise look like a missing feature. See multimodalController.ts.
+  busAlternativeNote?: string
 }
 
 function transitSegments(route: MultimodalRoute): RouteSegment[] {
@@ -51,6 +55,7 @@ export default function MultimodalResults({
   onSaveRoute,
   saveRouteStatus = "idle",
   saveRouteMessage = "",
+  busAlternativeNote = "",
 }: Props) {
   const [crowdLevel, setCrowdLevel] = useState<CrowdLevel>("MEDIUM")
   const [accessibilityIssue, setAccessibilityIssue] = useState("lift_unavailable")
@@ -138,6 +143,13 @@ export default function MultimodalResults({
             TransitSwap Intelligence Engine active. Evaluated multimodal routes with weather, accessibility, Monte Carlo connection risk, and TransitDNA scoring.
           </p>
         </div>
+
+        {busAlternativeNote && (
+          <div className="flex items-start gap-2 bg-sky-50 rounded-2xl px-3 py-2">
+            <Bus className="w-4 h-4 text-sky-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-sky-700 font-medium">{busAlternativeNote}</p>
+          </div>
+        )}
 
         <div className="flex items-start gap-3">
           <div className="mt-1 w-2.5 h-2.5 rounded-full bg-brand-500 ring-2 ring-brand-200 flex-shrink-0" />

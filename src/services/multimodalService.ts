@@ -8,8 +8,8 @@ export const multimodalService = {
     destination: GeoLocation,
     profile?: string,
     departureTime?: string,
-  ): Promise<MultimodalRoute[]> {
-    const { data } = await api.post<{ success: boolean; data: MultimodalRoute[] }>(
+  ): Promise<{ routes: MultimodalRoute[]; busAlternativeNote?: string }> {
+    const { data } = await api.post<{ success: boolean; data: MultimodalRoute[]; busAlternativeNote?: string }>(
       "/routes/multimodal",
       {
         origin:      { name: origin.name,      latitude: origin.latitude,      longitude: origin.longitude      },
@@ -19,7 +19,7 @@ export const multimodalService = {
       },
       { timeout: 15000 },
     )
-    return data.data
+    return { routes: data.data, busAlternativeNote: data.busAlternativeNote }
   },
 
   // Problem 11 — Nearby Transit

@@ -198,11 +198,39 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
       route.isPersonalized = isPersonalized
     })
 
-    sendSuccess(
-      res,
-      rankedRoutes,
-      `TransitSwap ML Intelligence Engine: Pairwise Logistic Regression ranker active (${statusMessage}). Evaluated with weather, accessibility, reliability & Monte Carlo simulation.`,
-    )
+    // Bug fix — confirmed by manually testing: a rider near bus stops at both
+    // ends of their trip could still see zero bus-involving routes with no
+    // explanation, because the graph search (buildTransitGraph) correctly
+    // explored a bus/bus-transfer path but then correctly Pareto-filtered it
+    // out for being strictly worse than the metro route on every measure —
+    // a real result, not a bug, but invisible to the rider, who has no way
+    // to tell "no bus exists here" apart from "bus exists but loses." Reuses
+    // the already-exported, already-tested getNearbyTransit() to check bus
+    // proximity at both ends; never changes which routes are recommended.
+    const noBusInResults = !rankedRoutes.some((route) => route.segments.some((seg) => seg.mode === "bus"))
+    let busAlternativeNote = ""
+    if (noBusInResults) {
+      const [originBus, destinationBus] = await Promise.all([
+        multimodalService.getNearbyTransit(body.origin.latitude, body.origin.longitude),
+        multimodalService.getNearbyTransit(body.destination.latitude, body.destination.longitude),
+      ])
+      if (originBus.bus && destinationBus.bus) {
+        busAlternativeNote =
+          ` A bus stop exists near both your origin (${originBus.bus.stationName}) and destination (${destinationBus.bus.stationName}), ` +
+          `but TransitSwap's route search found no bus-based path that beats the recommended route on time, fare, walking, or transfers for this specific trip.`
+      }
+    }
+
+    // Not sendSuccess() here — busAlternativeNote is a new, optional,
+    // top-level field alongside the unchanged `data` array, so every
+    // existing consumer (frontend service, tests) that reads only
+    // `data`/`message` is completely unaffected.
+    res.status(200).json({
+      success: true,
+      data: rankedRoutes,
+      message: `TransitSwap ML Intelligence Engine: Pairwise Logistic Regression ranker active (${statusMessage}). Evaluated with weather, accessibility, reliability & Monte Carlo simulation.`,
+      ...(busAlternativeNote ? { busAlternativeNote: busAlternativeNote.trim() } : {}),
+    })
   } catch (err: unknown) {
     next(err)
   }

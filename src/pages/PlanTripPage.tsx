@@ -127,6 +127,7 @@ export default function PlanTripPage() {
   const [selectedMultimodalIndex, setSelectedMultimodalIndex] = useState(0)
   const [multimodalStatus, setMultimodalStatus]           = useState<RouteStatus>("idle")
   const [multimodalError, setMultimodalError]             = useState("")
+  const [busAlternativeNote, setBusAlternativeNote]       = useState("")
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [saveMessage, setSaveMessage] = useState("")
   const [destinationSaveName, setDestinationSaveName] = useState("")
@@ -181,6 +182,7 @@ export default function PlanTripPage() {
     setSelectedMultimodalIndex(0)
     setMultimodalStatus("idle")
     setMultimodalError("")
+    setBusAlternativeNote("")
     setSaveStatus("idle")
     setSaveMessage("")
     setSaveRouteStatus("idle")
@@ -241,7 +243,8 @@ export default function PlanTripPage() {
         // (not "now") when the user hasn't picked a time yet.
         const departureTime = buildLocalDepartureDateTime(date, time)
         const result = await multimodalService.getRoutes(origin!, destination!, profile, departureTime)
-        setMultimodalRoutes(result)
+        setMultimodalRoutes(result.routes)
+        setBusAlternativeNote(result.busAlternativeNote ?? "")
         setMultimodalStatus("success")
       } catch (err: unknown) {
         setMultimodalStatus("error")
@@ -673,6 +676,7 @@ export default function PlanTripPage() {
               onSelectRoute={setSelectedMultimodalIndex}
               origin={origin}
               destination={destination}
+              busAlternativeNote={busAlternativeNote}
               onSaveJourney={handleSaveJourney}
               saveStatus={saveStatus}
               saveMessage={saveMessage}
