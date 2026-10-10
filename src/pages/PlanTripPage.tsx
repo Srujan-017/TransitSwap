@@ -15,6 +15,7 @@ import TransportModeSelector from "../components/routing/TransportModeSelector"
 import MultimodalResults from "../components/multimodal/MultimodalResults"
 import NearbyTransit from "../components/multimodal/NearbyTransit"
 import WhyNoRoute from "../components/multimodal/WhyNoRoute"
+import ActiveNavigationView from "../components/navigation/ActiveNavigationView"
 import { routingService } from "../services/routingService"
 import { multimodalService } from "../services/multimodalService"
 import { tripService } from "../services/tripService"
@@ -128,6 +129,7 @@ export default function PlanTripPage() {
   const [multimodalStatus, setMultimodalStatus]           = useState<RouteStatus>("idle")
   const [multimodalError, setMultimodalError]             = useState("")
   const [busAlternativeNote, setBusAlternativeNote]       = useState("")
+  const [activeNavRoute, setActiveNavRoute]               = useState<MultimodalRoute | null>(null)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [saveMessage, setSaveMessage] = useState("")
   const [destinationSaveName, setDestinationSaveName] = useState("")
@@ -331,6 +333,18 @@ export default function PlanTripPage() {
   const selectedRoadRoute       = routes[selectedRouteIndex] ?? null
   const selectedMultimodalRoute = multimodalRoutes[selectedMultimodalIndex] ?? null
   const activeError             = routingMode === "road" ? routeError : multimodalError
+
+  if (activeNavRoute && origin && destination) {
+    return (
+      <ActiveNavigationView
+        route={activeNavRoute}
+        origin={origin}
+        destination={destination}
+        profile={profile}
+        onExit={() => setActiveNavRoute(null)}
+      />
+    )
+  }
 
   return (
     <PageContainer width="wide">
@@ -677,6 +691,7 @@ export default function PlanTripPage() {
               origin={origin}
               destination={destination}
               busAlternativeNote={busAlternativeNote}
+              onStartNavigation={setActiveNavRoute}
               onSaveJourney={handleSaveJourney}
               saveStatus={saveStatus}
               saveMessage={saveMessage}

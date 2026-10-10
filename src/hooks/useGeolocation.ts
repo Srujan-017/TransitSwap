@@ -7,7 +7,10 @@ interface GeolocationState {
   isLoading: boolean
 }
 
-const GEO_ERROR_MESSAGES: Record<number, string> = {
+// Exported so useLiveTracking.ts (continuous watchPosition, used by active
+// navigation) can reuse the exact same error messages instead of duplicating
+// them — this one-shot hook's own behavior is unchanged.
+export const GEO_ERROR_MESSAGES: Record<number, string> = {
   1: "Location permission denied. Please allow location access in your browser settings.",
   2: "Your location is currently unavailable. Please try again.",
   3: "Location request timed out. Please try again.",

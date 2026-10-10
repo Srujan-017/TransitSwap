@@ -29,6 +29,9 @@ interface Props {
   // bus-involving route won the ranking — explains an absence that would
   // otherwise look like a missing feature. See multimodalController.ts.
   busAlternativeNote?: string
+  // Voice-guided turn-by-turn navigation (ActiveNavigationView.tsx) — a pure
+  // mode switch, synchronous, no loading state needed.
+  onStartNavigation?: (route: MultimodalRoute) => void
 }
 
 function transitSegments(route: MultimodalRoute): RouteSegment[] {
@@ -56,6 +59,7 @@ export default function MultimodalResults({
   saveRouteStatus = "idle",
   saveRouteMessage = "",
   busAlternativeNote = "",
+  onStartNavigation,
 }: Props) {
   const [crowdLevel, setCrowdLevel] = useState<CrowdLevel>("MEDIUM")
   const [accessibilityIssue, setAccessibilityIssue] = useState("lift_unavailable")
@@ -182,6 +186,16 @@ export default function MultimodalResults({
           </div>
 
           <div className="flex items-center gap-2">
+            {onStartNavigation && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onStartNavigation(selected)}
+                icon={<Navigation className="w-3.5 h-3.5" />}
+              >
+                Start Journey
+              </Button>
+            )}
             {onSaveRoute && (
               <Button
                 size="sm"

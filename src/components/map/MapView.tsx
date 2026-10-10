@@ -103,6 +103,21 @@ function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression }) {
   return null
 }
 
+// Active-navigation live position — flies to it once on first appearance
+// only (a ref guard), not on every GPS tick, so the map doesn't fight the
+// user by re-centering every few seconds while they're reading the screen.
+function FollowMe({ position }: { position: { latitude: number; longitude: number } }) {
+  const map = useMap()
+  const hasCenteredRef = useRef(false)
+  useEffect(() => {
+    if (hasCenteredRef.current) return
+    hasCenteredRef.current = true
+    map.flyTo([position.latitude, position.longitude], 17, { duration: 0.8 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map])
+  return null
+}
+
 const EXPAND_ICON_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`
 const COLLAPSE_ICON_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`
 const LOCATE_ICON_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line></svg>`
@@ -305,10 +320,15 @@ interface MapViewProps {
   multimodalRoute?: MultimodalRoute | null
   onSetOrigin?: (location: GeoLocation) => void
   onSetDestination?: (location: GeoLocation) => void
+  // Active-navigation additions (ActiveNavigationView.tsx) — both optional
+  // and undefined by default, so every existing caller is unaffected.
+  livePosition?: { latitude: number; longitude: number } | null
+  activeSegmentId?: string | null
 }
 
 export default function MapView({
   origin, destination, route, multimodalRoute, onSetOrigin, onSetDestination,
+  livePosition, activeSegmentId,
 }: MapViewProps) {
   const defaultCenter: L.LatLngExpression = [19.076, 72.877]
   const defaultZoom = 11
@@ -409,11 +429,16 @@ export default function MapView({
             geometry: seg.geometry,
             properties: {},
           }
+          // Active-navigation dimming — when a specific segment is the
+          // current step, every other segment fades back so the rider's
+          // eye goes straight to the leg they're actually on right now.
+          const isDimmed = Boolean(activeSegmentId) && seg.id !== activeSegmentId
+          const segmentStyle = isDimmed ? { ...SEGMENT_STYLES[seg.mode], opacity: 0.35 } : SEGMENT_STYLES[seg.mode]
           const layers = []
-          if (CASED_MODES.includes(seg.mode)) {
+          if (CASED_MODES.includes(seg.mode) && !isDimmed) {
             layers.push(<GeoJSON key={`${seg.id}-casing`} data={segmentGeoJson} style={CASING_STYLE} />)
           }
-          layers.push(<GeoJSON key={seg.id} data={segmentGeoJson} style={SEGMENT_STYLES[seg.mode]} />)
+          layers.push(<GeoJSON key={seg.id} data={segmentGeoJson} style={segmentStyle} />)
           return layers
         })}
 
@@ -432,6 +457,16 @@ export default function MapView({
       )}
       {destination && (
         <Marker position={[destination.latitude, destination.longitude]} icon={DEST_ICON} />
+      )}
+
+      {/* Active-navigation live position — drawn last of all, above the
+          origin/destination pins too, since it's the rider's own real-time
+          location. */}
+      {livePosition && (
+        <>
+          <Marker position={[livePosition.latitude, livePosition.longitude]} icon={MY_LOCATION_ICON} />
+          <FollowMe position={livePosition} />
+        </>
       )}
 
       {bounds && <FitBounds bounds={bounds} />}
