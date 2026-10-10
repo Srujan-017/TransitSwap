@@ -309,6 +309,38 @@ async function runAccessibilityTests() {
   assert(stdRank2.rankedRoutes[0].id === "route-B2", "General/Standard profile prefers Route B (faster time & shorter walk)")
   console.log("   ✅ Problem 5 Scenario 2 profile diversity passed.\n")
 
+  // ── Test 15: Walking/Rolling Distance Hard Constraint ──────────────────
+
+  console.log("1️⃣5️⃣ Testing Walking/Rolling Distance Hard Constraint...")
+  // Fully-accessible stations (no station-level block) but an excessive
+  // walking/rolling distance — must still be blocked for wheelchair/
+  // reduced_mobility/stroller, since infrastructure alone isn't the only
+  // thing that can make a route physically infeasible for these profiles.
+  const longWalkRoute = { ...makeRoute(["Whitefield Metro", "Majestic Metro"]), id: "long-walk", totalWalkingMeters: 1500 }
+  const shortWalkRoute = { ...makeRoute(["Whitefield Metro", "Majestic Metro"]), id: "short-walk", totalWalkingMeters: 1100 }
+
+  const wcLongWalk = await accessibilityService.evaluateRoute(longWalkRoute, "wheelchair")
+  assert(wcLongWalk.blocked === true, "1500m walking route IS blocked for wheelchair")
+  assert(wcLongWalk.blockedReasonType === "walking_distance", "Block reason type is 'walking_distance'")
+  assert(wcLongWalk.rejectionReason!.includes("1500"), "Rejection reason cites the walking distance")
+
+  const wcShortWalk = await accessibilityService.evaluateRoute(shortWalkRoute, "wheelchair")
+  assert(wcShortWalk.blocked === false, "1100m walking route (under the 1200m cap) is NOT blocked for wheelchair")
+
+  const rmLongWalk = await accessibilityService.evaluateRoute(longWalkRoute, "reduced_mobility")
+  assert(rmLongWalk.blocked === true, "1500m walking route IS blocked for reduced_mobility")
+
+  const strollerLongWalk = await accessibilityService.evaluateRoute(longWalkRoute, "stroller")
+  assert(strollerLongWalk.blocked === true, "1500m walking route IS blocked for stroller")
+
+  // Profiles not covered by this constraint (e.g. senior) must be unaffected
+  const seniorLongWalk = await accessibilityService.evaluateRoute(longWalkRoute, "senior")
+  assert(seniorLongWalk.blocked === false, "1500m walking route is NOT blocked for senior (distance cap doesn't apply)")
+
+  const stdLongWalk = await accessibilityService.evaluateRoute(longWalkRoute, "standard")
+  assert(stdLongWalk.blocked === false, "1500m walking route is NOT blocked for standard")
+  console.log("   ✅ Walking/rolling distance hard constraint passed.\n")
+
   // ── Summary ────────────────────────────────────────────────────────────
 
   console.log("═══════════════════════════════════════════════════════")

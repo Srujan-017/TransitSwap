@@ -39,6 +39,7 @@ const ROOT = path.resolve(__dirname, "..")
 // Same 13 entries, same order, as the previous `&&`-chained script.
 const ENTRIES = [
   "src/__tests__/accessibility.test.ts",
+  "src/__tests__/crowdAccessibilityBlock.test.ts",
   "src/__tests__/ml.test.ts",
   "src/__tests__/recommendationExplanation.test.ts",
   "src/__tests__/reliability.test.ts",

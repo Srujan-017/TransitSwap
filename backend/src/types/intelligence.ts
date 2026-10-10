@@ -74,6 +74,10 @@ export interface AccessibilityEvaluation {
   checkedStations: CheckedAccessibilityStation[]
   accessibilityScore: number // 0-100, transparent composite score
   rejectionReason: string | null // explains why a route was rejected if blocked
+  // Distinguishes WHY a route was blocked, for the frontend to pick the right
+  // icon/copy without parsing rejectionReason text. Optional — existing
+  // station-based rejections predate this field and simply omit it.
+  blockedReasonType?: "station" | "walking_distance" | "crowd"
   // "no_data" — Phase 4 fix (B5): every transit station on this route has no
   // accessibility record at all (distinct from "mixed", which means multiple
   // real sources are blended; "no_data" means there is no real source).

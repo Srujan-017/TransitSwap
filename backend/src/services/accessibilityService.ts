@@ -377,6 +377,33 @@ function getBlockReason(record: AccessibilityRecord, profile: AccessibilityEvalu
   return null
 }
 
+// ── Walking/Rolling Distance Hard Constraint ────────────────────────────────
+
+// Bug fix — confirmed by manually testing every profile: a wheelchair,
+// reduced-mobility, or stroller route could have arbitrarily long walking/
+// rolling segments and never be excluded — totalWalkingMeters only ever fed
+// a score penalty (calculateProfileAccessibilityScore) and a warning string
+// (walkingWarnings below), both of which a faster/cheaper route can still
+// outrank. For these profiles a genuinely excessive walking/rolling distance
+// isn't a comfort trade-off, it's often not achievable at all, so it needs
+// to behave like the existing station-based hard constraints above: route
+// rejection, not just a lower score. 1200m sits well above the point
+// (700m) where walkingWarnings already starts flagging a route as
+// warning-worthy for this exact profile group, so only routes meaningfully
+// beyond "long but tolerable" are excluded.
+const WALKING_DISTANCE_HARD_BLOCK_METERS = 1200
+
+function getWalkingDistanceBlockReason(
+  route: MultimodalRoute,
+  profile: AccessibilityEvaluation["profile"],
+): string | null {
+  if (profile !== "wheelchair" && profile !== "reduced_mobility" && profile !== "stroller") return null
+  if (route.totalWalkingMeters > WALKING_DISTANCE_HARD_BLOCK_METERS) {
+    return `This route requires ${Math.round(route.totalWalkingMeters)}m of walking/rolling, exceeding the ${WALKING_DISTANCE_HARD_BLOCK_METERS}m limit for this profile.`
+  }
+  return null
+}
+
 // ── Walking Distance Warnings ───────────────────────────────────────────────
 
 function walkingWarnings(route: MultimodalRoute, profile: AccessibilityEvaluation["profile"]) {
@@ -490,7 +517,10 @@ export const accessibilityService = {
       }
     })
 
-    const blocked = firstBlockReason !== null
+    const walkingBlockReason = getWalkingDistanceBlockReason(route, profile)
+    const blockReason = firstBlockReason ?? walkingBlockReason
+
+    const blocked = blockReason !== null
     const warnings = [...checkedStations.flatMap((s) => s.warnings), ...walkingWarnings(route, profile)]
     const status = combineStatus(checkedStations, blocked)
 
@@ -505,7 +535,7 @@ export const accessibilityService = {
       status,
       blocked,
       summary: blocked
-        ? `Route excluded: ${firstBlockReason}`
+        ? `Route excluded: ${blockReason}`
         : status === "accessible"
           ? "All stations accessible according to the current dataset."
           : status === "unknown"
@@ -514,7 +544,8 @@ export const accessibilityService = {
       warnings,
       checkedStations,
       accessibilityScore,
-      rejectionReason: firstBlockReason,
+      rejectionReason: blockReason,
+      blockedReasonType: blocked ? (firstBlockReason ? "station" : "walking_distance") : undefined,
       dataSource,
     }
   },

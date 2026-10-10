@@ -144,10 +144,42 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
       )
     }
 
+    // Bug fix — confirmed by manually testing every profile: a route through
+    // a known HIGH-crowd station was never excluded for pregnant, senior,
+    // stroller, luggage, or wheelchair profiles — only the soft warning above
+    // and the ranking weight (mlPreferenceService.ts) existed, and both can
+    // be outvoted by a faster/cheaper alternative. Crowd data only exists
+    // after the enrichment loop above runs (accessibilityService.filterRoutes
+    // executes before crowd is computed), so this is a second, stricter pass
+    // layered on top rather than folded into accessibilityService itself —
+    // reuses the crowd already computed per-route above, no extra DB queries.
+    // reduced_mobility is deliberately excluded (not part of the reported cases).
+    const CROWD_HARD_BLOCK_PROFILES = new Set(["pregnant", "senior", "stroller", "luggage", "wheelchair"])
+    const crowdFiltered = enriched.filter((route) => {
+      if (!CROWD_HARD_BLOCK_PROFILES.has(profile)) return true
+      if (route.crowd?.level !== "HIGH" || route.crowd?.source === "UNAVAILABLE") return true
+      if (route.accessibility) {
+        route.accessibility.blocked = true
+        route.accessibility.accessibilityScore = 0
+        route.accessibility.rejectionReason =
+          "Route excluded: passes through a HIGH-crowd station, unsuitable for your selected profile."
+        route.accessibility.summary = route.accessibility.rejectionReason
+        route.accessibility.blockedReasonType = "crowd"
+      }
+      return false
+    })
+
+    if (crowdFiltered.length === 0) {
+      throw new AppError(
+        "No accessible multimodal route found for the selected profile in the current demo dataset.",
+        404,
+      )
+    }
+
     // Pairwise Logistic Regression ML Learning-to-Rank Engine + TransitDNA Explicit User Preferences
     const { rankedRoutes, statusMessage, isPersonalized } = await mlPreferenceService.rankRoutes(
       authUserId,
-      enriched,
+      crowdFiltered,
       profile,
       userPreferences,
     )
