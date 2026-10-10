@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import {
   Bus,
@@ -11,8 +11,11 @@ import {
   Accessibility,
   Star,
   CheckCircle,
+  Dna,
 } from "lucide-react"
 import Button from "../components/ui/Button"
+import { CityTransitScene, FloatingArrivalCard } from "../components/landing/LandingIllustrations"
+import { useScrollReveal } from "../hooks/useScrollReveal"
 
 const PROFILES = [
   { id: "standard", icon: "🚶", label: "Standard" },
@@ -21,6 +24,30 @@ const PROFILES = [
   { id: "wheelchair", icon: "♿", label: "Wheelchair" },
   { id: "senior", icon: "🧓", label: "Senior" },
 ]
+
+// A full-bleed, alternating color-block section with a headline + body on
+// one side and a floating "proof" card on the other — the structural
+// pattern found on transitapp.com's own marketing homepage (colored
+// sections, bold multi-line headlines, tilted floating UI-mockup cards),
+// applied here to TransitSwap's own real features rather than that site's.
+// Animates in once when it first scrolls into view (useScrollReveal).
+function RevealSection({
+  className = "",
+  children,
+}: {
+  className?: string
+  children: ReactNode
+}) {
+  const { ref, isVisible } = useScrollReveal<HTMLElement>()
+  return (
+    <section
+      ref={ref}
+      className={`${className} ${isVisible ? "animate-fade-slide-up" : "opacity-0"}`}
+    >
+      {children}
+    </section>
+  )
+}
 
 export default function LandingPage() {
   const [origin, setOrigin] = useState("")
@@ -52,7 +79,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen overflow-x-hidden">
       {/* Nav */}
       <header className="bg-white/90 backdrop-blur-lg sticky top-0 z-50 shadow-[0_1px_0_rgba(15,23,42,0.06)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
@@ -78,7 +105,7 @@ export default function LandingPage() {
 
       {/* Hero — clean, light, map-app style instead of a dark gradient-glow banner */}
       <section className="relative overflow-hidden bg-gradient-to-b from-navy-50/70 to-white">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-16">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <div className="inline-flex items-center gap-2 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.08)] rounded-full px-4 py-1.5 text-brand-600 text-sm font-medium mb-6">
               <Star className="w-3.5 h-3.5" />
@@ -95,10 +122,11 @@ export default function LandingPage() {
           </div>
 
           {/* Search box */}
-          <div className="max-w-2xl mx-auto">
+          <div className="relative max-w-2xl mx-auto">
+            <FloatingArrivalCard className="hidden lg:block absolute -right-28 top-6 -rotate-6" />
             <form
               onSubmit={handleSearch}
-              className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_24px_48px_-16px_rgba(15,23,42,0.18)] overflow-hidden"
+              className="relative bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_24px_48px_-16px_rgba(15,23,42,0.18)] overflow-hidden"
             >
               <div className="p-6 space-y-4">
                 <div className="space-y-2.5">
@@ -170,120 +198,127 @@ export default function LandingPage() {
             </form>
           </div>
         </div>
+        <CityTransitScene className="w-full h-24 sm:h-32" />
       </section>
 
-      {/* Sample route card */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        <p className="text-center text-xs text-navy-500 uppercase tracking-widest font-semibold mt-8 mb-6">
-          Sample recommendation output
-        </p>
-        <div className="max-w-lg mx-auto bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_32px_-12px_rgba(15,23,42,0.16)] overflow-hidden">
-          <div className="flex items-center gap-2 bg-brand-500 px-5 py-3">
-            <Star className="w-4 h-4 text-white" />
-            <span className="text-white text-sm font-bold font-display">Recommended Route</span>
-          </div>
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl">🚇</span>
-              <span className="text-navy-700 font-medium text-sm">Metro → Walking</span>
-              <div className="flex-1" />
-              <span className="text-navy-900 font-bold font-display">38 min · ₹35</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {[
-                { icon: "♿", text: "Fully accessible" },
-                { icon: "🚶", text: "420 m walking" },
-                { icon: "👥", text: "Low crowd" },
-                { icon: "🌧️", text: "Low weather impact" },
-                { icon: "🔄", text: "1 transfer" },
-                { icon: "💰", text: "₹35 estimated fare" },
-              ].map((item) => (
-                <div key={item.text} className="flex items-center gap-2 bg-navy-50 rounded-2xl px-3 py-2">
-                  <span className="text-sm">{item.icon}</span>
-                  <span className="text-xs text-navy-700 font-medium">{item.text}</span>
-                </div>
-              ))}
-            </div>
-            <div className="bg-brand-50 rounded-2xl px-4 py-3">
-              <p className="text-xs text-navy-500 font-medium">Weather-friendly</p>
-              <p className="text-navy-900 font-bold font-display text-sm">Less walking than the alternative routes in current conditions</p>
-            </div>
-            <p className="text-xs text-navy-500 mt-3 italic">
-              Illustrative example — an actual "Plan a Trip" search shows the real demo dataset with live weather, accessibility, and crowd context.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="bg-navy-50/60 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <h2 className="font-display text-3xl font-bold text-navy-900 mb-3">
-              More than a route planner
+      {/* Accessibility — full-bleed color block #1 */}
+      <RevealSection className="bg-gradient-to-br from-brand-500 to-brand-700 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <span className="inline-block text-xs font-bold text-white bg-white/15 rounded-full px-3 py-1 mb-4">
+              ★ Major Innovation
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">
+              Accessibility-first, by default
             </h2>
-            <p className="text-navy-500 text-lg max-w-xl mx-auto">
-              TransitSwap is an intelligent decision-support system that considers every factor that matters in a real journey.
+            <p className="text-brand-50 text-lg leading-relaxed mb-4">
+              Wheelchair users, senior citizens, pregnant travellers and more — inaccessible routes are
+              filtered out as a hard constraint, not just scored lower. A clearly labelled demonstration
+              dataset of station features (lift, ramp, escalator, tactile paving) powers every check, with
+              authenticated user reporting for corrections.
             </p>
+            <span className="inline-block text-xs font-semibold text-brand-700 bg-white rounded-full px-3 py-1">
+              Phase 7 · Rule-Based
+            </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: <Accessibility className="w-6 h-6 text-brand-500" />,
-                title: "Accessibility-First Routing",
-                desc: "Wheelchair users, senior citizens, pregnant women and more — inaccessible routes are filtered out as a hard constraint, not just a score.",
-                badge: "★ Major Innovation",
-              },
-              {
-                icon: <Shield className="w-6 h-6 text-brand-500" />,
-                title: "Accessibility Dataset",
-                desc: "A clearly labelled demonstration dataset of station accessibility features (lift, ramp, escalator, tactile paving) with authenticated user reporting for corrections.",
-                badge: "Phase 7",
-              },
-              {
-                icon: <CloudRain className="w-6 h-6 text-brand-500" />,
-                title: "Weather-Aware Routing",
-                desc: "Heavy rain or high heat increases the walking-discomfort score for routes with longer walking segments, using transparent rule-based logic — not machine learning.",
-                badge: "Rule-Based",
-              },
-              {
-                icon: <Users className="w-6 h-6 text-brand-500" />,
-                title: "Crowd Intelligence",
-                desc: "Combines recent authenticated user reports with historical demonstration data using a transparent weighted rule, clearly labelling which source an estimate came from.",
-                badge: "Rule-Based",
-              },
-              {
-                icon: <Zap className="w-6 h-6 text-brand-500" />,
-                title: "Journey History",
-                desc: "Every saved journey stores a snapshot of the route, weather, accessibility, and crowd context at the time you saved it — reproducible, not recalculated later.",
-                badge: "Phase 4",
-              },
-              {
-                icon: <MapPin className="w-6 h-6 text-brand-500" />,
-                title: "Multimodal Routing",
-                desc: "Metro, bus, walking, and auto-rickshaw combinations over a demonstration transit dataset for the Bengaluru metropolitan area.",
-                badge: "Multimodal",
-              },
-            ].map((f) => (
-              <div key={f.title} className="bg-white rounded-3xl p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-14px_rgba(15,23,42,0.14)] hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_16px_32px_-14px_rgba(15,23,42,0.2)] transition-all duration-200 group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-navy-50 flex items-center justify-center group-hover:bg-brand-50 transition-colors">
-                    {f.icon}
-                  </div>
-                  <span className="text-xs font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
-                    {f.badge}
-                  </span>
-                </div>
-                <h3 className="font-display font-bold text-navy-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-navy-500 leading-relaxed">{f.desc}</p>
+          <div className="relative flex justify-center lg:justify-end">
+            <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(15,23,42,0.4)] p-5 w-72 -rotate-3">
+              <div className="flex items-center gap-2 mb-3">
+                <Accessibility className="w-5 h-5 text-brand-600" />
+                <span className="font-display font-bold text-navy-900 text-sm">Wheelchair check</span>
               </div>
-            ))}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between bg-emerald-50 rounded-xl px-3 py-2">
+                  <span className="text-xs font-medium text-emerald-800">MG Road Metro</span>
+                  <span className="text-xs font-bold text-emerald-600">✓ Accessible</span>
+                </div>
+                <div className="flex items-center justify-between bg-red-50 rounded-xl px-3 py-2">
+                  <span className="text-xs font-medium text-red-800">Trinity Metro</span>
+                  <span className="text-xs font-bold text-red-600">✕ Excluded</span>
+                </div>
+              </div>
+            </div>
+            <div className="hidden sm:block bg-white rounded-2xl shadow-[0_16px_32px_-12px_rgba(15,23,42,0.35)] px-4 py-3 w-40 absolute -bottom-6 -left-4 rotate-6">
+              <p className="text-[10px] font-semibold text-navy-400 uppercase">Hard constraint</p>
+              <p className="font-display font-bold text-navy-900 text-sm leading-tight">Never a score — a filter</p>
+            </div>
           </div>
         </div>
-      </section>
+      </RevealSection>
+
+      {/* Weather + crowd — full-bleed color block #2 */}
+      <RevealSection className="bg-gradient-to-br from-amber-400 to-orange-500 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="order-2 lg:order-1 relative flex justify-center lg:justify-start">
+            <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(15,23,42,0.4)] p-5 w-72 rotate-2">
+              <p className="text-[10px] font-semibold text-navy-400 uppercase tracking-wide mb-2">Live context</p>
+              <div className="flex items-center gap-2 mb-2">
+                <CloudRain className="w-4 h-4 text-sky-500" />
+                <span className="text-sm font-semibold text-navy-800">Light rain · low impact</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-emerald-500" />
+                <span className="text-sm font-semibold text-navy-800">Low crowd at MG Road</span>
+              </div>
+            </div>
+            <div className="hidden sm:block bg-white rounded-2xl shadow-[0_16px_32px_-12px_rgba(15,23,42,0.35)] px-4 py-3 w-44 absolute -top-5 -right-6 -rotate-6">
+              <p className="text-[10px] font-semibold text-navy-400 uppercase">Weather-friendly</p>
+              <p className="font-display font-bold text-navy-900 text-sm leading-tight">Less walking in current conditions</p>
+            </div>
+          </div>
+          <div className="order-1 lg:order-2">
+            <span className="inline-block text-xs font-bold text-orange-900 bg-white/70 rounded-full px-3 py-1 mb-4">
+              Rule-Based
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">
+              Weather and crowd, before you leave
+            </h2>
+            <p className="text-orange-50 text-lg leading-relaxed">
+              Heavy rain or high heat raises the walking-discomfort score for routes with longer walking
+              segments. Crowd estimates combine recent authenticated user reports with historical
+              demonstration data using a transparent weighted rule — always labelled with its actual source,
+              never presented as a live sensor feed it isn't.
+            </p>
+          </div>
+        </div>
+      </RevealSection>
+
+      {/* Multimodal + history — full-bleed color block #3 */}
+      <RevealSection className="bg-gradient-to-br from-navy-900 to-navy-950 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <span className="inline-block text-xs font-bold text-white bg-white/10 rounded-full px-3 py-1 mb-4">
+              Multimodal · Phase 4
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">
+              Multimodal, with a memory
+            </h2>
+            <p className="text-navy-300 text-lg leading-relaxed">
+              Metro, bus, walking, and auto-rickshaw combinations over a demonstration transit dataset for the
+              Bengaluru metropolitan area. Every saved journey stores a full snapshot of the route, weather,
+              accessibility, and crowd context at the time you saved it — reproducible, never silently
+              recalculated later.
+            </p>
+          </div>
+          <div className="relative flex justify-center lg:justify-end">
+            <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(0,0,0,0.5)] p-5 w-72 rotate-3">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🚇</span>
+                <span className="font-display font-bold text-navy-900 text-sm">Metro → Walking</span>
+                <div className="flex-1" />
+                <span className="text-navy-900 font-bold text-sm">38 min</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Dna className="w-3.5 h-3.5 text-brand-500" />
+                <span className="text-xs text-navy-500">Saved · reproducible snapshot</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </RevealSection>
 
       {/* How it works */}
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <RevealSection className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-14">
           <h2 className="font-display text-3xl font-bold text-navy-900 mb-3">How TransitSwap works</h2>
           <p className="text-navy-500 text-lg">From your location to the best journey, in seconds.</p>
@@ -318,7 +353,7 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-      </section>
+      </RevealSection>
 
       {/* Tech stack banner */}
       <section className="bg-navy-900 py-12">
