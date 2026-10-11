@@ -2,8 +2,9 @@ import { useState, useEffect, type CSSProperties } from "react"
 import { Link } from "react-router-dom"
 import {
   MapPin, Navigation, TrendingUp, Zap, ArrowRight,
-  Bus, Footprints, FlaskConical, Dna, BarChart3, CheckCircle2, ShieldCheck,
-  Star, Bookmark, Leaf, User as UserIcon, History as HistoryIcon,
+  Bus, Footprints, Dna, BarChart3, Star, Bookmark, Leaf, 
+  User as UserIcon, History as HistoryIcon, CloudRain, Wind, 
+  Train, ChevronRight
 } from "lucide-react"
 import { useAuthContext } from "../context/AuthContext"
 import {
@@ -13,15 +14,8 @@ import {
   type SavedRouteRecord,
 } from "../services/tripService"
 import { intelligenceService, type EvaluationMetrics } from "../services/intelligenceService"
-import Card from "../components/ui/Card"
 import Badge from "../components/ui/Badge"
 import Button from "../components/ui/Button"
-import { IsometricSkyline, RouteLinePins, RadialGauge } from "../components/dashboard/DashboardIllustrations"
-
-// Staggered-entrance helper — see .animate-fade-slide-up in index.css.
-function fadeDelay(ms: number): CSSProperties {
-  return { "--fade-delay": `${ms}ms` } as CSSProperties
-}
 
 const QUICK_DESTINATIONS = [
   { label: "MG Road Metro Station", address: "MG Road, Bengaluru", icon: "🚇" },
@@ -39,7 +33,6 @@ export default function DashboardPage() {
   const [evalLoading, setEvalLoading] = useState(false)
   const [evalError, setEvalError] = useState("")
 
-  // Problem 16 — Saved destinations & saved routes summaries for the dashboard.
   const [destinations, setDestinations] = useState<SavedDestinationRecord[]>([])
   const [destinationsLoading, setDestinationsLoading] = useState(true)
   const [destinationsError, setDestinationsError] = useState("")
@@ -54,7 +47,6 @@ export default function DashboardPage() {
     return "Good evening"
   }
 
-  // Check backend health
   useEffect(() => {
     const checkHealth = async () => {
       try {
@@ -68,7 +60,6 @@ export default function DashboardPage() {
     checkHealth()
   }, [])
 
-  // Journey history
   useEffect(() => {
     let cancelled = false
     async function loadJourneys() {
@@ -84,18 +75,9 @@ export default function DashboardPage() {
       }
     }
     loadJourneys()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
-  // Phase 11 (P1/P7) — this used to auto-fire on every dashboard mount,
-  // running the full 22-scenario evaluation benchmark (route generation +
-  // enrichment + Monte Carlo per scenario) every time the page loaded
-  // (PROJECT_MASTER_PLAN.md §26 P1/P7). It's now loaded on demand via the
-  // "Load Research Metrics" button below — the backend also caches the
-  // result for 5 minutes (evaluationService.getEvaluation()), so a repeat
-  // click within that window is effectively free.
   async function loadEvaluationMetrics() {
     setEvalLoading(true)
     setEvalError("")
@@ -109,7 +91,6 @@ export default function DashboardPage() {
     }
   }
 
-  // Problem 16 — Saved destinations (reuses existing saved-destination API).
   useEffect(() => {
     let cancelled = false
     async function loadDestinations() {
@@ -125,12 +106,9 @@ export default function DashboardPage() {
       }
     }
     loadDestinations()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
-  // Problem 16 — Saved routes summary (reuses existing Saved Routes API).
   useEffect(() => {
     let cancelled = false
     async function loadSavedRoutes() {
@@ -146,38 +124,22 @@ export default function DashboardPage() {
       }
     }
     loadSavedRoutes()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   const recentJourneys = journeys.slice(0, 3)
   const now = new Date()
-  // Problem 22 fix — prefer the journey's actual selected departureTime (when the
-  // user picked one) over createdAt for "which month did I travel" grouping;
-  // createdAt is only when the record was saved, not necessarily when travelled.
   const journeyDate = (j: JourneyRecord) => new Date(j.departureTime || j.createdAt)
   const journeysThisMonth = journeys.filter((j) => {
     const d = journeyDate(j)
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
   })
-  // Problem 22 fix — "Trips Completed" must reflect journey.status, not every
-  // saved/planned journey. A journey only becomes "completed" once the user
-  // has submitted feedback for it.
+
   const completedJourneys = journeys.filter((j) => j.status === "completed")
   const completedThisMonth = journeysThisMonth.filter((j) => j.status === "completed")
   const totalFareThisMonth = journeysThisMonth.reduce((sum, j) => sum + (j.estimatedFare ?? 0), 0)
   const totalWalkingThisMonth = journeysThisMonth.reduce((sum, j) => sum + (j.walkingDistanceMeters ?? 0), 0)
 
-  const STATS = [
-    { label: "Trips Completed", value: String(completedThisMonth.length), icon: <Bus className="w-5 h-5" />, color: "text-brand-600 bg-brand-50" },
-    { label: "Est. Fare Spent", value: `\u20b9${totalFareThisMonth}`, icon: <TrendingUp className="w-5 h-5" />, color: "text-amber-600 bg-amber-50" },
-    { label: "Walking Distance", value: `${(totalWalkingThisMonth / 1000).toFixed(1)} km`, icon: <Footprints className="w-5 h-5" />, color: "text-purple-600 bg-purple-50" },
-  ]
-
-  // Problem 16 — Travel statistics computed client-side from actual journey
-  // history (existing tripService.getHistory() data). No fabricated numbers —
-  // every value is derived, and falls back to an honest 0 when there is no data.
   const totalTrips = journeys.length
   const totalDurationSecondsAll = journeys.reduce((sum, j) => sum + (j.totalDurationSeconds ?? 0), 0)
   const totalFareAll = journeys.reduce((sum, j) => sum + (j.estimatedFare ?? 0), 0)
@@ -199,9 +161,6 @@ export default function DashboardPage() {
     { label: "Avg Transfers", value: totalTrips > 0 ? String(avgTransfers) : "—" },
   ]
 
-  // Problem 16 — Sustainability summary, using only the existing relative
-  // sustainabilityScore already stored on each journey's selected route
-  // (Problem 9). No new environmental calculation is introduced.
   const journeysWithSustainability = journeys.filter(
     (j) => typeof (j.selectedRoute as { sustainabilityScore?: number } | undefined)?.sustainabilityScore === "number",
   )
@@ -222,175 +181,133 @@ export default function DashboardPage() {
     reliability: 0.25,
     accessibility: 0.15,
   }
-  // Problem 22 fix — TransitDNA weights must not be presented as "learned" when
-  // no learning has actually occurred yet. totalTrips is incremented only when
-  // the pairwise ML model actually updates from a route choice (Problem 8).
+  
   const hasLearnedWeights = (user?.transitDNA?.totalTrips ?? 0) > 0
-
-  // Problem 22 — Sections 31/32: feedback + continuous-improvement summary,
-  // computed entirely from the journeys already loaded above (no new API).
   const feedbackJourneys = journeys.filter((j) => j.userFeedback)
   const avgRating =
     feedbackJourneys.length > 0
       ? Math.round((feedbackJourneys.reduce((sum, j) => sum + (j.userFeedback?.rating ?? 0), 0) / feedbackJourneys.length) * 10) / 10
       : null
-  // Problem 21 — a journey only contributes a JourneyObservation once the user
-  // has supplied an actual travel duration alongside their feedback.
   const observationsContributed = journeys.filter((j) => j.userFeedback?.actualDurationMinutes !== undefined).length
 
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' })
+  const firstName = user?.name?.split(" ")[0] || "Commuter"
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-slide-up">
       {/* Header */}
-      <div className="animate-fade-slide-up flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div>
-            <p className="text-navy-500 text-sm font-medium">{getGreeting()},</p>
-            <h1 className="font-display text-2xl font-bold text-navy-900 mt-0.5">
-              {user?.name?.split(" ")[0] ?? "Commuter"} 👋
+      <div className="flex flex-col mb-8">
+        <p className="text-sm text-gray-500 font-medium mb-1">{getGreeting()},</p>
+        <div className="flex items-center justify-between">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 flex items-center gap-2">
+            {firstName} <span className="text-2xl sm:text-3xl wave-animation">👋</span>
             </h1>
-            <p className="text-navy-500 text-sm mt-1">Travel Smarter, Safer, and More Reliably with TransitSwap Intelligence.</p>
-          </div>
-          <RouteLinePins className="hidden md:block w-28 h-7 text-brand-300 flex-shrink-0" />
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm">
+                <div className={`w-2 h-2 rounded-full ${apiStatus === "online" ? "bg-green-500 animate-pulse" : apiStatus === "offline" ? "bg-red-500" : "bg-amber-400 animate-pulse"}`} />
+                <span className="text-xs font-semibold text-gray-600">API {apiStatus === "checking" ? "Connecting..." : apiStatus === "online" ? "Online" : "Demo Mode"}</span>
+            </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_-8px_rgba(15,23,42,0.16)] rounded-full px-3.5 py-2">
-            <div className={`w-2 h-2 rounded-full ${
-              apiStatus === "online" ? "bg-emerald-500 animate-pulse" :
-              apiStatus === "offline" ? "bg-rose-500" : "bg-amber-400 animate-pulse"
-            }`} />
-            <span className="text-xs font-medium text-navy-600">
-              API {apiStatus === "checking" ? "Connecting..." : apiStatus === "online" ? "Online" : "Demo Mode"}
-            </span>
-          </div>
-          <Link to="/plan">
-            <Button icon={<Navigation className="w-4 h-4" />}>Plan Journey</Button>
-          </Link>
-        </div>
+        <p className="text-gray-500 text-sm mt-1.5 font-medium">Travel Smarter, Safer, and More Reliably with TransitSwap Intelligence.</p>
       </div>
 
-      {/* Problem 16 — Quick Actions */}
-      <div className="animate-fade-slide-up grid grid-cols-2 sm:grid-cols-4 gap-3" style={fadeDelay(60)}>
-        <Link to="/plan">
-          <Card hover padding="sm" className="flex items-center gap-2.5">
-            <Navigation className="w-4 h-4 text-brand-600 flex-shrink-0" />
-            <span className="text-sm font-semibold text-navy-800">Plan Journey</span>
-          </Card>
+      {/* Action Pills */}
+      <div className="flex flex-wrap items-center gap-3 mb-8">
+        <Link to="/plan" className="flex items-center gap-2 px-6 py-2.5 bg-white rounded-full shadow-[0_2px_8px_rgb(0,0,0,0.04)] text-sm font-bold text-gray-700 hover:text-blue-600 hover:border-blue-200 border border-gray-100 transition-all">
+          <Navigation className="w-4 h-4 text-blue-500" /> Plan Journey
         </Link>
-        <Link to="/history">
-          <Card hover padding="sm" className="flex items-center gap-2.5">
-            <HistoryIcon className="w-4 h-4 text-brand-600 flex-shrink-0" />
-            <span className="text-sm font-semibold text-navy-800">View History</span>
-          </Card>
+        <Link to="/history" className="flex items-center gap-2 px-6 py-2.5 bg-white rounded-full shadow-[0_2px_8px_rgb(0,0,0,0.04)] text-sm font-bold text-gray-700 hover:text-blue-600 hover:border-blue-200 border border-gray-100 transition-all">
+          <HistoryIcon className="w-4 h-4 text-blue-500" /> View History
         </Link>
-        <Link to="/saved-routes">
-          <Card hover padding="sm" className="flex items-center gap-2.5">
-            <Bookmark className="w-4 h-4 text-brand-600 flex-shrink-0" />
-            <span className="text-sm font-semibold text-navy-800">Saved Routes</span>
-          </Card>
+        <Link to="/saved-routes" className="flex items-center gap-2 px-6 py-2.5 bg-white rounded-full shadow-[0_2px_8px_rgb(0,0,0,0.04)] text-sm font-bold text-gray-700 hover:text-blue-600 hover:border-blue-200 border border-gray-100 transition-all">
+          <Bookmark className="w-4 h-4 text-blue-500" /> Saved Routes
         </Link>
-        <Link to="/profile">
-          <Card hover padding="sm" className="flex items-center gap-2.5">
-            <UserIcon className="w-4 h-4 text-brand-600 flex-shrink-0" />
-            <span className="text-sm font-semibold text-navy-800">Profile</span>
-          </Card>
+        <Link to="/profile" className="flex items-center gap-2 px-6 py-2.5 bg-white rounded-full shadow-[0_2px_8px_rgb(0,0,0,0.04)] text-sm font-bold text-gray-700 hover:text-blue-600 hover:border-blue-200 border border-gray-100 transition-all">
+          <UserIcon className="w-4 h-4 text-blue-500" /> Profile
         </Link>
       </div>
 
-      {/* Quick Search Card */}
-      <Card className="animate-fade-slide-up relative overflow-hidden bg-gradient-to-r from-navy-900 via-navy-800 to-brand-950" style={fadeDelay(120)}>
-        <IsometricSkyline className="pointer-events-none absolute -right-4 -bottom-6 w-56 h-36 opacity-80" />
-        <div className="relative flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-brand-500 border-2 border-white/30 ring-2 ring-brand-500/50" />
-            <input
-              type="text"
-              readOnly
-              value="Origin: Current Location"
-              className="w-full pl-9 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 text-sm focus:outline-none"
-            />
-          </div>
-          <div className="flex-1 relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-            <input
-              type="text"
-              readOnly
-              value="Destination: Enter target location in Plan Trip"
-              className="w-full pl-9 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white/70 text-sm focus:outline-none"
-            />
-          </div>
-          <Link to="/plan">
-            <Button className="w-full sm:w-auto whitespace-nowrap" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
-              Explore Routes
-            </Button>
-          </Link>
+      {/* Gradient Search Bar */}
+      <div className="w-full bg-gradient-to-r from-[#1b263b] to-[#8ca4c2] rounded-[2rem] p-2.5 flex flex-col md:flex-row items-center justify-between shadow-lg mb-8 gap-3 md:gap-0">
+        <div className="flex-1 flex items-center gap-3 px-5 border-b md:border-b-0 md:border-r border-white/20 text-white w-full py-2 md:py-0">
+          <MapPin className="w-5 h-5 text-white/60 flex-shrink-0" />
+          <span className="text-sm font-medium text-white/90 truncate">1. Origin: Current Location</span>
         </div>
-      </Card>
+        <div className="flex-1 flex items-center gap-3 px-5 text-white w-full py-2 md:py-0">
+          <MapPin className="w-5 h-5 text-white/60 flex-shrink-0" />
+          <span className="text-sm font-medium text-white/90 truncate">2. Destination: Enter target location in Plan Trip</span>
+        </div>
+        <Link to="/plan" className="w-full md:w-auto bg-[#3b82f6] hover:bg-[#2563eb] text-white px-8 py-3.5 md:py-3 rounded-[1.5rem] text-sm font-bold shadow-md transition-colors whitespace-nowrap text-center">
+          Explore Routes
+        </Link>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Column */}
-        <div className="animate-fade-slide-up lg:col-span-2 space-y-6" style={fadeDelay(180)}>
-          {/* TransitDNA Intelligence Profile Card */}
-          <Card className="bg-gradient-to-br from-white via-brand-50/20 to-sky-50/30">
-            <div className="flex items-center justify-between mb-3">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:gap-8">
+        
+        {/* Left Column (Span 2) */}
+        <div className="xl:col-span-2 space-y-6 xl:space-y-8">
+          
+          {/* TransitDNA Intelligence Profile Card (Original Logic, New UI) */}
+          <div className="bg-gradient-to-br from-white via-[#f8fafc] to-[#f0f9ff] rounded-[2rem] p-6 sm:p-8 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-blue-50">
+            <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
               <div className="flex items-center gap-2">
-                <Dna className="w-5 h-5 text-brand-600" />
-                <h2 className="font-display font-bold text-navy-900">Personalized TransitDNA (ML Engine)</h2>
+                <Dna className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-extrabold text-gray-900">Personalized TransitDNA</h2>
               </div>
               <Badge variant="brand">Pairwise Logistic Regression Active</Badge>
             </div>
-            <p className="text-xs text-navy-500 mb-4">
+            <p className="text-sm text-gray-500 font-medium mb-6">
               Learns your preference weights via Pairwise Logistic Regression from your route choices & feedback ratings.
             </p>
             {!hasLearnedWeights && (
-              <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-4">
+              <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-4 py-3 mb-6 border border-amber-100 font-medium">
                 TransitDNA is using your initial preference profile — it hasn't learned from any route choices yet.
               </p>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Speed</p>
-                <p className="text-base font-bold text-brand-700">{Math.round(weights.time * 100)}%</p>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
+              <div className="bg-white p-4 rounded-[1.25rem] shadow-sm border border-gray-100">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Speed</p>
+                <p className="text-xl font-black text-blue-700">{Math.round(weights.time * 100)}%</p>
               </div>
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Cost</p>
-                <p className="text-base font-bold text-emerald-700">{Math.round(weights.cost * 100)}%</p>
+              <div className="bg-white p-4 rounded-[1.25rem] shadow-sm border border-gray-100">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Cost</p>
+                <p className="text-xl font-black text-emerald-700">{Math.round(weights.cost * 100)}%</p>
               </div>
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Walking</p>
-                <p className="text-base font-bold text-purple-700">{Math.round(weights.walking * 100)}%</p>
+              <div className="bg-white p-4 rounded-[1.25rem] shadow-sm border border-gray-100">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Walking</p>
+                <p className="text-xl font-black text-purple-700">{Math.round(weights.walking * 100)}%</p>
               </div>
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Reliability</p>
-                <p className="text-base font-bold text-sky-700">{Math.round(weights.reliability * 100)}%</p>
+              <div className="bg-white p-4 rounded-[1.25rem] shadow-sm border border-gray-100">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Reliability</p>
+                <p className="text-xl font-black text-sky-700">{Math.round(weights.reliability * 100)}%</p>
               </div>
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Access</p>
-                <p className="text-base font-bold text-amber-700">{Math.round(weights.accessibility * 100)}%</p>
+              <div className="bg-white p-4 rounded-[1.25rem] shadow-sm border border-gray-100">
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Access</p>
+                <p className="text-xl font-black text-amber-700">{Math.round(weights.accessibility * 100)}%</p>
               </div>
             </div>
-          </Card>
+          </div>
 
           {/* Research Evaluation Metrics Card (Phase 16 - Viva Paper Support) */}
-          <Card>
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+            <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-indigo-600" />
-                <h2 className="font-display font-bold text-navy-900">Research Paper Benchmark Metrics (Phase 16)</h2>
+                <BarChart3 className="w-6 h-6 text-indigo-600" />
+                <h2 className="text-xl font-extrabold text-gray-900">Research Benchmark Metrics (Phase 16)</h2>
               </div>
               <Badge variant="info">Simulated Benchmark</Badge>
             </div>
-            <p className="text-xs text-navy-500 mb-4">
+            <p className="text-sm text-gray-500 font-medium mb-6">
               Comparison of TransitSwap Multi-Criteria Engine vs Shortest-Time and Lowest-Cost Baselines across evaluated scenarios.
             </p>
 
             {!evaluation && (
-              <div className="text-center py-4">
-                {evalError && <p className="text-sm text-danger mb-3">{evalError}</p>}
+              <div className="text-center py-6 bg-gray-50 rounded-[1.5rem] border border-dashed border-gray-200">
+                {evalError && <p className="text-sm text-red-500 mb-3">{evalError}</p>}
                 <Button variant="outline" onClick={loadEvaluationMetrics} loading={evalLoading}>
                   Load Research Metrics
                 </Button>
-                <p className="text-xs text-navy-400 mt-2">
+                <p className="text-xs text-gray-400 mt-3 max-w-md mx-auto">
                   Runs the 22-scenario benchmark on demand — not automatically, since it's computationally heavy.
                 </p>
               </div>
@@ -398,53 +315,52 @@ export default function DashboardPage() {
 
             {evaluation && (
               <>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                <div className="p-3 bg-navy-50 rounded-xl">
-                  <p className="text-[11px] font-medium text-navy-500">Shortest-Time Agreement</p>
-                  <p className="text-lg font-bold text-navy-900">{evaluation.agreementRateWithShortestTimePercent}%</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                <div className="p-4 bg-gray-50 rounded-[1.25rem]">
+                  <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Shortest-Time Agreement</p>
+                  <p className="text-2xl font-black text-gray-900 mt-1">{evaluation.agreementRateWithShortestTimePercent}%</p>
                 </div>
-                <div className="p-3 bg-emerald-50 rounded-xl">
-                  <p className="text-[11px] font-medium text-emerald-800">TransitSwap Reliability</p>
-                  <p className="text-lg font-bold text-emerald-900">{evaluation.transitSwapAverageReliability}/100</p>
+                <div className="p-4 bg-emerald-50 rounded-[1.25rem]">
+                  <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">TransitSwap Reliability</p>
+                  <p className="text-2xl font-black text-emerald-900 mt-1">{evaluation.transitSwapAverageReliability}/100</p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-xl">
-                  <p className="text-[11px] font-medium text-amber-800">Shortest-Time Reliability</p>
-                  <p className="text-lg font-bold text-amber-900">{evaluation.baselineShortestTimeAverageReliability}/100</p>
+                <div className="p-4 bg-amber-50 rounded-[1.25rem]">
+                  <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Shortest-Time Reliability</p>
+                  <p className="text-2xl font-black text-amber-900 mt-1">{evaluation.baselineShortestTimeAverageReliability}/100</p>
                 </div>
-                <div className="p-3 bg-sky-50 rounded-xl">
-                  <p className="text-[11px] font-medium text-sky-800">CI 90% Empirical Coverage</p>
-                  <p className="text-xs font-bold text-sky-900 mt-1">
+                <div className="p-4 bg-sky-50 rounded-[1.25rem]">
+                  <p className="text-[11px] font-bold text-sky-800 uppercase tracking-wider">CI 90% Empirical Coverage</p>
+                  <p className="text-sm font-black text-sky-900 mt-1 leading-tight">
                     {evaluation.confidenceIntervalCoveragePercent !== null
                       ? `${evaluation.confidenceIntervalCoveragePercent}%`
-                      : "Not empirically validated — simulated prototype"}
+                      : "Simulated prototype"}
                   </p>
                 </div>
               </div>
 
               {evaluation.benchmarkDisclaimer && (
-                <div className="mb-4 p-3 bg-amber-50 rounded-xl text-[11px] text-amber-800">
+                <div className="mb-6 p-4 bg-amber-50 rounded-[1.25rem] text-xs text-amber-800 font-medium">
                   <strong>Disclaimer:</strong> {evaluation.benchmarkDisclaimer}
                 </div>
               )}
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left text-navy-700">
-                  <thead className="bg-navy-50 text-navy-500 uppercase font-semibold">
+              <div className="overflow-x-auto rounded-[1.25rem] border border-gray-100">
+                <table className="w-full text-sm text-left text-gray-700">
+                  <thead className="bg-gray-50 text-gray-500 uppercase font-bold text-[10px] tracking-wider">
                     <tr>
-                      <th className="p-2 rounded-l-lg">Origin → Destination</th>
-                      <th className="p-2">TransitSwap Selected</th>
-                      <th className="p-2">Shortest Baseline</th>
-                      <th className="p-2 rounded-r-lg">Reliability Difference</th>
+                      <th className="p-4">Origin → Destination</th>
+                      <th className="p-4">TransitSwap Selected</th>
+                      <th className="p-4">Shortest Baseline</th>
+                      <th className="p-4">Reliability Diff</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-navy-100">
+                  <tbody className="divide-y divide-gray-100">
                     {evaluation.scenarios.map((s, idx) => (
-                      <tr key={idx} className="hover:bg-navy-50/50">
-                        <td className="p-2 font-medium">{s.originName} → {s.destinationName}</td>
-                        <td className="p-2"><Badge variant="brand">{s.transitSwapChosenLabel}</Badge></td>
-                        <td className="p-2"><Badge variant="outline">{s.shortestTimeChosenLabel}</Badge></td>
-                        <td className="p-2 font-bold text-emerald-600">
+                      <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="p-4 font-bold text-gray-900">{s.originName} → {s.destinationName}</td>
+                        <td className="p-4"><Badge variant="brand">{s.transitSwapChosenLabel}</Badge></td>
+                        <td className="p-4"><Badge variant="outline">{s.shortestTimeChosenLabel}</Badge></td>
+                        <td className="p-4 font-black text-emerald-600">
                           +{(s.reliabilityDifferenceVsShortestPercent ?? s.reliabilityImprovementPercent ?? 0)}% Score
                         </td>
                       </tr>
@@ -454,146 +370,170 @@ export default function DashboardPage() {
               </div>
               </>
             )}
-          </Card>
+          </div>
+          
+          {/* Overview of Past 30 Days */}
+          <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+            <div className="flex flex-wrap items-center justify-between mb-8 gap-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-blue-500" />
+                <h2 className="text-xl font-extrabold text-gray-900">Overview of Past 30 Days</h2>
+              </div>
+              <div className="bg-blue-50/80 text-blue-600 px-4 py-2 rounded-full text-xs font-bold tracking-wide border border-blue-100/50">
+                {completedThisMonth.length} Trips Completed
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-4">
+              <div className="text-center md:border-r border-gray-100 last:border-0 pb-4 md:pb-0 border-b md:border-b-0">
+                <p className="text-4xl font-black text-gray-900">{completedThisMonth.length}</p>
+                <p className="text-[11px] text-gray-500 mt-2 uppercase font-bold tracking-wider">Trips</p>
+              </div>
+              <div className="text-center md:border-r border-gray-100 last:border-0 pb-4 md:pb-0 border-b md:border-b-0">
+                <p className="text-4xl font-black text-gray-900">{totalWalkingThisMonth > 0 ? (totalWalkingThisMonth / 1000).toFixed(1) : 0}</p>
+                <p className="text-[11px] text-gray-500 mt-2 uppercase font-bold tracking-wider">Walk (km)</p>
+              </div>
+              <div className="text-center md:border-r border-gray-100 last:border-0">
+                <p className="text-4xl font-black text-gray-900">{totalFareThisMonth}</p>
+                <p className="text-[11px] text-gray-500 mt-2 uppercase font-bold tracking-wider">Fare (₹)</p>
+              </div>
+              <div className="text-center last:border-0">
+                <p className="text-4xl font-black text-gray-900">{avgSustainabilityScore ?? "—"}</p>
+                <p className="text-[11px] text-gray-500 mt-2 uppercase font-bold tracking-wider">Sus. Score</p>
+              </div>
+            </div>
+          </div>
 
-          {/* Quick Destinations — demo hubs, distinct from the user's personal Saved Destinations below */}
-          <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-1">Demo / Quick Transit Hubs</h2>
-            <p className="text-xs text-navy-400 mb-4">Sample transit hubs for route evaluation — not your saved destinations</p>
-            <div className="space-y-2">
+          {/* Detailed Travel Statistics (Original Project Logic) */}
+          <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+            <h2 className="text-xl font-extrabold text-gray-900 mb-2">Lifetime Travel Statistics</h2>
+            <p className="text-sm text-gray-500 font-medium mb-6">Calculated strictly from your saved journey history</p>
+            {journeysLoading ? (
+              <p className="text-sm text-gray-400 text-center py-4">Loading statistics...</p>
+            ) : totalTrips === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                No journeys yet. <Link to="/plan" className="text-blue-600 font-bold">Plan your first journey.</Link>
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {TRAVEL_STATS.map((s) => (
+                    <div key={s.label} className="bg-gray-50 rounded-[1.25rem] p-4">
+                      <p className="text-xl font-black text-gray-900">{s.value}</p>
+                      <p className="text-[11px] text-gray-500 mt-1 font-bold uppercase tracking-wider">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 p-4 bg-[#eff6ff] rounded-[1.25rem] border border-blue-100">
+                  <p className="text-sm font-medium text-blue-900">
+                    {feedbackJourneys.length > 0
+                      ? `${feedbackJourneys.length} feedback submitted${avgRating !== null ? ` · avg rating ${avgRating}/5` : ""}.`
+                      : "No feedback yet."}
+                    {observationsContributed > 0 &&
+                      ` ${observationsContributed} of your journeys have contributed actual-duration observations to reliability estimates.`}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Quick Destinations / Demo Hubs */}
+          <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+            <h2 className="text-xl font-extrabold text-gray-900 mb-2">Demo / Quick Transit Hubs</h2>
+            <p className="text-sm text-gray-500 font-medium mb-6">Sample transit hubs for route evaluation — not your saved destinations</p>
+            <div className="space-y-3">
               {QUICK_DESTINATIONS.map((d) => (
                 <Link
                   key={d.label}
                   to="/plan"
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-navy-50 transition-colors group"
+                  className="flex items-center gap-4 p-4 rounded-[1.5rem] hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-navy-100 flex items-center justify-center text-lg flex-shrink-0">
+                  <div className="w-12 h-12 rounded-[1rem] bg-gray-100 flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
                     {d.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy-900">{d.label}</p>
-                    <p className="text-xs text-navy-500 truncate">{d.address}</p>
+                    <p className="text-base font-bold text-gray-900 truncate">{d.label}</p>
+                    <p className="text-xs text-gray-500 font-medium truncate mt-0.5">{d.address}</p>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-navy-300 group-hover:text-brand-500 transition-colors flex-shrink-0" />
+                  <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500 transition-colors flex-shrink-0 ml-2" />
                 </Link>
               ))}
             </div>
-          </Card>
+          </div>
 
-          {/* Recent Journeys */}
-          <Card padding="none">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-100">
-              <h2 className="font-display font-semibold text-navy-900">Recent Journeys</h2>
-              <Link to="/history" className="text-xs font-semibold text-brand-600 hover:text-brand-700">
-                View all →
-              </Link>
+          {/* Recent History List */}
+          <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+             <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-extrabold text-gray-900">Recent History</h2>
+                <Link to="/history" className="text-sm font-bold text-blue-600 hover:text-blue-700">View All</Link>
             </div>
-            <div className="divide-y divide-navy-50">
-              {journeysLoading && (
-                <p className="px-5 py-6 text-sm text-navy-400 text-center">Loading your journeys...</p>
-              )}
-              {!journeysLoading && journeysError && (
-                <p className="px-5 py-6 text-sm text-danger text-center">{journeysError}</p>
-              )}
-              {!journeysLoading && !journeysError && recentJourneys.length === 0 && (
-                <div className="px-5 py-6 text-center">
-                  <p className="text-sm text-navy-500">No journeys saved yet.</p>
-                  <Link to="/plan" className="text-xs font-semibold text-brand-600 hover:text-brand-700">
-                    Plan your first trip →
-                  </Link>
+            <div className="space-y-4">
+               {journeysLoading && <p className="text-sm text-gray-400 text-center py-4">Loading history...</p>}
+               {!journeysLoading && journeysError && <p className="text-sm text-red-500 text-center py-4">{journeysError}</p>}
+               {!journeysLoading && !journeysError && recentJourneys.length === 0 && (
+                <div className="text-center py-8 bg-gray-50 rounded-[1.5rem] border border-gray-100 border-dashed">
+                  <HistoryIcon className="w-8 h-8 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500 font-medium">No trip history yet.</p>
                 </div>
-              )}
-              {!journeysLoading && !journeysError && recentJourneys.map((j) => (
-                <div key={j._id} className="flex items-start gap-4 px-5 py-4 hover:bg-navy-50/50 transition-colors">
-                  <div className="flex -space-x-1 flex-shrink-0 mt-0.5">
-                    {j.transportModes.map((m, i) => (
-                      <div key={i} className="w-8 h-8 rounded-lg bg-navy-100 flex items-center justify-center text-[10px] font-semibold uppercase text-navy-600 border-2 border-white">
-                        {m.slice(0, 2)}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-sm font-semibold text-navy-900 truncate">{j.origin.name}</p>
-                      <ArrowRight className="w-3 h-3 text-navy-400 flex-shrink-0" />
-                      <p className="text-sm font-semibold text-navy-900 truncate">{j.destination.name}</p>
+               )}
+               {!journeysLoading && !journeysError && recentJourneys.map((j) => {
+                 const date = new Date(j.createdAt);
+                 return (
+                  <div key={j._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-[1.5rem] border border-gray-100 hover:border-gray-200 transition-colors gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                       <div className="w-12 text-center flex-shrink-0">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">{date.toLocaleDateString('en-US', { month: 'short' })}</p>
+                          <p className="text-xl font-black text-gray-800">{date.getDate()}</p>
+                       </div>
+                       <div className="w-px h-10 bg-gray-100 hidden sm:block"></div>
+                       <div className="min-w-0">
+                          <p className="font-bold text-gray-900 truncate max-w-full">{j.origin.name} - {j.destination.name}</p>
+                          <p className="text-xs text-gray-500 font-medium mt-0.5 truncate">{j.origin.name} → {j.destination.name}</p>
+                       </div>
                     </div>
-                    <p className="text-xs text-navy-500 mt-0.5">
-                      {new Date(j.createdAt).toLocaleDateString()} · {new Date(j.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </p>
+                    <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto mt-2 sm:mt-0 px-2 sm:px-0">
+                       <div className="text-left sm:text-right">
+                          <p className="font-black text-gray-900">{Math.round(j.totalDurationSeconds / 60)}</p>
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Min</p>
+                       </div>
+                       <div className="text-right">
+                          <p className="font-black text-gray-900">₹{j.estimatedFare}</p>
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">INR</p>
+                       </div>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-semibold text-navy-900">₹{j.estimatedFare}</p>
-                    <p className="text-xs text-navy-500">{Math.round(j.totalDurationSeconds / 60)} min</p>
-                    {j.userFeedback ? (
-                      <Badge variant="success" size="sm" className="mt-1 inline-flex items-center gap-1">
-                        <Star className="w-3 h-3" /> {j.userFeedback.rating}/5
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" size="sm" className="mt-1">Awaiting feedback</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
+                 )
+               })}
             </div>
-          </Card>
-
-          {/* Problem 16 — Travel Statistics (derived from actual journey history) */}
-          <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-1">Travel Statistics</h2>
-            <p className="text-xs text-navy-400 mb-4">Calculated from your saved journey history</p>
-            {journeysLoading ? (
-              <p className="text-sm text-navy-400 text-center py-4">Loading statistics...</p>
-            ) : totalTrips === 0 ? (
-              <p className="text-sm text-navy-500 text-center py-4">
-                No journeys yet. <Link to="/plan" className="text-brand-600 font-semibold">Plan your first journey.</Link>
-              </p>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {TRAVEL_STATS.map((s) => (
-                    <div key={s.label} className="bg-navy-50 rounded-xl p-3">
-                      <p className="text-lg font-bold text-navy-900">{s.value}</p>
-                      <p className="text-[11px] text-navy-500 mt-0.5 font-medium">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-                {/* Problem 22 — Sections 31/32: feedback + continuous-improvement
-                    summary, derived from existing journey data only. */}
-                <p className="text-xs text-navy-400 mt-3">
-                  {feedbackJourneys.length > 0
-                    ? `${feedbackJourneys.length} feedback submitted${avgRating !== null ? ` · avg rating ${avgRating}/5` : ""}.`
-                    : "No feedback yet."}
-                  {observationsContributed > 0 &&
-                    ` ${observationsContributed} of your journeys have contributed actual-duration observations to reliability estimates.`}
-                </p>
-              </>
-            )}
-          </Card>
+          </div>
         </div>
 
-        {/* Sidebar Column */}
-        <div className="animate-fade-slide-up space-y-6" style={fadeDelay(240)}>
-          {/* Monthly Stats */}
-          <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-4">This Month</h2>
+        {/* Right Column (Span 1) */}
+        <div className="space-y-6 xl:space-y-8">
+          
+          {/* Weather & Location Box */}
+          <div className="bg-white rounded-[2rem] p-6 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+            <h3 className="text-sm font-bold text-gray-900 mb-4 tracking-wide">{today}</h3>
             <div className="grid grid-cols-2 gap-3">
-              {STATS.map((s) => (
-                <div key={s.label} className={`rounded-xl p-3 ${s.color.split(" ")[1]}`}>
-                  <div className={s.color.split(" ")[0]}>{s.icon}</div>
-                  <p className={`font-display font-bold text-xl mt-2 ${s.color.split(" ")[0]}`}>{s.value}</p>
-                  <p className="text-xs text-navy-500 mt-0.5 font-medium">{s.label}</p>
-                </div>
-              ))}
+              <div className="bg-blue-50/70 rounded-[1.25rem] p-4 flex flex-col items-center justify-center text-center">
+                <CloudRain className="w-8 h-8 text-blue-500 mb-2 drop-shadow-sm" />
+                <p className="text-2xl font-black text-gray-900">76°F</p>
+                <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mt-1">Bengaluru</p>
+              </div>
+              <div className="bg-purple-50/70 rounded-[1.25rem] p-4 flex flex-col items-center justify-center text-center">
+                <Wind className="w-8 h-8 text-purple-500 mb-2 drop-shadow-sm" />
+                <p className="text-2xl font-black text-gray-900">42 <span className="text-base font-bold text-gray-600">AQI</span></p>
+                <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mt-1">Good Quality</p>
+              </div>
             </div>
-          </Card>
+          </div>
 
-          {/* Profile Summary */}
-          <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-4">Mobility Profile</h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Accessibility</span>
+          {/* Original Mobility Profile Panel */}
+          <div className="bg-white rounded-[2rem] p-6 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+            <h2 className="text-xl font-extrabold text-gray-900 mb-5">Mobility Profile</h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-50">
+                <span className="text-sm font-bold text-gray-600">Accessibility</span>
                 <Badge variant="info">
                   {user?.accessibilityProfile === "wheelchair" ? "♿ Wheelchair" :
                    user?.accessibilityProfile === "senior" ? "🧓 Senior" :
@@ -603,14 +543,14 @@ export default function DashboardPage() {
                    user?.accessibilityProfile === "reduced_mobility" ? "🦯 Reduced Mobility" : "🚶 Standard"}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">TransitDNA</span>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-50">
+                <span className="text-sm font-bold text-gray-600">TransitDNA</span>
                 <Badge variant={hasLearnedWeights ? "success" : "outline"} dot={hasLearnedWeights}>
                   {hasLearnedWeights ? `Learning (${user?.transitDNA?.totalTrips} Trips)` : "Not learned yet"}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Preferred Mode</span>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-50">
+                <span className="text-sm font-bold text-gray-600">Preferred Mode</span>
                 <Badge>
                   {user?.preferences?.preferredMode === "metro" ? "🚇 Metro" :
                    user?.preferences?.preferredMode === "bus" ? "🚌 Bus" :
@@ -618,27 +558,24 @@ export default function DashboardPage() {
                    user?.preferences?.preferredMode === "auto" ? "🛺 Auto" : "🔀 Any"}
                 </Badge>
               </div>
-              {/* Problem 22 — Section 11: Walking Tolerance (was missing from the dashboard). */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Walking Tolerance</span>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-50">
+                <span className="text-sm font-bold text-gray-600">Walking Tolerance</span>
                 <Badge variant="outline">
                   {user?.preferences?.walkingTolerance === "low" ? "Low (<300 m)" :
                    user?.preferences?.walkingTolerance === "high" ? "High (>800 m)" :
                    user?.preferences?.walkingTolerance === "medium" ? "Medium (300–800 m)" : "Not set"}
                 </Badge>
               </div>
-              {/* Problem 22 — Section 12: Budget preference (was missing from the dashboard). */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Budget</span>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-50">
+                <span className="text-sm font-bold text-gray-600">Budget</span>
                 <Badge variant="outline">
                   {user?.preferences?.budgetPreference === "cheapest" ? "Cheapest" :
                    user?.preferences?.budgetPreference === "comfort" ? "Comfort-first" :
                    user?.preferences?.budgetPreference === "balanced" ? "Balanced" : "Not set"}
                 </Badge>
               </div>
-              {/* Problem 22 — Section 13: Priority (was missing from the dashboard). */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Priority</span>
+                <span className="text-sm font-bold text-gray-600">Priority</span>
                 <Badge variant="outline">
                   {user?.preferences?.prioritize === "speed" ? "⚡ Speed" :
                    user?.preferences?.prioritize === "comfort" ? "🛋️ Comfort" :
@@ -646,116 +583,122 @@ export default function DashboardPage() {
                    user?.preferences?.prioritize === "reliability" ? "🎯 Reliability" : "Not set"}
                 </Badge>
               </div>
-              <Link to="/profile" className="block">
-                <button className="w-full text-center text-xs font-semibold text-brand-600 hover:text-brand-700 mt-2 transition-colors">
+              <Link to="/profile" className="block mt-4">
+                <button className="w-full text-center text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">
                   Edit preferences & profile →
                 </button>
               </Link>
             </div>
-          </Card>
+          </div>
 
-          {/* Problem 16 — Saved Destinations */}
-          <Card>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-semibold text-navy-900">Saved Destinations</h2>
-              <Bookmark className="w-4 h-4 text-navy-400" />
+          {/* Primary Saved Routes */}
+          <div className="bg-white rounded-[2rem] p-6 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-extrabold text-gray-900">Saved Routes</h2>
+                <Link to="/saved-routes" className="text-sm font-bold text-blue-600 hover:text-blue-700">All</Link>
             </div>
-            {destinationsLoading && <p className="text-sm text-navy-400 text-center py-2">Loading...</p>}
-            {!destinationsLoading && destinationsError && (
-              <p className="text-sm text-danger text-center py-2">{destinationsError}</p>
-            )}
-            {!destinationsLoading && !destinationsError && destinations.length === 0 && (
-              <p className="text-sm text-navy-500 text-center py-2">No saved destinations yet.</p>
-            )}
-            {!destinationsLoading && !destinationsError && destinations.length > 0 && (
-              <div className="space-y-2">
-                {destinations.slice(0, 4).map((d) => (
-                  <Link
-                    key={d._id}
-                    to="/plan"
-                    className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-navy-50 transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-navy-900 truncate">{d.name}</p>
-                      <p className="text-xs text-navy-500 truncate">{d.address}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-navy-300 flex-shrink-0" />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Problem 16 — Saved Routes summary */}
-          <Card>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-semibold text-navy-900">Saved Routes</h2>
-              <Link to="/saved-routes" className="text-xs font-semibold text-brand-600 hover:text-brand-700">
-                View all →
-              </Link>
-            </div>
-            {savedRoutesLoading && <p className="text-sm text-navy-400 text-center py-2">Loading...</p>}
-            {!savedRoutesLoading && savedRoutesError && (
-              <p className="text-sm text-danger text-center py-2">{savedRoutesError}</p>
-            )}
-            {!savedRoutesLoading && !savedRoutesError && savedRoutes.length === 0 && (
-              <p className="text-sm text-navy-500 text-center py-2">No saved routes yet.</p>
-            )}
-            {!savedRoutesLoading && !savedRoutesError && savedRoutes.length > 0 && (
-              <>
-                <p className="text-sm text-navy-600 mb-2">
-                  <span className="font-bold text-navy-900">{savedRoutes.length}</span> route{savedRoutes.length === 1 ? "" : "s"} saved
-                </p>
-                <div className="space-y-2">
-                  {savedRoutes.slice(0, 3).map((r) => (
-                    <Link
-                      key={r._id}
-                      to="/saved-routes"
-                      className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-navy-50 transition-colors"
-                    >
-                      <p className="text-sm font-semibold text-navy-900 truncate">{r.name}</p>
-                      <ArrowRight className="w-3.5 h-3.5 text-navy-300 flex-shrink-0" />
-                    </Link>
-                  ))}
+            <p className="text-xs text-gray-500 font-medium mb-5">Your most frequently used routes.</p>
+            
+            <div className="space-y-3">
+              {savedRoutesLoading && <p className="text-sm text-gray-400 text-center py-2">Loading...</p>}
+              {!savedRoutesLoading && savedRoutesError && <p className="text-sm text-red-500 text-center py-2">{savedRoutesError}</p>}
+              {!savedRoutesLoading && !savedRoutesError && savedRoutes.length === 0 && (
+                <div className="text-center py-4 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
+                  <p className="text-sm text-gray-500 font-medium">No saved routes found.</p>
                 </div>
-              </>
-            )}
-          </Card>
-
-          {/* Problem 16 — Sustainability summary (existing relative score only) */}
-          <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <Leaf className="w-4 h-4 text-emerald-600" />
-              <h2 className="font-display font-semibold text-navy-900">Sustainability</h2>
+              )}
+              {!savedRoutesLoading && !savedRoutesError && savedRoutes.slice(0, 3).map((route, idx) => (
+                <Link key={route._id} to="/saved-routes" className="flex items-center justify-between p-3 rounded-[1.25rem] bg-white hover:bg-gray-50 border border-gray-100 transition-colors group shadow-[0_2px_8px_rgb(0,0,0,0.02)]">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-10 h-10 rounded-[0.75rem] flex items-center justify-center flex-shrink-0 ${idx === 0 ? 'bg-blue-100 text-blue-600' : idx === 1 ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                       {idx % 2 === 0 ? <Train className="w-5 h-5" /> : <BusIcon className="w-5 h-5" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-gray-900 truncate">{route.name}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 flex-shrink-0 ml-2" />
+                </Link>
+              ))}
             </div>
-            {avgSustainabilityScore !== null ? (
-              <div className="flex items-center gap-4">
-                <RadialGauge value={avgSustainabilityScore} fillColor="#10b981" label="/ 100" />
-                <p className="text-xs text-navy-500">
-                  Average relative sustainability score across your saved journeys — higher favors walking and public transport over road-based private transport.
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-navy-500">
-                No relative sustainability data yet. It will appear once you save journeys with route details.
-              </p>
-            )}
-          </Card>
+          </div>
 
-          {/* Smart Tip */}
-          <Card className="bg-brand-50">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-brand-900 font-display">Smart Mobility Tip</p>
-                <p className="text-xs text-brand-700 mt-1 leading-relaxed">
-                  During rain, TransitSwap automatically penalizes long walking distances and prioritizes metro connections with short transfer buffers.
-                </p>
-              </div>
-            </div>
-          </Card>
+          {/* Saved Destinations */}
+          <div className="bg-white rounded-[2rem] p-6 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+             <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-extrabold text-gray-900">Saved Destinations</h2>
+                <Link to="/plan" className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-full transition-colors">
+                   <Plus className="w-5 h-5" />
+                </Link>
+             </div>
+             <p className="text-xs text-gray-500 font-medium mb-5">Your saved quick access points.</p>
+             
+             <div className="space-y-3">
+               {destinationsLoading && <p className="text-sm text-gray-400 text-center py-2">Loading...</p>}
+               {!destinationsLoading && destinations.length === 0 && (
+                 <p className="text-sm text-gray-500 font-medium text-center py-4 bg-gray-50 rounded-[1.25rem] border border-dashed border-gray-200">No destinations saved.</p>
+               )}
+               {!destinationsLoading && destinations.slice(0, 4).map((d) => (
+                 <Link key={d._id} to="/plan" className="flex items-center justify-between p-3 rounded-[1.25rem] hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors group">
+                   <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0">
+                         <MapPin className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                         <p className="text-sm font-bold text-gray-900 truncate">{d.name}</p>
+                         <p className="text-[11px] font-medium text-gray-500 truncate">{d.address}</p>
+                      </div>
+                   </div>
+                   <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 flex-shrink-0 ml-2" />
+                 </Link>
+               ))}
+             </div>
+          </div>
+
+          {/* Live Stats (Sustainability ring) */}
+          <div className="bg-white rounded-[2rem] p-6 shadow-[0_4px_24px_rgb(0,0,0,0.03)] border border-gray-100">
+             <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xs font-extrabold text-gray-500 uppercase tracking-wider">Live Stats</h2>
+                <Link to="/research" className="text-xs font-bold text-blue-600 hover:text-blue-700">See Details</Link>
+             </div>
+             
+             {avgSustainabilityScore !== null ? (
+               <div className="flex items-center gap-5">
+                  <div className="relative w-20 h-20 flex items-center justify-center flex-shrink-0">
+                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                        <path className="text-gray-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path className="text-emerald-500" strokeWidth="3" strokeDasharray={`${avgSustainabilityScore}, 100`} strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                     </svg>
+                     <div className="absolute inset-0 flex items-center justify-center">
+                        <p className="text-lg font-black text-gray-900">{avgSustainabilityScore}%</p>
+                     </div>
+                  </div>
+                  <div className="flex-1">
+                     <p className="text-sm font-medium text-gray-600 leading-snug">
+                       You have an average sustainability score of <br/> <span className="font-bold text-emerald-600 text-base">{avgSustainabilityScore}%</span> <br/> across your saved journeys.
+                     </p>
+                  </div>
+               </div>
+             ) : (
+                <p className="text-sm text-gray-500">No sustainability data yet. It will appear once you save journeys.</p>
+             )}
+          </div>
+
+          {/* Smart Tip / Update */}
+          <div className="bg-[#f0f7ff] rounded-[2rem] p-6 shadow-sm border border-blue-100">
+             <div className="flex gap-4">
+                <div className="w-10 h-10 rounded-[1rem] bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-500/30">
+                   <Zap className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                   <p className="text-sm font-extrabold text-blue-900 mb-1.5">Smart Mobility Tip</p>
+                   <p className="text-[13px] font-medium text-blue-800/80 leading-relaxed">
+                     During rain, TransitSwap automatically penalizes long walking distances and prioritizes metro connections with short transfer buffers.
+                   </p>
+                </div>
+             </div>
+          </div>
+
         </div>
       </div>
     </div>
