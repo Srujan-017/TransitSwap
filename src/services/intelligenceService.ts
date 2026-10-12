@@ -150,10 +150,16 @@ export const intelligenceService = {
     await api.post("/crowd/report", input)
   },
 
-  async getEvaluationMetrics(): Promise<EvaluationMetrics> {
-    const { data } = await api.get<{ success: boolean; data: EvaluationMetrics }>("/evaluation")
-    return data.data
-  },
+ async getEvaluationMetrics(): Promise<EvaluationMetrics> {
+  const { data } = await api.get<{
+    success: boolean
+    data: EvaluationMetrics
+  }>("/evaluation", {
+    timeout: 60000,
+  })
+
+  return data.data
+},
 
   async getMLEvaluation(): Promise<MLEvaluationReport> {
     const { data } = await api.get<{ success: boolean; data: MLEvaluationReport }>("/evaluation/ml")
