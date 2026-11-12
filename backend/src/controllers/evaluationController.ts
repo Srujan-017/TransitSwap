@@ -1,4 +1,6 @@
 import type { Request, Response, NextFunction } from "express"
+import mongoose from "mongoose"
+import { User } from "../models/User"
 import { evaluationService } from "../services/evaluationService"
 import { mlEvaluationService } from "../services/ml/mlEvaluationService"
 import { mlPreferenceService } from "../services/ml/mlPreferenceService"
@@ -36,7 +38,25 @@ export async function getMLEvaluation(_req: Request, res: Response, next: NextFu
 export async function getMLStatus(req: Request, res: Response, next: NextFunction) {
   try {
     const authUserId = (req as unknown as { user?: { userId: string } }).user?.userId
-    const status = await mlPreferenceService.getModelStatus(authUserId)
+
+    // Completion-phase 2 fix (B5): this used to call getModelStatus(authUserId)
+    // with no profile, so the Research page always reported the "standard"
+    // profile's weights — while route ranking (multimodalController) scores with
+    // the rider's profile preset and explicit preferences. A wheelchair user saw
+    // weights their routes were never ranked with. Load the same two inputs here.
+    let profile: string | undefined
+    let preferences: import("../types").UserPreferences | undefined
+    if (authUserId && mongoose.connection.readyState === 1) {
+      try {
+        const dbUser = await User.findById(authUserId)
+        profile = dbUser?.accessibilityProfile
+        preferences = dbUser?.preferences ?? undefined
+      } catch {
+        // Non-fatal — fall back to the baseline, as route ranking does.
+      }
+    }
+
+    const status = await mlPreferenceService.getModelStatus(authUserId, profile, preferences)
     sendSuccess(res, status, "Current ML Model Status & Learned Preference Weights.")
   } catch (err: unknown) {
     next(err)

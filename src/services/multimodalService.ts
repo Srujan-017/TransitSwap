@@ -1,6 +1,6 @@
 import api from "./api"
 import type { GeoLocation } from "../types/map"
-import type { MultimodalRoute, NearbyTransitResponse } from "../types/multimodal"
+import type { ExcludedRoute, MultimodalRoute, NearbyTransitResponse } from "../types/multimodal"
 
 export const multimodalService = {
   async getRoutes(
@@ -8,8 +8,13 @@ export const multimodalService = {
     destination: GeoLocation,
     profile?: string,
     departureTime?: string,
-  ): Promise<{ routes: MultimodalRoute[]; busAlternativeNote?: string }> {
-    const { data } = await api.post<{ success: boolean; data: MultimodalRoute[]; busAlternativeNote?: string }>(
+  ): Promise<{ routes: MultimodalRoute[]; busAlternativeNote?: string; excludedRoutes?: ExcludedRoute[] }> {
+    const { data } = await api.post<{
+      success: boolean
+      data: MultimodalRoute[]
+      busAlternativeNote?: string
+      excludedRoutes?: ExcludedRoute[]
+    }>(
       "/routes/multimodal",
       {
         origin:      { name: origin.name,      latitude: origin.latitude,      longitude: origin.longitude      },
@@ -19,7 +24,7 @@ export const multimodalService = {
       },
       { timeout: 15000 },
     )
-    return { routes: data.data, busAlternativeNote: data.busAlternativeNote }
+    return { routes: data.data, busAlternativeNote: data.busAlternativeNote, excludedRoutes: data.excludedRoutes }
   },
 
   // Problem 11 — Nearby Transit

@@ -84,6 +84,18 @@ export interface AccessibilityEvaluation {
   dataSource: "synthetic_demo" | "field_survey" | "community_report" | "transit_authority" | "external_dataset" | "mixed" | "no_data"
 }
 
+// Completion-phase 2 (B3) — a candidate route the engine EXCLUDED for the
+// rider's profile, with the typed reason. Returned alongside (or, when nothing
+// is left, instead of) the recommended routes so a rider is told which routes
+// existed and why each was ruled out, not just that "no route was found".
+export interface ExcludedRouteSummary {
+  summary: string
+  durationMinutes: number
+  walkingMeters: number
+  reasonType: NonNullable<AccessibilityEvaluation["blockedReasonType"]>
+  reason: string
+}
+
 export interface CrowdStationEstimate {
   stationId: string
   stationName: string

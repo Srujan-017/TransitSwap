@@ -211,6 +211,18 @@ export interface NearbyTransitStation {
     | "unavailable"
 }
 
+// A candidate route the engine excluded for the rider's profile, with the typed
+// reason (mirrors backend ExcludedRouteSummary).
+export type ExclusionReasonType = "station" | "walking_distance" | "crowd"
+
+export interface ExcludedRoute {
+  summary: string
+  durationMinutes: number
+  walkingMeters: number
+  reasonType: ExclusionReasonType
+  reason: string
+}
+
 export interface NearbyTransitResponse {
   metro: NearbyTransitStation | null
   bus: NearbyTransitStation | null

@@ -325,6 +325,24 @@ function getBlockReason(record: AccessibilityRecord, profile: AccessibilityEvalu
     if (record.hasLift === false && record.hasRamp === false && (record.stairCount ?? 0) > 0) {
       return `${record.stationName} has ${record.stairCount} stairs with no lift or ramp available.`
     }
+    // Completion-phase 2 fix (B7). Two gaps in the rules above, both stated as
+    // limitations in the paper:
+    //  1. stepFreePlatform was never consulted. A platform explicitly recorded
+    //     as not step-free cannot be reached in a wheelchair, whatever else the
+    //     record says (explicit negatives block; unknown values still do not).
+    //  2. A ramp was treated as a substitute for a lift. A ramp gets a rider
+    //     from the street to the entrance; if the station still has stairs, has
+    //     no lift, and the platform is not confirmed step-free, nothing gets a
+    //     wheelchair from the entrance to the platform.
+    // No station in the shipped demo dataset is affected (the 3 stations that
+    // lack lifts also lack ramps and are already blocked above); this closes
+    // the hole for records an admin edits or real survey data would introduce.
+    if (record.stepFreePlatform === false) {
+      return `${record.stationName} has no step-free access to the platform.`
+    }
+    if (record.hasLift === false && record.hasRamp === true && (record.stairCount ?? 0) > 0 && record.stepFreePlatform !== true) {
+      return `${record.stationName} has ${record.stairCount} stairs and no lift — a ramp alone does not give step-free access to the platform.`
+    }
     return null
   }
 
@@ -521,7 +539,13 @@ export const accessibilityService = {
     const blockReason = firstBlockReason ?? walkingBlockReason
 
     const blocked = blockReason !== null
-    const warnings = [...checkedStations.flatMap((s) => s.warnings), ...walkingWarnings(route, profile)]
+    // Completion-phase 2 fix (B6): the route-level list is the union of every
+    // station's warnings, so a generic message ("Accessibility data is from the
+    // synthetic demo dataset.", "Lift is unavailable.") appeared once per
+    // station — twice on a typical two-station route. Per-station detail is
+    // unchanged in checkedStations[].warnings; only the combined list is
+    // de-duplicated, keeping first-seen order.
+    const warnings = [...new Set([...checkedStations.flatMap((s) => s.warnings), ...walkingWarnings(route, profile)])]
     const status = combineStatus(checkedStations, blocked)
 
     // Calculate route-level profile-specific accessibility score
@@ -555,10 +579,25 @@ export const accessibilityService = {
    * Blocked routes are NOT silently removed — the evaluation contains the rejection reason.
    */
   async filterRoutes<T extends MultimodalRoute>(routes: T[], profile: AccessibilityProfile | "fastest" | "cheapest" | "comfort") {
-    const enriched = await Promise.all(routes.map(async (route) => ({ route, evaluation: await this.evaluateRoute(route, profile) })))
-    return enriched
-      .filter(({ evaluation }) => !evaluation.blocked)
-      .map(({ route, evaluation }) => ({ ...route, accessibility: evaluation }))
+    return (await this.partitionRoutes(routes, profile)).feasible
+  },
+
+  /**
+   * Completion-phase 2 fix (B3). Same evaluation as filterRoutes(), but the
+   * excluded routes are RETURNED (with their evaluation, which carries the typed
+   * rejection reason) instead of being dropped. The controller used to call
+   * filterRoutes(), so when every candidate was excluded the API could only say
+   * "no accessible route" — the reasons had already been thrown away, and the
+   * page showed an unrelated "no combination connects them" explanation.
+   */
+  async partitionRoutes<T extends MultimodalRoute>(routes: T[], profile: AccessibilityProfile | "fastest" | "cheapest" | "comfort") {
+    const evaluated = await Promise.all(routes.map(async (route) => ({ route, evaluation: await this.evaluateRoute(route, profile) })))
+    return {
+      feasible: evaluated
+        .filter(({ evaluation }) => !evaluation.blocked)
+        .map(({ route, evaluation }) => ({ ...route, accessibility: evaluation })),
+      excluded: evaluated.filter(({ evaluation }) => evaluation.blocked),
+    }
   },
 
   /**

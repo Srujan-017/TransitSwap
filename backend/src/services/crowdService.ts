@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
 import { CrowdReport } from "../models/CrowdReport"
-import { DEMO_CROWD_DATA } from "../data/crowdData"
+import { DEMO_CROWD_DATA, type DemoCrowdRecord } from "../data/crowdData"
 import { METRO_STATIONS, BUS_STOPS } from "../data/transitData"
 import { AppError } from "../middleware/errorHandler"
 import type { CrowdLevel, CrowdStationEstimate, RouteCrowdSummary } from "../types/intelligence"
@@ -14,12 +14,56 @@ function currentDayType(date = new Date()): "weekday" | "weekend" {
   return day === 0 || day === 6 ? "weekend" : "weekday"
 }
 
-function nearestSlot(date = new Date()) {
-  const hour = date.getHours()
-  if (hour < 10) return "08:00"
-  if (hour < 16) return "14:00"
-  if (hour < 22) return "18:00"
-  return "20:00"
+// Completion-phase 2 fix (B4). The old code mapped the clock onto four fixed
+// slots (08:00/14:00/18:00/20:00) and, when the station had no record for that
+// exact slot, silently fell back to the station's FIRST record at ANY hour.
+// Two consequences, both confirmed live: the 09:00 and 12:00 records could
+// never be matched directly, and every station reported its peak-hour reading
+// around the clock (MG Road "HIGH" at 9:36 pm because of its 08:00 record) —
+// which then hard-blocked wheelchair/senior/pregnant/stroller/luggage routes at
+// night. Each station only has one or two spot readings, so the honest rule is:
+// use the station's reading nearest in time on the same day type, but only if it
+// lies within SLOT_WINDOW_MINUTES of the time being asked about; otherwise there
+// is simply no historical crowd data for that time ("UNAVAILABLE"), and an
+// unavailable reading never blocks a route.
+export const SLOT_WINDOW_MINUTES = 120
+
+const MINUTES_PER_DAY = 24 * 60
+
+function slotMinutes(slot: string): number {
+  const [hours, minutes] = slot.split(":").map(Number)
+  return hours * 60 + (minutes || 0)
+}
+
+// Distance between two times of day, wrapping past midnight (23:30 is 1 h from 00:30).
+export function circularGapMinutes(a: number, b: number): number {
+  const diff = Math.abs(a - b) % MINUTES_PER_DAY
+  return Math.min(diff, MINUTES_PER_DAY - diff)
+}
+
+// User crowd reports describe conditions in the last 90 minutes, so they only
+// say something about a trip that happens around now — not one planned for
+// tomorrow morning, where only the historical baseline is meaningful.
+const RECENT_REPORT_WINDOW_MS = 90 * 60 * 1000
+
+function reportsApplyTo(when: Date): boolean {
+  return Math.abs(when.getTime() - Date.now()) <= RECENT_REPORT_WINDOW_MS
+}
+
+export function findDemoCrowdRecord(stationId: string, when = new Date()): DemoCrowdRecord | undefined {
+  const dayType = currentDayType(when)
+  const nowMinutes = when.getHours() * 60 + when.getMinutes()
+  let best: DemoCrowdRecord | undefined
+  let bestGap = Infinity
+  for (const record of DEMO_CROWD_DATA) {
+    if (record.stationId !== stationId || record.dayType !== dayType) continue
+    const gap = circularGapMinutes(nowMinutes, slotMinutes(record.timeSlot))
+    if (gap < bestGap) {
+      best = record
+      bestGap = gap
+    }
+  }
+  return bestGap <= SLOT_WINDOW_MINUTES ? best : undefined
 }
 
 function routeStationNames(route: MultimodalRoute) {
@@ -66,13 +110,17 @@ function buildEstimate(
   stationName: string | undefined,
   recentLevels: CrowdLevel[],
   recentStationName: string | undefined,
+  when: Date,
 ): CrowdStationEstimate {
-  const slot = nearestSlot()
-  const demo = DEMO_CROWD_DATA.find(
-    (r) => r.stationId === stationId && r.dayType === currentDayType() && r.timeSlot === slot,
-  ) ?? DEMO_CROWD_DATA.find((r) => r.stationId === stationId)
+  const demo = findDemoCrowdRecord(stationId, when)
 
-  const resolvedName = recentStationName ?? demo?.stationName ?? stationName ?? stationId
+  // A station with historical records, none near this time, still has a known name.
+  const resolvedName =
+    recentStationName ??
+    demo?.stationName ??
+    stationName ??
+    DEMO_CROWD_DATA.find((r) => r.stationId === stationId)?.stationName ??
+    stationId
 
   if (recentLevels.length > 0 && demo) {
     // Rule-based fusion, not machine learning: recent reports get 70% weight, the demo
@@ -116,12 +164,15 @@ function buildEstimate(
     }
   }
 
+  const hasRecordsAtOtherTimes = DEMO_CROWD_DATA.some((r) => r.stationId === stationId)
   return {
     stationId,
     stationName: resolvedName,
     source: "UNAVAILABLE",
     confidence: 0,
-    summary: "Crowd information unavailable — no recent reports or historical demo data for this station.",
+    summary: hasRecordsAtOtherTimes
+      ? `Crowd information unavailable — no recent reports, and the historical demonstration data for this station does not cover this time of day (nearest reading must be within ${SLOT_WINDOW_MINUTES / 60} hours on the same day type).`
+      : "Crowd information unavailable — no recent reports or historical demo data for this station.",
   }
 }
 
@@ -146,13 +197,15 @@ export const crowdService = {
     })
   },
 
-  async stationEstimate(stationId: string, stationName?: string): Promise<CrowdStationEstimate> {
+  // `when` is the time the rider will actually be at the station (a chosen
+  // departure time, or now) — the historical demo baseline is matched to it.
+  async stationEstimate(stationId: string, stationName?: string, when = new Date()): Promise<CrowdStationEstimate> {
     // Recent authenticated user reports (last 90 minutes), weighted heavily since they
     // reflect current conditions.
     let recentLevels: CrowdLevel[] = []
     let recentStationName: string | undefined
-    if (mongoose.connection.readyState === 1) {
-      const since = new Date(Date.now() - 90 * 60 * 1000)
+    if (mongoose.connection.readyState === 1 && reportsApplyTo(when)) {
+      const since = new Date(Date.now() - RECENT_REPORT_WINDOW_MS)
       const recent = await CrowdReport.find({
         $or: [{ stationId }, { stationName: stationName ?? stationId }],
         reportedAt: { $gte: since },
@@ -162,7 +215,7 @@ export const crowdService = {
       recentStationName = recent[0]?.stationName
     }
 
-    return buildEstimate(stationId, stationName, recentLevels, recentStationName)
+    return buildEstimate(stationId, stationName, recentLevels, recentStationName, when)
   },
 
   async stationHistory(stationId: string) {
@@ -173,7 +226,7 @@ export const crowdService = {
     return { recent, demo }
   },
 
-  async routeSummary(route: MultimodalRoute): Promise<RouteCrowdSummary> {
+  async routeSummary(route: MultimodalRoute, when = new Date()): Promise<RouteCrowdSummary> {
     const names = routeStationNames(route)
     const resolved = names.map((name) => ({
       name,
@@ -187,8 +240,8 @@ export const crowdService = {
     // (stationId OR stationName), just evaluated in memory per station
     // against this one batch instead of a separate round trip each.
     const reportsByStationId = new Map<string, Array<{ crowdLevel: CrowdLevel; stationName: string }>>()
-    if (mongoose.connection.readyState === 1 && resolved.length > 0) {
-      const since = new Date(Date.now() - 90 * 60 * 1000)
+    if (mongoose.connection.readyState === 1 && resolved.length > 0 && reportsApplyTo(when)) {
+      const since = new Date(Date.now() - RECENT_REPORT_WINDOW_MS)
       const ids = resolved.map((r) => r.stationId)
       const allRecent = await CrowdReport.find({
         $or: [{ stationId: { $in: ids } }, { stationName: { $in: names } }],
@@ -207,7 +260,7 @@ export const crowdService = {
 
     const estimates = resolved.map(({ name, stationId }) => {
       const matches = reportsByStationId.get(stationId) ?? []
-      return buildEstimate(stationId, name, matches.map((m) => m.crowdLevel), matches[0]?.stationName)
+      return buildEstimate(stationId, name, matches.map((m) => m.crowdLevel), matches[0]?.stationName, when)
     })
     const levels = estimates.map((e) => e.crowdLevel).filter((level): level is CrowdLevel => Boolean(level))
     const level = estimateLevel(levels)

@@ -11,9 +11,26 @@ import { transitDnaService } from "../services/transitDnaService"
 import { mlPreferenceService } from "../services/ml/mlPreferenceService"
 import { sustainabilityService } from "../services/sustainabilityService"
 import { sendSuccess } from "../utils/response"
+import { parseLocalDateTime } from "../utils/dateTime"
+import { describeRoute } from "../utils/routeDescription"
 import { AppError } from "../middleware/errorHandler"
-import type { MultimodalRequest } from "../types/multimodal"
-import type { EnrichedRoute } from "../types/intelligence"
+import type { MultimodalRequest, MultimodalRoute } from "../types/multimodal"
+import type { AccessibilityEvaluation, EnrichedRoute, ExcludedRouteSummary } from "../types/intelligence"
+
+const NO_ACCESSIBLE_ROUTE_MESSAGE =
+  "No accessible multimodal route found for the selected profile in the current demo dataset."
+
+// Completion-phase 2 (B3): turns an excluded route + its typed rejection into the
+// shape the client shows ("this route existed, and here is why it was ruled out").
+function toExcludedSummary(route: MultimodalRoute, evaluation: AccessibilityEvaluation): ExcludedRouteSummary {
+  return {
+    summary: describeRoute(route),
+    durationMinutes: Math.round(route.totalDurationSeconds / 60),
+    walkingMeters: Math.round(route.totalWalkingMeters),
+    reasonType: evaluation.blockedReasonType ?? "station",
+    reason: evaluation.rejectionReason ?? evaluation.summary,
+  }
+}
 
 export async function calculateMultimodalRoute(req: Request, res: Response, next: NextFunction) {
   try {
@@ -29,7 +46,11 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
 
     const profile = body.profile ?? "standard"
     const weather = await weatherService.getCurrent(body.destination.latitude, body.destination.longitude)
-    const accessibilityFiltered = await accessibilityService.filterRoutes(routes, profile)
+    // The time the rider will actually be at the stations — the chosen departure
+    // time, or now — against which historical crowd data is matched (B4).
+    const travelTime = parseLocalDateTime(body.departureTime) ?? new Date()
+    const { feasible: accessibilityFiltered, excluded } = await accessibilityService.partitionRoutes(routes, profile)
+    const excludedRoutes: ExcludedRouteSummary[] = excluded.map(({ route, evaluation }) => toExcludedSummary(route, evaluation))
     const allWalkingMeters = accessibilityFiltered.map((route) => route.totalWalkingMeters)
 
     // Load authenticated user's profile preferences
@@ -70,7 +91,7 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
             route.totalWalkingMeters,
             allWalkingMeters.filter((_, otherIndex) => otherIndex !== index),
           ),
-          crowd: await crowdService.routeSummary(route),
+          crowd: await crowdService.routeSummary(route, travelTime),
         }
 
         // Bug fix — confirmed by manually testing every profile: a route
@@ -138,10 +159,7 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
     )
 
     if (enriched.length === 0) {
-      throw new AppError(
-        "No accessible multimodal route found for the selected profile in the current demo dataset.",
-        404,
-      )
+      throw new AppError(NO_ACCESSIBLE_ROUTE_MESSAGE, 404, { excludedRoutes })
     }
 
     // Bug fix — confirmed by manually testing every profile: a route through
@@ -161,19 +179,21 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
       if (route.accessibility) {
         route.accessibility.blocked = true
         route.accessibility.accessibilityScore = 0
+        // Name the crowded stations so the rider (and the exclusion list) can see which ones.
+        const crowded = (route.crowd?.stations ?? [])
+          .filter((s) => s.crowdLevel === "HIGH")
+          .map((s) => s.stationName)
         route.accessibility.rejectionReason =
-          "Route excluded: passes through a HIGH-crowd station, unsuitable for your selected profile."
+          `Route excluded: passes through ${crowded.length ? `HIGH-crowd station ${crowded.join(", ")}` : "a HIGH-crowd station"}, unsuitable for your selected profile.`
         route.accessibility.summary = route.accessibility.rejectionReason
         route.accessibility.blockedReasonType = "crowd"
+        excludedRoutes.push(toExcludedSummary(route, route.accessibility))
       }
       return false
     })
 
     if (crowdFiltered.length === 0) {
-      throw new AppError(
-        "No accessible multimodal route found for the selected profile in the current demo dataset.",
-        404,
-      )
+      throw new AppError(NO_ACCESSIBLE_ROUTE_MESSAGE, 404, { excludedRoutes })
     }
 
     // Pairwise Logistic Regression ML Learning-to-Rank Engine + TransitDNA Explicit User Preferences
@@ -230,6 +250,9 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
       data: rankedRoutes,
       message: `TransitSwap ML Intelligence Engine: Pairwise Logistic Regression ranker active (${statusMessage}). Evaluated with weather, accessibility, reliability & Monte Carlo simulation.`,
       ...(busAlternativeNote ? { busAlternativeNote: busAlternativeNote.trim() } : {}),
+      // Candidate routes that were ruled out for this profile, each with its typed
+      // reason — optional, so every existing consumer is unaffected.
+      ...(excludedRoutes.length ? { excludedRoutes } : {}),
     })
   } catch (err: unknown) {
     next(err)

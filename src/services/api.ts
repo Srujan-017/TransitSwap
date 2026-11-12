@@ -25,6 +25,11 @@ api.interceptors.request.use((config) => {
 // needed here, avoiding a circular dependency with AuthContext.
 export const AUTH_EXPIRED_EVENT = "ts:auth-expired"
 
+/** An Error from the API, optionally carrying the response body's structured `data`. */
+export interface ApiError extends Error {
+  details?: unknown
+}
+
 // Normalize error responses
 api.interceptors.response.use(
   (res) => res,
@@ -34,7 +39,12 @@ api.interceptors.response.use(
       window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
     }
     const message = err.response?.data?.message || err.message || "An unexpected error occurred"
-    return Promise.reject(new Error(message))
+    // Some errors carry structured detail in the response's `data` (e.g. the list
+    // of routes excluded when no accessible route is left) — keep it on the Error
+    // so callers can show it, instead of flattening everything to a message.
+    const error = new Error(message) as ApiError
+    error.details = err.response?.data?.data
+    return Promise.reject(error)
   },
 )
 

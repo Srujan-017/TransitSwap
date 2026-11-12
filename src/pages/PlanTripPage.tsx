@@ -15,6 +15,7 @@ import TransportModeSelector from "../components/routing/TransportModeSelector"
 import MultimodalResults from "../components/multimodal/MultimodalResults"
 import NearbyTransit from "../components/multimodal/NearbyTransit"
 import WhyNoRoute from "../components/multimodal/WhyNoRoute"
+import ExcludedRoutes from "../components/multimodal/ExcludedRoutes"
 import ActiveNavigationView from "../components/navigation/ActiveNavigationView"
 import { routingService } from "../services/routingService"
 import { multimodalService } from "../services/multimodalService"
@@ -23,7 +24,8 @@ import { useGeolocation } from "../hooks/useGeolocation"
 import { useAuthContext } from "../context/AuthContext"
 import { buildLocalDepartureDateTime } from "../utils/formatters"
 import type { GeoLocation, RouteResult, RouteStatus, TransportMode } from "../types/map"
-import type { MultimodalRoute } from "../types/multimodal"
+import type { ExcludedRoute, MultimodalRoute } from "../types/multimodal"
+import { excludedRoutesFromError } from "../utils/excludedRoutes"
 import type { AccessibilityProfile } from "../types"
 
 // Lazy-load MapView so Leaflet doesn't bloat the initial bundle
@@ -129,6 +131,8 @@ export default function PlanTripPage() {
   const [multimodalStatus, setMultimodalStatus]           = useState<RouteStatus>("idle")
   const [multimodalError, setMultimodalError]             = useState("")
   const [busAlternativeNote, setBusAlternativeNote]       = useState("")
+  // Candidate routes ruled out for the selected profile, with typed reasons (B3).
+  const [excludedRoutes, setExcludedRoutes]               = useState<ExcludedRoute[]>([])
   const [activeNavRoute, setActiveNavRoute]               = useState<MultimodalRoute | null>(null)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [saveMessage, setSaveMessage] = useState("")
@@ -239,6 +243,7 @@ export default function PlanTripPage() {
       setMultimodalStatus("loading")
       setMultimodalError("")
       setMultimodalRoutes([])
+      setExcludedRoutes([])
       setSelectedMultimodalIndex(0)
       try {
         // Problem 13 — combine date + time into one local datetime; undefined
@@ -247,9 +252,11 @@ export default function PlanTripPage() {
         const result = await multimodalService.getRoutes(origin!, destination!, profile, departureTime)
         setMultimodalRoutes(result.routes)
         setBusAlternativeNote(result.busAlternativeNote ?? "")
+        setExcludedRoutes(result.excludedRoutes ?? [])
         setMultimodalStatus("success")
       } catch (err: unknown) {
         setMultimodalStatus("error")
+        setExcludedRoutes(excludedRoutesFromError(err))
         setMultimodalError(
           err instanceof Error ? err.message : "Multimodal route calculation failed. Please try again.",
         )
@@ -701,6 +708,15 @@ export default function PlanTripPage() {
             />
           )}
 
+          {/* Candidate routes that were ruled out for this profile (B3) — collapsed beside the results. */}
+          {routingMode === "multimodal" && multimodalStatus === "success" && excludedRoutes.length > 0 && (
+            <ExcludedRoutes
+              routes={excludedRoutes}
+              profileLabel={PROFILES.find((p) => p.id === profile)?.label ?? profile}
+              variant="some-left"
+            />
+          )}
+
           {/* Road error state */}
           {routingMode === "road" && routeStatus === "error" && (
             <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 space-y-3">
@@ -735,7 +751,15 @@ export default function PlanTripPage() {
               {/* Phase 12 — "why no route?" (see WhyNoRoute.tsx): a real,
                   data-driven answer instead of a generic "try Road Routing"
                   hint, using the actual nearby-transit lookup for both points. */}
-              {origin && destination ? (
+              {excludedRoutes.length > 0 ? (
+                // Routes DID exist but none was usable for this profile — say which and why,
+                // instead of WhyNoRoute's "outside the network" explanation, which would be wrong here.
+                <ExcludedRoutes
+                  routes={excludedRoutes}
+                  profileLabel={PROFILES.find((p) => p.id === profile)?.label ?? profile}
+                  variant="none-left"
+                />
+              ) : origin && destination ? (
                 <WhyNoRoute origin={origin} destination={destination} />
               ) : (
                 <p className="text-xs text-navy-500 px-1">

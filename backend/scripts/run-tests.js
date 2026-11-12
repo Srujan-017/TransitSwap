@@ -68,6 +68,10 @@ const ALL_ENTRIES = [
   "src/__tests__/dashboard.test.ts",
   "src/__tests__/continuousImprovement.test.ts",
   "src/__tests__/admin.test.ts",
+  // Completion-phase 2 — pure (no database) regression tests for B4 (crowd
+  // time slots) and B6/B7 (warning de-duplication, wheelchair step-free rule).
+  "src/__tests__/crowdTimeSlots.test.ts",
+  "src/__tests__/accessibilityRuleGaps.test.ts",
   "src/utils/test-full-pipeline.ts",
   // Phase 10 — supertest API integration tests, one file per route group,
   // covering all 50 documented endpoints with at least a happy-path test
@@ -82,6 +86,8 @@ const ALL_ENTRIES = [
   "src/__tests__/api/crowd.test.ts",
   "src/__tests__/api/evaluation.test.ts",
   "src/__tests__/api/admin.test.ts",
+  // Completion-phase 2 — B3 (exclusion reasons through the API) and B5 (ML status profile).
+  "src/__tests__/api/exclusionReasons.test.ts",
 ]
 
 const filters = process.argv.slice(2)
@@ -202,6 +208,12 @@ function failureExcerpt(output) {
 }
 
 async function main() {
+  // A filter that matches nothing must not look like a pass.
+  if (ENTRIES.length === 0) {
+    console.error(`❌ No test entries matched: ${filters.join(", ")}`)
+    process.exit(1)
+  }
+
   const results = []
   let mongod = await startMongod()
 
