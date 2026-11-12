@@ -8,6 +8,25 @@ import { journeyService } from "../services/journeyService"
 import { historicalReliabilityService } from "../services/reliability/historicalReliabilityService"
 import type { EnrichedRoute } from "../types/intelligence"
 
+// Bug fix — this file used bare console.assert, which logs a failure
+// message but never sets a failing exit code (Node's console.assert never
+// throws or touches process.exitCode). That let every assertion below be
+// silently false while `npm test` still reported this file as a pass.
+// Replaced with the same counted assert()+process.exit(1) pattern every
+// other test file in this suite already uses; shared across Parts A/B/C
+// so one summary covers the whole file.
+let passed = 0
+let failed = 0
+
+function assert(condition: boolean, msg: string) {
+  if (condition) {
+    passed++
+  } else {
+    failed++
+    console.error(`   ❌ FAILED: ${msg}`)
+  }
+}
+
 /**
  * Problem 21 — Continuous Improvement Loop test coverage.
  *
@@ -46,31 +65,31 @@ async function runValidationTests() {
   console.log("🧪 Running Problem 21 Continuous Improvement Validation Tests (Part A)...\n")
 
   let result = await runValidation(actualDurationValidation, {})
-  console.assert(result.isEmpty(), "missing actualDurationMinutes must be accepted (optional field)")
+  assert(result.isEmpty(), "missing actualDurationMinutes must be accepted (optional field)")
   console.log("   ✅ 1. missing actualDurationMinutes accepted")
 
   result = await runValidation(actualDurationValidation, { actualDurationMinutes: 0 })
-  console.assert(!result.isEmpty(), "actualDurationMinutes=0 must be rejected")
+  assert(!result.isEmpty(), "actualDurationMinutes=0 must be rejected")
   console.log("   ✅ 2. actualDurationMinutes=0 rejected")
 
   result = await runValidation(actualDurationValidation, { actualDurationMinutes: -10 })
-  console.assert(!result.isEmpty(), "actualDurationMinutes=-10 must be rejected")
+  assert(!result.isEmpty(), "actualDurationMinutes=-10 must be rejected")
   console.log("   ✅ 3. actualDurationMinutes=-10 rejected")
 
   result = await runValidation(actualDurationValidation, { actualDurationMinutes: 1441 })
-  console.assert(!result.isEmpty(), "actualDurationMinutes=1441 must be rejected")
+  assert(!result.isEmpty(), "actualDurationMinutes=1441 must be rejected")
   console.log("   ✅ 4. actualDurationMinutes=1441 rejected")
 
   result = await runValidation(actualDurationValidation, { actualDurationMinutes: "forty" })
-  console.assert(!result.isEmpty(), "non-numeric actualDurationMinutes must be rejected")
+  assert(!result.isEmpty(), "non-numeric actualDurationMinutes must be rejected")
   console.log("   ✅ 5. non-numeric actualDurationMinutes rejected")
 
   result = await runValidation(actualDurationValidation, { actualDurationMinutes: 42.5 })
-  console.assert(result.isEmpty(), "decimal actualDurationMinutes must be accepted")
+  assert(result.isEmpty(), "decimal actualDurationMinutes must be accepted")
   console.log("   ✅ 6. decimal actualDurationMinutes accepted")
 
   result = await runValidation(actualDurationValidation, { actualDurationMinutes: 47 })
-  console.assert(result.isEmpty(), "valid actualDurationMinutes=47 must be accepted")
+  assert(result.isEmpty(), "valid actualDurationMinutes=47 must be accepted")
   console.log("   ✅ 7. valid actualDurationMinutes accepted")
 
   console.log("\n🎉 Part A (validation) tests passed.\n")
@@ -91,8 +110,8 @@ async function runCalculationTests() {
     departureTime: new Date("2026-08-16T08:00:00"),
     isSyntheticDemoData: false,
   })
-  console.assert(late.success, "recordObservation must succeed for a valid late journey")
-  console.assert(late.errorMinutes === 7, `errorMinutes must be +7 (got ${late.errorMinutes})`)
+  assert(late.success, "recordObservation must succeed for a valid late journey")
+  assert(late.errorMinutes === 7, `errorMinutes must be +7 (got ${late.errorMinutes})`)
   console.log("   ✅ 8. late arrival: errorMinutes=+7, delayMinutes=7")
 
   // 9. Early arrival: predicted 40, actual 35 -> error -5, delay 0 (not clamped negative to 0)
@@ -105,8 +124,8 @@ async function runCalculationTests() {
     departureTime: new Date("2026-08-16T08:00:00"),
     isSyntheticDemoData: false,
   })
-  console.assert(early.success, "recordObservation must succeed for a valid early journey")
-  console.assert(early.errorMinutes === -5, `errorMinutes must be -5, not clamped (got ${early.errorMinutes})`)
+  assert(early.success, "recordObservation must succeed for a valid early journey")
+  assert(early.errorMinutes === -5, `errorMinutes must be -5, not clamped (got ${early.errorMinutes})`)
   console.log("   ✅ 9. early arrival: errorMinutes=-5 (not clamped positive)")
 
   console.log("\n🎉 Part B (calculation) tests passed.\n")
@@ -148,6 +167,7 @@ async function runServiceTests() {
     console.warn("\n⚠️  Part C (service-level Problem 21 tests) SKIPPED — MONGODB_URI is not configured.")
     console.warn("    This is an honest skip, not a pass: run with a MongoDB connection to exercise")
     console.warn("    departure-time honesty, observation dedup/update, and ownership coverage.\n")
+    if (failed > 0) process.exit(1)
     return
   }
 
@@ -179,12 +199,12 @@ async function runServiceTests() {
       rating: 5,
       actualDurationMinutes: 47,
     })
-    console.assert(
+    assert(
       noDepResult.message.toLowerCase().includes("timing information"),
       "message must honestly explain observation was skipped when departureTime is unavailable",
     )
     const obsCountForNoDep = await JourneyObservation.countDocuments({ journeyId: noDepartureJourney._id })
-    console.assert(obsCountForNoDep === 0, "no JourneyObservation must be created when departureTime is unavailable")
+    assert(obsCountForNoDep === 0, "no JourneyObservation must be created when departureTime is unavailable")
     console.log("   ✅ 10. missing departureTime: feedback saved, observation honestly skipped")
 
     // 11 & 12. Journey WITH a real departureTime: first submission creates one
@@ -200,32 +220,32 @@ async function runServiceTests() {
       rating: 4,
       actualDurationMinutes: 47,
     })
-    console.assert(
+    assert(
       first.message.toLowerCase().includes("added to the reliability dataset"),
       "first valid submission must report the observation was added",
     )
     let obsCount = await JourneyObservation.countDocuments({ journeyId: withDepartureJourney._id })
-    console.assert(obsCount === 1, `exactly one JourneyObservation must exist after first submission (got ${obsCount})`)
+    assert(obsCount === 1, `exactly one JourneyObservation must exist after first submission (got ${obsCount})`)
 
     let obs = await JourneyObservation.findOne({ journeyId: withDepartureJourney._id })
-    console.assert(obs?.actualDurationMinutes === 47, "stored actualDurationMinutes must match submitted value")
-    console.assert(obs?.predictedDurationMinutes === 30, "predictedDurationMinutes must come from the route's totalDurationSeconds/60")
-    console.assert(obs?.errorMinutes === 17, `errorMinutes must be 47-30=17 (got ${obs?.errorMinutes})`)
-    console.assert(obs?.isSyntheticDemoData === false, "a real user-submitted observation must be isSyntheticDemoData:false")
+    assert(obs?.actualDurationMinutes === 47, "stored actualDurationMinutes must match submitted value")
+    assert(obs?.predictedDurationMinutes === 30, "predictedDurationMinutes must come from the route's totalDurationSeconds/60")
+    assert(obs?.errorMinutes === 17, `errorMinutes must be 47-30=17 (got ${obs?.errorMinutes})`)
+    assert(obs?.isSyntheticDemoData === false, "a real user-submitted observation must be isSyntheticDemoData:false")
     console.log("   ✅ 11. valid departureTime + duration: exactly one observation created, fields correct")
 
     const second = await journeyService.submitFeedback(String(user._id), String(withDepartureJourney._id), {
       rating: 5,
       actualDurationMinutes: 50,
     })
-    console.assert(
+    assert(
       second.message.toLowerCase().includes("updated"),
       "resubmission must report the observation was updated, not duplicated",
     )
     obsCount = await JourneyObservation.countDocuments({ journeyId: withDepartureJourney._id })
-    console.assert(obsCount === 1, `resubmitting must not create a second observation (got ${obsCount})`)
+    assert(obsCount === 1, `resubmitting must not create a second observation (got ${obsCount})`)
     obs = await JourneyObservation.findOne({ journeyId: withDepartureJourney._id })
-    console.assert(obs?.actualDurationMinutes === 50, "the existing observation's actualDurationMinutes must be updated to 50")
+    assert(obs?.actualDurationMinutes === 50, "the existing observation's actualDurationMinutes must be updated to 50")
     console.log("   ✅ 12. resubmission updates the existing observation, no duplicate")
 
     // 13. Ownership — another user cannot submit feedback (with or without a
@@ -239,7 +259,7 @@ async function runServiceTests() {
     } catch {
       ownershipRejected = true
     }
-    console.assert(ownershipRejected, "submitting feedback with actualDurationMinutes for another user's journey must be rejected")
+    assert(ownershipRejected, "submitting feedback with actualDurationMinutes for another user's journey must be rejected")
     console.log("   ✅ 13. ownership enforced for feedback including actualDurationMinutes")
 
     // 14. Invalid/nonexistent journey id -> rejected (404 via AppError)
@@ -249,14 +269,14 @@ async function runServiceTests() {
     } catch {
       notFoundRejected = true
     }
-    console.assert(notFoundRejected, "feedback for a nonexistent journey id must be rejected")
+    assert(notFoundRejected, "feedback for a nonexistent journey id must be rejected")
     console.log("   ✅ 14. nonexistent journey id rejected")
 
     // 15. Future reliability calls must not crash after a real observation exists.
     const stats = await historicalReliabilityService.getHistoricalDelayStats("metro")
-    console.assert(typeof stats.sampleSize === "number", "getHistoricalDelayStats must return a sample size without crashing")
+    assert(typeof stats.sampleSize === "number", "getHistoricalDelayStats must return a sample size without crashing")
     const interval = await historicalReliabilityService.calculatePredictionInterval(30, "metro")
-    console.assert(typeof interval.predictedDurationMinutes === "number", "calculatePredictionInterval must not crash after new observations exist")
+    assert(typeof interval.predictedDurationMinutes === "number", "calculatePredictionInterval must not crash after new observations exist")
     console.log("   ✅ 15. historical reliability calls remain stable after new observations")
 
     console.log("\n🎉 Part C (service-level) tests passed.\n")
@@ -266,6 +286,16 @@ async function runServiceTests() {
     await User.deleteMany({ _id: { $in: [user._id, otherUser._id] } })
     await mongoose.disconnect()
   }
+
+  console.log("═══════════════════════════════════════════════════════")
+  if (failed === 0) {
+    console.log(`🎉 ALL ${passed} CONTINUOUS IMPROVEMENT TESTS PASSED!`)
+  } else {
+    console.log(`⚠️  ${passed} PASSED, ${failed} FAILED`)
+  }
+  console.log("═══════════════════════════════════════════════════════\n")
+
+  if (failed > 0) process.exit(1)
 }
 
 runValidationTests()

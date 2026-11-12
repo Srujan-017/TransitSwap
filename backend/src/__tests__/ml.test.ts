@@ -2,6 +2,24 @@ import { extractRouteFeatures } from "../services/ml/featureExtractor"
 import { PairwiseLogisticRegression } from "../services/ml/logisticRegression"
 import type { EnrichedRoute } from "../types/intelligence"
 
+// Bug fix — this file used bare console.assert, which logs a failure
+// message but never sets a failing exit code (Node's console.assert never
+// throws or touches process.exitCode). That let every assertion below be
+// silently false while `npm test` still reported this file as a pass.
+// Replaced with the same counted assert()+process.exit(1) pattern every
+// other test file in this suite already uses.
+let passed = 0
+let failed = 0
+
+function assert(condition: boolean, msg: string) {
+  if (condition) {
+    passed++
+  } else {
+    failed++
+    console.error(`   ❌ FAILED: ${msg}`)
+  }
+}
+
 function createMockRoute(
   id: string,
   duration: number,
@@ -56,17 +74,17 @@ async function runUnitTests() {
   const featA = extractRouteFeatures(routeA, [routeA, routeB])
   const featB = extractRouteFeatures(routeB, [routeA, routeB])
 
-  console.assert(featA.features.time === 1.0, "Route A should have optimal time norm (1.0)")
-  console.assert(featB.features.time === 0.0, "Route B should have worst time norm (0.0)")
-  console.assert(featA.features.cost === 0.0, "Route A should have worst cost norm (0.0)")
-  console.assert(featB.features.cost === 1.0, "Route B should have optimal cost norm (1.0)")
+  assert(featA.features.time === 1.0, "Route A should have optimal time norm (1.0)")
+  assert(featB.features.time === 0.0, "Route B should have worst time norm (0.0)")
+  assert(featA.features.cost === 0.0, "Route A should have worst cost norm (0.0)")
+  assert(featB.features.cost === 1.0, "Route B should have optimal cost norm (1.0)")
   console.log("   ✅ Feature normalization passed.")
 
   // Test 2: Logistic Sigmoid Activation
   console.log("\n2️⃣ Testing Sigmoid Activation...")
-  console.assert(Math.abs(PairwiseLogisticRegression.sigmoid(0) - 0.5) < 1e-5, "sigmoid(0) must equal 0.5")
-  console.assert(PairwiseLogisticRegression.sigmoid(10) > 0.99, "sigmoid(10) must be ~1.0")
-  console.assert(PairwiseLogisticRegression.sigmoid(-10) < 0.01, "sigmoid(-10) must be ~0.0")
+  assert(Math.abs(PairwiseLogisticRegression.sigmoid(0) - 0.5) < 1e-5, "sigmoid(0) must equal 0.5")
+  assert(PairwiseLogisticRegression.sigmoid(10) > 0.99, "sigmoid(10) must be ~1.0")
+  assert(PairwiseLogisticRegression.sigmoid(-10) < 0.01, "sigmoid(-10) must be ~0.0")
   console.log("   ✅ Sigmoid activation passed.")
 
   // Test 3: Training Pairwise Logistic Regression Model
@@ -89,11 +107,19 @@ async function runUnitTests() {
   console.log("   Pairwise Accuracy:  ", trainResult.pairwiseAccuracy + "%")
   console.log("   Final Loss:         ", trainResult.finalLoss)
 
-  console.assert(trainResult.weights.cost > initialCostWeight, "Cost weight must increase after training on cost-preferring choices")
-  console.assert(trainResult.pairwiseAccuracy === 100, "Pairwise accuracy on clean dataset must be 100%")
+  assert(trainResult.weights.cost > initialCostWeight, "Cost weight must increase after training on cost-preferring choices")
+  assert(trainResult.pairwiseAccuracy === 100, "Pairwise accuracy on clean dataset must be 100%")
   console.log("   ✅ Model training & preference learning passed.")
 
-  console.log("\n🎉 ALL ML UNIT TESTS PASSED SUCCESSFULLY!")
+  console.log("═══════════════════════════════════════════════════════")
+  if (failed === 0) {
+    console.log(`🎉 ALL ${passed} ML UNIT TESTS PASSED!`)
+  } else {
+    console.log(`⚠️  ${passed} PASSED, ${failed} FAILED`)
+  }
+  console.log("═══════════════════════════════════════════════════════\n")
+
+  if (failed > 0) process.exit(1)
 }
 
 runUnitTests().catch((err) => {

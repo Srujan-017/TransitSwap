@@ -40,6 +40,10 @@ export default function LocationSearch({
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  // Guards against an older search's response landing after a newer search's
+  // (e.g. the user kept typing past the debounce window) — only the latest
+  // fired search's results are ever applied.
+  const latestSearchIdRef = useRef(0)
 
   // Sync display value when external value changes
   useEffect(() => {
@@ -76,18 +80,21 @@ export default function LocationSearch({
     }
 
     debounceRef.current = setTimeout(async () => {
+      const searchId = ++latestSearchIdRef.current
       setIsSearching(true)
       try {
         const results = await mapService.search(query.trim())
+        if (searchId !== latestSearchIdRef.current) return
         setSuggestions(results)
         setIsOpen(results.length > 0)
         if (results.length === 0) setSearchError("No locations found.")
       } catch {
+        if (searchId !== latestSearchIdRef.current) return
         setSearchError("Search unavailable. Please try again.")
         setSuggestions([])
         setIsOpen(false)
       } finally {
-        setIsSearching(false)
+        if (searchId === latestSearchIdRef.current) setIsSearching(false)
       }
     }, 350)
   }, [])

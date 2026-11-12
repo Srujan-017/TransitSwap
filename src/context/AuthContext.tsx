@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import type { User, LoginCredentials, RegisterData } from "../types"
 import { authService } from "../services/authService"
+import { AUTH_EXPIRED_EVENT } from "../services/api"
 
 interface AuthContextValue {
   user: User | null
@@ -51,11 +52,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u)
   }
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("ts_token")
     setToken(null)
     setUser(null)
-  }
+  }, [])
+
+  // A 401 from any API call (expired/invalid token) dispatches this event;
+  // clearing state here flips isAuthenticated so ProtectedRoute redirects to
+  // /login instead of leaving the user stuck on a page with a dead session.
+  useEffect(() => {
+    window.addEventListener(AUTH_EXPIRED_EVENT, logout)
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, logout)
+  }, [logout])
 
   const updateUser = (u: User) => setUser(u)
 

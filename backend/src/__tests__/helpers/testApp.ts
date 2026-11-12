@@ -18,9 +18,30 @@ export async function ensureDbConnected(): Promise<boolean> {
   if (mongoose.connection.readyState === 1) return true
   if (!env.MONGODB_URI) return false
   try {
+    // Bug fix — found by direct diagnosis: with Mongoose's default
+    // autoIndex:true, the FIRST write to a never-before-used collection in
+    // this process (e.g. CrowdReport, only ever touched by admin.test.ts's
+    // crowd-moderation assertions) triggers a background index build that
+    // the write then waits on. On this sandboxed Windows test environment,
+    // after ~15 prior requests/writes across other collections, that
+    // index-build-then-write sequence was reproducibly hanging forever
+    // (confirmed via a minimal repro with a race-timeout instrumented
+    // around the exact call) — not a real app bug. The real, production
+    // connection (MongoDB Atlas) already has every index built from past
+    // runs and isn't a resource-constrained local sandbox process, so it
+    // never hits this path; this only ever manifested against the test
+    // harness's in-memory mongod. No test in this suite asserts on a
+    // DB-level unique-constraint throw, so disabling it here is safe and
+    // matches Mongoose's own documented production recommendation (build
+    // indexes explicitly at deploy time rather than lazily on first write).
+    mongoose.set("autoIndex", false)
     await mongoose.connect(env.MONGODB_URI)
     return true
-  } catch {
+  } catch (err) {
+    // The callers' "SKIPPED — MONGODB_URI is not configured" message is also
+    // what a failed connection used to look like; say what really happened so
+    // scripts/run-tests.js (and a human reading the log) can tell them apart.
+    console.error(`⚠️  Test database connection failed: ${err instanceof Error ? err.message : String(err)}`)
     return false
   }
 }

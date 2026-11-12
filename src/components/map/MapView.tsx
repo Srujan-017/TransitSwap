@@ -253,15 +253,23 @@ function ClickForAddress({
 }) {
   const [clicked, setClicked] = useState<ClickedPlace | null>(null)
   const markerRef = useRef<L.Marker>(null)
+  // Guards against an older click's reverse-geocode response landing after a
+  // newer click's — only the latest click's result is ever applied.
+  const latestClickIdRef = useRef(0)
 
   useMapEvents({
     click(e) {
       const { lat, lng } = e.latlng
+      const clickId = ++latestClickIdRef.current
       setClicked({ lat, lng, status: "loading" })
       mapService
         .reverse(lat, lng)
-        .then((place) => setClicked({ lat, lng, status: "ready", place }))
-        .catch(() => setClicked({ lat, lng, status: "error" }))
+        .then((place) => {
+          if (clickId === latestClickIdRef.current) setClicked({ lat, lng, status: "ready", place })
+        })
+        .catch(() => {
+          if (clickId === latestClickIdRef.current) setClicked({ lat, lng, status: "error" })
+        })
     },
   })
 

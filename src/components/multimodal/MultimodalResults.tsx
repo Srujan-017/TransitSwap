@@ -2,6 +2,7 @@ import { useMemo, useState } from "react"
 import {
   CloudSun, Database, FlaskConical, MapPin, Navigation, Save, Bookmark,
   ShieldAlert, ShieldCheck, Users, Activity, Clock, Sparkles, AlertCircle, Compass, Bus,
+  Armchair, User,
 } from "lucide-react"
 import RouteCard from "./RouteCard"
 import SegmentTimeline from "./SegmentTimeline"
@@ -37,6 +38,15 @@ interface Props {
 function transitSegments(route: MultimodalRoute): RouteSegment[] {
   return route.segments.filter((segment) => segment.mode === "metro" || segment.mode === "bus")
 }
+
+// Icon-card crowd-level picker, matching the "how full is it" pattern real
+// transit apps use — same three CrowdLevel values the backend already
+// accepts, just presented as tappable cards instead of a <select>.
+const CROWD_OPTIONS: Array<{ value: CrowdLevel; label: string; icon: typeof Armchair }> = [
+  { value: "LOW", label: "Lots of open seats", icon: Armchair },
+  { value: "MEDIUM", label: "Few if any seats", icon: User },
+  { value: "HIGH", label: "Packed like sardines", icon: Users },
+]
 
 function sourceLabel(source?: string) {
   if (source === "RECENT_USER_REPORT") return "Recent user reports"
@@ -436,17 +446,28 @@ export default function MultimodalResults({
           </div>
           {reportStationId ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="flex gap-2">
-                <select
-                  value={crowdLevel}
-                  onChange={(event) => setCrowdLevel(event.target.value as CrowdLevel)}
-                  className="flex-1 rounded-xl border border-navy-200 bg-navy-50 px-3 py-2 text-sm"
-                >
-                  <option value="LOW">Low crowd</option>
-                  <option value="MEDIUM">Medium crowd</option>
-                  <option value="HIGH">High crowd</option>
-                </select>
-                <Button size="sm" variant="outline" onClick={() => void submitCrowdReport()}>Report</Button>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-navy-500">How crowded is it?</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {CROWD_OPTIONS.map((opt) => {
+                    const Icon = opt.icon
+                    const selected = crowdLevel === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setCrowdLevel(opt.value)}
+                        className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-center transition-all ${
+                          selected ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]" : "bg-navy-50 text-navy-600 hover:bg-navy-100"
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="text-[10px] font-semibold leading-tight">{opt.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <Button size="sm" variant="outline" fullWidth onClick={() => void submitCrowdReport()}>Report</Button>
               </div>
               <div className="flex gap-2">
                 <select

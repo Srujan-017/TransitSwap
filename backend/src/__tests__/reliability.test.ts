@@ -4,6 +4,25 @@ import { parseLocalDateTime } from "../utils/dateTime"
 import type { EnrichedRoute } from "../types/intelligence"
 import type { RouteSegment } from "../types/multimodal"
 
+// Bug fix — this file used bare console.assert, which logs a failure
+// message but never sets a failing exit code (Node's console.assert never
+// throws or touches process.exitCode). That let every assertion below be
+// silently false while `npm test` still reported this file as a pass.
+// Replaced with the same counted assert()+process.exit(1) pattern every
+// other test file in this suite already uses; shared across both functions
+// below so one summary covers the whole file.
+let passed = 0
+let failed = 0
+
+function assert(condition: boolean, msg: string) {
+  if (condition) {
+    passed++
+  } else {
+    failed++
+    console.error(`   ❌ FAILED: ${msg}`)
+  }
+}
+
 async function runReliabilityTests() {
   console.log("🧪 Running Problem 2 Data-Driven Historical Reliability Unit Tests...\n")
 
@@ -20,8 +39,8 @@ async function runReliabilityTests() {
     isSyntheticDemoData: true,
   })
 
-  console.assert(res1.success === true, "Observation recording must succeed")
-  console.assert(res1.errorMinutes === 3, "Prediction error must equal actual - predicted (18 - 15 = +3)")
+  assert(res1.success === true, "Observation recording must succeed")
+  assert(res1.errorMinutes === 3, "Prediction error must equal actual - predicted (18 - 15 = +3)")
   console.log("   ✅ Journey observation recording & error calculation passed.")
 
   // Test 2: Historical Statistics (Mean & Standard Deviation) (Step 6)
@@ -44,9 +63,9 @@ async function runReliabilityTests() {
   console.log("   Mean Error (min):   ", stats.meanErrorMinutes)
   console.log("   Sample Std Dev (s): ", stats.standardDeviationMinutes)
 
-  console.assert(stats.sampleSize >= 10, "Sample size must be >= 10")
-  console.assert(stats.isSufficientData === true, "isSufficientData flag must be true")
-  console.assert(stats.standardDeviationMinutes > 0, "Standard deviation must be > 0")
+  assert(stats.sampleSize >= 10, "Sample size must be >= 10")
+  assert(stats.isSufficientData === true, "isSufficientData flag must be true")
+  assert(stats.standardDeviationMinutes > 0, "Standard deviation must be > 0")
   console.log("   ✅ Historical error statistics calculation passed.")
 
   // Test 3: Data-Driven Prediction Interval (Step 7)
@@ -57,10 +76,10 @@ async function runReliabilityTests() {
   console.log("   90% Range:          ", interval.lowerBound90Minutes, "–", interval.upperBound90Minutes, "min")
   console.log("   95% Range:          ", interval.lowerBound95Minutes, "–", interval.upperBound95Minutes, "min")
 
-  console.assert(interval.lowerBound90Minutes < 30 + stats.meanErrorMinutes, "Lower bound must be < expected mean")
-  console.assert(interval.upperBound90Minutes > 30 + stats.meanErrorMinutes, "Upper bound must be > expected mean")
-  console.assert(interval.lowerBound95Minutes <= interval.lowerBound90Minutes, "95% lower bound must be <= 90% lower bound")
-  console.assert(interval.upperBound95Minutes >= interval.upperBound90Minutes, "95% upper bound must be >= 90% upper bound")
+  assert(interval.lowerBound90Minutes < 30 + stats.meanErrorMinutes, "Lower bound must be < expected mean")
+  assert(interval.upperBound90Minutes > 30 + stats.meanErrorMinutes, "Upper bound must be > expected mean")
+  assert(interval.lowerBound95Minutes <= interval.lowerBound90Minutes, "95% lower bound must be <= 90% lower bound")
+  assert(interval.upperBound95Minutes >= interval.upperBound90Minutes, "95% upper bound must be >= 90% upper bound")
   console.log("   ✅ Prediction interval calculation passed.")
 
   // Test 4: Empirical Coverage Evaluation (Step 16)
@@ -71,8 +90,8 @@ async function runReliabilityTests() {
   console.log("   90% Interval Cover: ", coverageReport.empiricalCoverage90Percent + "%")
   console.log("   95% Interval Cover: ", coverageReport.empiricalCoverage95Percent + "%")
 
-  console.assert(coverageReport.empiricalCoverage90Percent > 60, "Coverage on 90% interval should be reasonable")
-  console.assert(coverageReport.empiricalCoverage95Percent >= coverageReport.empiricalCoverage90Percent, "95% coverage should be >= 90% coverage")
+  assert(coverageReport.empiricalCoverage90Percent > 60, "Coverage on 90% interval should be reasonable")
+  assert(coverageReport.empiricalCoverage95Percent >= coverageReport.empiricalCoverage90Percent, "95% coverage should be >= 90% coverage")
   console.log("   ✅ Empirical coverage evaluation passed.")
 
   // Test 5: Problem 3 Data-Driven Empirical Monte Carlo Transfer Risk Simulation (Step 14 & 16)
@@ -85,9 +104,9 @@ async function runReliabilityTests() {
   console.log("   Miss Probability:   ", mcRes.missProbabilityPercent + "%")
   console.log("   Data Source:        ", mcRes.dataSource)
 
-  console.assert(mcRes.simulatedTrialsCount === 1000, "Trials count must be 1000")
-  console.assert(mcRes.isDataDriven === true, "Monte Carlo must be data-driven")
-  console.assert(mcRes.missProbabilityPercent >= 0 && mcRes.missProbabilityPercent <= 100, "Miss probability must be 0-100%")
+  assert(mcRes.simulatedTrialsCount === 1000, "Trials count must be 1000")
+  assert(mcRes.isDataDriven === true, "Monte Carlo must be data-driven")
+  assert(mcRes.missProbabilityPercent >= 0 && mcRes.missProbabilityPercent <= 100, "Miss probability must be 0-100%")
   console.log("   ✅ Data-driven empirical Monte Carlo transfer risk passed.")
 
   console.log("\n🎉 ALL PROBLEM 2 & PROBLEM 3 HISTORICAL RELIABILITY UNIT TESTS PASSED!")
@@ -158,51 +177,51 @@ async function runDateTimeAndSmartDepartureTests() {
   // TEST A/B/C — local ISO datetime is parsed as local time, date is honoured
   console.log("1️⃣ Testing local date+time parsing (today / future date)...")
   const todayParsed = parseLocalDateTime("2026-08-16T08:30:00")
-  console.assert(todayParsed !== null, "Valid local datetime must parse")
-  console.assert(todayParsed?.getHours() === 8 && todayParsed?.getMinutes() === 30, "Local hour/minute must be preserved")
+  assert(todayParsed !== null, "Valid local datetime must parse")
+  assert(todayParsed?.getHours() === 8 && todayParsed?.getMinutes() === 30, "Local hour/minute must be preserved")
 
   const futureParsed = parseLocalDateTime("2026-09-01T08:30:00")
-  console.assert(futureParsed !== null, "Future local datetime must parse")
-  console.assert(futureParsed?.getDate() === 1 && futureParsed?.getMonth() === 8, "Future date must be preserved, not silently replaced with today")
+  assert(futureParsed !== null, "Future local datetime must parse")
+  assert(futureParsed?.getDate() === 1 && futureParsed?.getMonth() === 8, "Future date must be preserved, not silently replaced with today")
   console.log("   ✅ Local date+time parsing preserves the user-selected date.")
 
   // TEST D — no time supplied
   console.log("\n2️⃣ Testing 'no departure time' honesty (Smart Departure)...")
   const noTimeSuggestion = await reliabilityService.calculateSmartDeparture(makeTransferRoute(), undefined)
-  console.assert(noTimeSuggestion === null, "calculateSmartDeparture must return null (not a fake time) when no departure time is given")
+  assert(noTimeSuggestion === null, "calculateSmartDeparture must return null (not a fake time) when no departure time is given")
   console.log("   ✅ No departure time → null, not a fabricated recommendation.")
 
   // TEST E/F — invalid time / invalid date must not crash and must not produce NaN/Invalid Date
   console.log("\n3️⃣ Testing invalid date/time inputs don't crash or produce NaN/Invalid Date...")
   const invalidTimeParsed = parseLocalDateTime("not-a-time")
-  console.assert(invalidTimeParsed === null, "Invalid time string must return null, never Invalid Date")
+  assert(invalidTimeParsed === null, "Invalid time string must return null, never Invalid Date")
 
   const invalidIsoParsed = parseLocalDateTime("2026-13-40T99:99:00")
-  console.assert(invalidIsoParsed === null, "Invalid ISO-shaped datetime must return null, never Invalid Date")
+  assert(invalidIsoParsed === null, "Invalid ISO-shaped datetime must return null, never Invalid Date")
 
   const suggestionForGarbageTime = await reliabilityService.calculateSmartDeparture(makeTransferRoute(), "garbage")
-  console.assert(suggestionForGarbageTime === null, "Garbage departure time must fail safe (null), not throw or produce NaN")
+  assert(suggestionForGarbageTime === null, "Garbage departure time must fail safe (null), not throw or produce NaN")
   console.log("   ✅ Invalid date/time inputs fail safe — no crash, no NaN, no Invalid Date.")
 
   // TEST A (Problem 14) — direct route always recommends current departure
   console.log("\n4️⃣ Testing direct route (0 transfers) recommends current departure...")
   const directSuggestion = await reliabilityService.calculateSmartDeparture(makeDirectRoute(), "2026-08-16T08:30:00")
-  console.assert(directSuggestion !== null, "Direct route with a valid time must still return a suggestion")
-  console.assert(directSuggestion?.recommendedDepartureOffsetMinutes === 0, "Direct route must not recommend an earlier departure")
-  console.assert(directSuggestion?.reliabilityGainPercent === 0, "Direct route must not report a fabricated reliability gain")
+  assert(directSuggestion !== null, "Direct route with a valid time must still return a suggestion")
+  assert(directSuggestion?.recommendedDepartureOffsetMinutes === 0, "Direct route must not recommend an earlier departure")
+  assert(directSuggestion?.reliabilityGainPercent === 0, "Direct route must not report a fabricated reliability gain")
   console.log("   ✅ Direct routes keep the current departure time.")
 
   // TEST G/I — reliability gain must equal baseline - candidate, never a fixed constant
   console.log("\n5️⃣ Testing Smart Departure reliability gain is calculated, not hard-coded...")
   const transferRoute = makeTransferRoute()
   const suggestion = await reliabilityService.calculateSmartDeparture(transferRoute, "2026-08-16T08:30:00")
-  console.assert(suggestion !== null, "Transfer route with a valid time must return a suggestion")
+  assert(suggestion !== null, "Transfer route with a valid time must return a suggestion")
   if (suggestion) {
-    console.assert(
+    assert(
       suggestion.reliabilityGainPercent >= 0,
       "Reliability gain must never be negative",
     )
-    console.assert(
+    assert(
       ![10, 15].includes(suggestion.reliabilityGainPercent) || suggestion.recommendedDepartureOffsetMinutes !== 0,
       "Reliability gain must not silently be a hard-coded 10/15 with no matching offset",
     )
@@ -215,13 +234,21 @@ async function runDateTimeAndSmartDepartureTests() {
   const routeForRepeat = makeTransferRoute()
   const run1 = await reliabilityService.calculateSmartDeparture(routeForRepeat, "2026-08-16T08:30:00")
   const run2 = await reliabilityService.calculateSmartDeparture(routeForRepeat, "2026-08-16T08:30:00")
-  console.assert(
+  assert(
     run1?.recommendedDepartureOffsetMinutes === run2?.recommendedDepartureOffsetMinutes,
     "Repeated calls with identical input must produce the same recommended offset",
   )
   console.log("   ✅ Same input consistently produces the same recommended offset.")
 
-  console.log("\n🎉 ALL PROBLEM 13/14 HARDENING TESTS PASSED!")
+  console.log("═══════════════════════════════════════════════════════")
+  if (failed === 0) {
+    console.log(`🎉 ALL ${passed} RELIABILITY TESTS PASSED!`)
+  } else {
+    console.log(`⚠️  ${passed} PASSED, ${failed} FAILED`)
+  }
+  console.log("═══════════════════════════════════════════════════════\n")
+
+  if (failed > 0) process.exit(1)
 }
 
 runReliabilityTests()

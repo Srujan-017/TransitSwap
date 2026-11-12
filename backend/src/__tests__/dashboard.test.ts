@@ -10,6 +10,25 @@ import { getHealth } from "../controllers/healthController"
 import { METRO_STATIONS } from "../data/transitData"
 import type { EnrichedRoute } from "../types/intelligence"
 
+// Bug fix — this file used bare console.assert, which logs a failure
+// message but never sets a failing exit code (Node's console.assert never
+// throws or touches process.exitCode). That let every assertion below be
+// silently false while `npm test` still reported this file as a pass.
+// Replaced with the same counted assert()+process.exit(1) pattern every
+// other test file in this suite already uses; shared across Parts A-F so
+// one summary covers the whole file.
+let passed = 0
+let failed = 0
+
+function assert(condition: boolean, msg: string) {
+  if (condition) {
+    passed++
+  } else {
+    failed++
+    console.error(`   ❌ FAILED: ${msg}`)
+  }
+}
+
 /**
  * Problem 17 — additional required test areas not already covered by
  * accessibility.test.ts / ml.test.ts / reliability.test.ts / userPreferences.test.ts:
@@ -57,15 +76,15 @@ function runDashboardCalculationTests() {
 
   // 0 journeys — must not crash and must show honest zeros
   const empty = computeTravelStats([])
-  console.assert(empty.totalTrips === 0, "0 journeys must report 0 trips")
-  console.assert(empty.avgDurationMinutes === 0, "0 journeys must report 0 avg duration, not NaN")
-  console.assert(!Number.isNaN(empty.avgFare), "avg fare must not be NaN with 0 journeys")
+  assert(empty.totalTrips === 0, "0 journeys must report 0 trips")
+  assert(empty.avgDurationMinutes === 0, "0 journeys must report 0 avg duration, not NaN")
+  assert(!Number.isNaN(empty.avgFare), "avg fare must not be NaN with 0 journeys")
   console.log("   ✅ 0 journeys handled without crashing (honest empty state)")
 
   // 1 journey — average must equal that journey's own values
   const single = computeTravelStats([{ totalDurationSeconds: 1800, estimatedFare: 30, walkingDistanceMeters: 400, transferCount: 1 }])
-  console.assert(single.avgDurationMinutes === 30, "1 journey: avg duration must equal its own duration (30 min)")
-  console.assert(single.avgFare === 30, "1 journey: avg fare must equal its own fare")
+  assert(single.avgDurationMinutes === 30, "1 journey: avg duration must equal its own duration (30 min)")
+  assert(single.avgFare === 30, "1 journey: avg fare must equal its own fare")
   console.log("   ✅ 1 journey produces correct averages")
 
   // Multiple journeys — 30 min & 50 min must average to 40 min (matches Problem 17 spec example)
@@ -73,10 +92,10 @@ function runDashboardCalculationTests() {
     { totalDurationSeconds: 30 * 60, estimatedFare: 20, walkingDistanceMeters: 300, transferCount: 0 },
     { totalDurationSeconds: 50 * 60, estimatedFare: 40, walkingDistanceMeters: 700, transferCount: 2 },
   ])
-  console.assert(two.avgDurationMinutes === 40, `two journeys (30min, 50min) must average to 40 min, got ${two.avgDurationMinutes}`)
-  console.assert(two.avgFare === 30, "two journeys (₹20, ₹40) must average to ₹30")
-  console.assert(two.totalFareAll === 60, "total fare across two journeys must sum correctly")
-  console.assert(two.avgTransfers === 1, "two journeys (0, 2 transfers) must average to 1")
+  assert(two.avgDurationMinutes === 40, `two journeys (30min, 50min) must average to 40 min, got ${two.avgDurationMinutes}`)
+  assert(two.avgFare === 30, "two journeys (₹20, ₹40) must average to ₹30")
+  assert(two.totalFareAll === 60, "total fare across two journeys must sum correctly")
+  assert(two.avgTransfers === 1, "two journeys (0, 2 transfers) must average to 1")
   console.log("   ✅ Multiple journeys: average duration/fare/transfers computed correctly (not hard-coded)")
 
   console.log("\n🎉 Part A (dashboard calculations) tests passed.\n")
@@ -91,12 +110,12 @@ function runNearbyTransitTests() {
   if (!whitefield) throw new Error("Expected Whitefield Metro in demo station dataset")
 
   const near = multimodalService.getNearbyTransit(whitefield.latitude, whitefield.longitude)
-  console.assert(near.metro !== null, "querying from a known metro station's own coordinates must find a nearby metro station")
-  console.assert(near.metro?.stationName === whitefield.name, "the nearest metro station to its own coordinates must be itself")
+  assert(near.metro !== null, "querying from a known metro station's own coordinates must find a nearby metro station")
+  assert(near.metro?.stationName === whitefield.name, "the nearest metro station to its own coordinates must be itself")
   console.log("   ✅ Nearby Transit resolves the correct nearest metro station")
 
   const farAway = multimodalService.getNearbyTransit(0, 0) // middle of the ocean
-  console.assert(farAway.metro === null, "coordinates far from any demo station must return no nearby metro match")
+  assert(farAway.metro === null, "coordinates far from any demo station must return no nearby metro match")
   console.log("   ✅ Nearby Transit returns null when nothing is within the search radius")
 
   console.log("\n🎉 Part D (nearby transit) tests passed.\n")
@@ -124,14 +143,14 @@ function runHealthCheckTests() {
   getHealth({} as import("express").Request, fakeRes)
   const elapsedMs = Date.now() - start
 
-  console.assert(elapsedMs < 50, "health check must return quickly, without expensive processing")
-  console.assert(body !== undefined, "health check must return a response body")
-  console.assert((body as { success?: boolean } | undefined)?.success === true, "health check must report success")
+  assert(elapsedMs < 50, "health check must return quickly, without expensive processing")
+  assert(body !== undefined, "health check must return a response body")
+  assert((body as { success?: boolean } | undefined)?.success === true, "health check must report success")
 
   const serialized = JSON.stringify(body)
-  console.assert(!serialized.includes(env.JWT_SECRET), "health response must never expose the JWT secret")
-  console.assert(!/mongodb\+srv:|mongodb:\/\/.*:.*@/.test(serialized), "health response must never expose a MongoDB connection string")
-  console.assert(!serialized.toLowerCase().includes("apikey") && !serialized.includes(env.OPENWEATHER_API_KEY || "__none__"), "health response must never expose API keys")
+  assert(!serialized.includes(env.JWT_SECRET), "health response must never expose the JWT secret")
+  assert(!/mongodb\+srv:|mongodb:\/\/.*:.*@/.test(serialized), "health response must never expose a MongoDB connection string")
+  assert(!serialized.toLowerCase().includes("apikey") && !serialized.includes(env.OPENWEATHER_API_KEY || "__none__"), "health response must never expose API keys")
 
   console.log(`   ✅ GET /api/health responds in ${elapsedMs}ms with no secrets exposed (status ${statusCode ?? 200})`)
   console.log("\n🎉 Part E (API health) tests passed.\n")
@@ -144,7 +163,7 @@ async function runCrowdTests(userId: string) {
 
   // Demo fallback — no recent reports for a station with only historical demo data
   const demoOnly = await crowdService.stationEstimate("no-recent-reports-station-id", "Unlisted Test Station")
-  console.assert(
+  assert(
     demoOnly.source === "DEMO_DATA" || demoOnly.source === "UNAVAILABLE",
     "a station with no recent reports must fall back to demo data or an honest UNAVAILABLE, not fabricate a live estimate",
   )
@@ -154,18 +173,18 @@ async function runCrowdTests(userId: string) {
   await crowdService.reportCrowd(userId, { stationId: station.id, stationName: station.name, transportMode: "metro", crowdLevel: "HIGH" })
   await crowdService.reportCrowd(userId, { stationId: station.id, stationName: station.name, transportMode: "metro", crowdLevel: "HIGH" })
   const afterReports = await crowdService.stationEstimate(station.id, station.name)
-  console.assert(afterReports.source === "RECENT_USER_REPORT", "recent reports must take priority over demo data")
-  console.assert(afterReports.crowdLevel === "HIGH", "estimate must reflect the reported HIGH crowd level")
+  assert(afterReports.source === "RECENT_USER_REPORT", "recent reports must take priority over demo data")
+  assert(afterReports.crowdLevel === "HIGH", "estimate must reflect the reported HIGH crowd level")
   console.log("   ✅ Recent user report (HIGH) is stored and reflected in the station estimate")
 
   await crowdService.reportCrowd(userId, { stationId: station.id + "-low", stationName: "Low Crowd Test Station", transportMode: "metro", crowdLevel: "LOW" })
   const lowEstimate = await crowdService.stationEstimate(station.id + "-low", "Low Crowd Test Station")
-  console.assert(lowEstimate.crowdLevel === "LOW", "estimate must reflect the reported LOW crowd level")
+  assert(lowEstimate.crowdLevel === "LOW", "estimate must reflect the reported LOW crowd level")
   console.log("   ✅ Recent user report (LOW) is stored and reflected in the station estimate")
 
   await crowdService.reportCrowd(userId, { stationId: station.id + "-med", stationName: "Medium Crowd Test Station", transportMode: "metro", crowdLevel: "MEDIUM" })
   const medEstimate = await crowdService.stationEstimate(station.id + "-med", "Medium Crowd Test Station")
-  console.assert(medEstimate.crowdLevel === "MEDIUM", "estimate must reflect the reported MEDIUM crowd level")
+  assert(medEstimate.crowdLevel === "MEDIUM", "estimate must reflect the reported MEDIUM crowd level")
   console.log("   ✅ Recent user report (MEDIUM) is stored and reflected in the station estimate")
 }
 
@@ -207,10 +226,10 @@ async function runSavedRouteTests(userIdA: string, userIdB: string) {
     destination: { name: "MG Road Metro", latitude: 12.9757, longitude: 77.6079 },
     selectedRoute: makeEnrichedRoute("saved-route-test"),
   })
-  console.assert(saved.name === "My Commute", "saved route must persist the given name")
+  assert(saved.name === "My Commute", "saved route must persist the given name")
 
   const list = await savedRouteService.getSavedRoutes(userIdA)
-  console.assert(list.some((r) => String(r._id) === String(saved._id)), "getSavedRoutes must include the newly saved route")
+  assert(list.some((r) => String(r._id) === String(saved._id)), "getSavedRoutes must include the newly saved route")
   console.log("   ✅ Saved route created and listed for its owner")
 
   let rejectedForOtherUser = false
@@ -219,7 +238,7 @@ async function runSavedRouteTests(userIdA: string, userIdB: string) {
   } catch {
     rejectedForOtherUser = true
   }
-  console.assert(rejectedForOtherUser, "a different user must not be able to read another user's saved route")
+  assert(rejectedForOtherUser, "a different user must not be able to read another user's saved route")
   console.log("   ✅ Saved route ownership enforced (no cross-user access)")
 }
 
@@ -276,8 +295,8 @@ function runTripsCompletedAndDateTests() {
     { status: "cancelled", createdAt: "2026-08-04T08:00:00" },
   ]
   const completedCount = journeys.filter((j) => j.status === "completed").length
-  console.assert(completedCount === 2, `Trips Completed must count only status:"completed" journeys, got ${completedCount}`)
-  console.assert(journeys.length === 4, "total saved journeys must not be conflated with completed trips")
+  assert(completedCount === 2, `Trips Completed must count only status:"completed" journeys, got ${completedCount}`)
+  assert(journeys.length === 4, "total saved journeys must not be conflated with completed trips")
   console.log("   ✅ Trips Completed counts only journey.status === \"completed\"")
 
   // Month bucketing must prefer the actual selected departureTime over createdAt
@@ -288,12 +307,12 @@ function runTripsCompletedAndDateTests() {
     departureTime: "2026-08-20T08:30:00",
   }
   const d = journeyDate(savedInJulyTravelledInAugust)
-  console.assert(d.getMonth() === 7, `must use departureTime's month (August) over createdAt's month (July), got month ${d.getMonth()}`)
+  assert(d.getMonth() === 7, `must use departureTime's month (August) over createdAt's month (July), got month ${d.getMonth()}`)
   console.log("   ✅ Month bucketing prefers departureTime over createdAt when available")
 
   const noDepartureTimeGiven: MinimalJourneyWithStatusAndDate = { status: "planned", createdAt: "2026-08-05T10:00:00" }
   const d2 = journeyDate(noDepartureTimeGiven)
-  console.assert(d2.getMonth() === 7 && !Number.isNaN(d2.getTime()), "must fall back to createdAt (no Invalid Date) when departureTime is absent")
+  assert(d2.getMonth() === 7 && !Number.isNaN(d2.getTime()), "must fall back to createdAt (no Invalid Date) when departureTime is absent")
   console.log("   ✅ Month bucketing falls back to createdAt without crashing when departureTime is missing")
 
   console.log("\n🎉 Part F (Problem 22 dashboard fixes) tests passed.\n")
@@ -303,7 +322,19 @@ runDashboardCalculationTests()
 runNearbyTransitTests()
 runHealthCheckTests()
 runTripsCompletedAndDateTests()
-runDbBackedTests().catch((err) => {
-  console.error("❌ Dashboard/crowd/saved-route test failure:", err)
-  process.exit(1)
-})
+runDbBackedTests()
+  .then(() => {
+    console.log("═══════════════════════════════════════════════════════")
+    if (failed === 0) {
+      console.log(`🎉 ALL ${passed} DASHBOARD/CROWD/SAVED-ROUTE TESTS PASSED!`)
+    } else {
+      console.log(`⚠️  ${passed} PASSED, ${failed} FAILED`)
+    }
+    console.log("═══════════════════════════════════════════════════════\n")
+
+    if (failed > 0) process.exit(1)
+  })
+  .catch((err) => {
+    console.error("❌ Dashboard/crowd/saved-route test failure:", err)
+    process.exit(1)
+  })

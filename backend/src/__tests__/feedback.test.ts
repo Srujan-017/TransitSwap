@@ -6,6 +6,25 @@ import { Journey } from "../models/Journey"
 import { journeyService } from "../services/journeyService"
 import type { EnrichedRoute } from "../types/intelligence"
 
+// Bug fix — this file used bare console.assert, which logs a failure
+// message but never sets a failing exit code (Node's console.assert never
+// throws or touches process.exitCode). That let every assertion below be
+// silently false while `npm test` still reported this file as a pass.
+// Replaced with the same counted assert()+process.exit(1) pattern every
+// other test file in this suite already uses; shared across both Part
+// A/B functions below so one summary covers the whole file.
+let passed = 0
+let failed = 0
+
+function assert(condition: boolean, msg: string) {
+  if (condition) {
+    passed++
+  } else {
+    failed++
+    console.error(`   ❌ FAILED: ${msg}`)
+  }
+}
+
 /**
  * Problem 15 — Feedback Loop test coverage.
  *
@@ -64,52 +83,52 @@ async function runValidationTests() {
 
   // 1. rating 1 accepted
   let result = await runValidation(feedbackValidation, { rating: 1 })
-  console.assert(result.isEmpty(), "rating=1 must be accepted")
+  assert(result.isEmpty(), "rating=1 must be accepted")
   console.log("   ✅ 1. rating 1 accepted")
 
   // 2. rating 5 accepted
   result = await runValidation(feedbackValidation, { rating: 5 })
-  console.assert(result.isEmpty(), "rating=5 must be accepted")
+  assert(result.isEmpty(), "rating=5 must be accepted")
   console.log("   ✅ 2. rating 5 accepted")
 
   // 3. rating 0 rejected
   result = await runValidation(feedbackValidation, { rating: 0 })
-  console.assert(!result.isEmpty(), "rating=0 must be rejected")
+  assert(!result.isEmpty(), "rating=0 must be rejected")
   console.log("   ✅ 3. rating 0 rejected")
 
   // 4. rating 6 rejected
   result = await runValidation(feedbackValidation, { rating: 6 })
-  console.assert(!result.isEmpty(), "rating=6 must be rejected")
+  assert(!result.isEmpty(), "rating=6 must be rejected")
   console.log("   ✅ 4. rating 6 rejected")
 
   // 5. missing rating rejected
   result = await runValidation(feedbackValidation, {})
-  console.assert(!result.isEmpty(), "missing rating must be rejected")
+  assert(!result.isEmpty(), "missing rating must be rejected")
   console.log("   ✅ 5. missing rating rejected")
 
   // 6. comment under 500 accepted
   result = await runValidation(feedbackValidation, { rating: 4, comment: "Good trip, on time." })
-  console.assert(result.isEmpty(), "comment under 500 chars must be accepted")
+  assert(result.isEmpty(), "comment under 500 chars must be accepted")
   console.log("   ✅ 6. comment under 500 accepted")
 
   // 7. comment over 500 rejected
   result = await runValidation(feedbackValidation, { rating: 4, comment: "x".repeat(501) })
-  console.assert(!result.isEmpty(), "comment over 500 chars must be rejected")
+  assert(!result.isEmpty(), "comment over 500 chars must be rejected")
   console.log("   ✅ 7. comment over 500 rejected")
 
   // 8. valid issues accepted
   result = await runValidation(feedbackValidation, { rating: 3, issues: ["too_slow", "too_crowded"] })
-  console.assert(result.isEmpty(), "valid issue values must be accepted")
+  assert(result.isEmpty(), "valid issue values must be accepted")
   console.log("   ✅ 8. valid issues accepted")
 
   // 9. invalid issue rejected
   result = await runValidation(feedbackValidation, { rating: 3, issues: ["not_a_real_issue"] })
-  console.assert(!result.isEmpty(), "an issue outside the whitelist must be rejected")
+  assert(!result.isEmpty(), "an issue outside the whitelist must be rejected")
   console.log("   ✅ 9. invalid issue rejected")
 
   // 10. invalid journey ID rejected
   result = await runValidation(journeyIdValidation, {}, { id: "not-a-valid-object-id" })
-  console.assert(!result.isEmpty(), "a non-Mongo-ObjectId journey id must be rejected")
+  assert(!result.isEmpty(), "a non-Mongo-ObjectId journey id must be rejected")
   console.log("   ✅ 10. invalid journey ID rejected")
 
   console.log("\n🎉 Part A (validation) tests passed.\n")
@@ -151,6 +170,7 @@ async function runServiceTests() {
     console.warn("\n⚠️  Part B (service-level feedback tests) SKIPPED — MONGODB_URI is not configured.")
     console.warn("    This is an honest skip, not a pass: run with a MongoDB connection to exercise")
     console.warn("    persistence, ownership, update, and duplicate-learning-protection coverage.\n")
+    if (failed > 0) process.exit(1)
     return
   }
 
@@ -187,7 +207,7 @@ async function runServiceTests() {
     } catch {
       ownershipRejected = true
     }
-    console.assert(ownershipRejected, "submitting feedback as a different user must be rejected")
+    assert(ownershipRejected, "submitting feedback as a different user must be rejected")
     console.log("   ✅ 11. another user's journey rejected")
 
     // 12. existing feedback updated
@@ -196,15 +216,15 @@ async function runServiceTests() {
       comment: "Okay trip",
       issues: ["too_slow"],
     })
-    console.assert(first.journey.userFeedback?.rating === 3, "first feedback submission must persist rating 3")
+    assert(first.journey.userFeedback?.rating === 3, "first feedback submission must persist rating 3")
 
     const second = await journeyService.submitFeedback(String(userA._id), String(journey._id), {
       rating: 5,
       comment: "Actually great",
       issues: [],
     })
-    console.assert(second.journey.userFeedback?.rating === 5, "resubmitting feedback must update the rating")
-    console.assert(second.journey.userFeedback?.comment === "Actually great", "resubmitting feedback must update the comment")
+    assert(second.journey.userFeedback?.rating === 5, "resubmitting feedback must update the rating")
+    assert(second.journey.userFeedback?.comment === "Actually great", "resubmitting feedback must update the comment")
     console.log("   ✅ 12. existing feedback updated")
 
     // 13. choiceLearningApplied prevents duplicate learning
@@ -212,9 +232,9 @@ async function runServiceTests() {
     // true or false depending on DB/user state — assert the message is consistent
     // with whichever branch actually ran, not a hard-coded expectation.
     const reloaded = await Journey.findById(journey._id)
-    console.assert(reloaded !== null, "journey must be persisted")
+    assert(reloaded !== null, "journey must be persisted")
     if (reloaded?.choiceLearningApplied) {
-      console.assert(
+      assert(
         second.message.toLowerCase().includes("already learned") || second.message.toLowerCase().includes("updated"),
         "message must honestly reflect that learning was already applied or just applied, not silently omit it",
       )
@@ -223,8 +243,8 @@ async function runServiceTests() {
 
     // 14. feedback persists (fresh read from DB)
     const persisted = await Journey.findById(journey._id)
-    console.assert(persisted?.userFeedback?.rating === 5, "feedback must persist across a fresh DB read")
-    console.assert(persisted?.status === "completed", "journey status must be marked completed after feedback")
+    assert(persisted?.userFeedback?.rating === 5, "feedback must persist across a fresh DB read")
+    assert(persisted?.status === "completed", "journey status must be marked completed after feedback")
     console.log("   ✅ 14. feedback persists")
 
     // 15. learning failure does not lose feedback
@@ -247,8 +267,8 @@ async function runServiceTests() {
       // Intentionally no selectedRouteEnriched / alternativeRoutesEnriched.
     })
     const bareResult = await journeyService.submitFeedback(String(userA._id), String(bareJourney._id), { rating: 4 })
-    console.assert(bareResult.journey.userFeedback?.rating === 4, "feedback must save even when learning cannot run")
-    console.assert(bareResult.transitDnaUpdated === false, "transitDnaUpdated must honestly be false when learning was not possible")
+    assert(bareResult.journey.userFeedback?.rating === 4, "feedback must save even when learning cannot run")
+    assert(bareResult.transitDnaUpdated === false, "transitDnaUpdated must honestly be false when learning was not possible")
     console.log("   ✅ 15. learning failure does not lose feedback")
 
     console.log("\n🎉 Part B (service-level) tests passed.\n")
@@ -257,6 +277,16 @@ async function runServiceTests() {
     await User.deleteMany({ _id: { $in: [userA._id, userB._id] } })
     await mongoose.disconnect()
   }
+
+  console.log("═══════════════════════════════════════════════════════")
+  if (failed === 0) {
+    console.log(`🎉 ALL ${passed} FEEDBACK TESTS PASSED!`)
+  } else {
+    console.log(`⚠️  ${passed} PASSED, ${failed} FAILED`)
+  }
+  console.log("═══════════════════════════════════════════════════════\n")
+
+  if (failed > 0) process.exit(1)
 }
 
 runValidationTests()

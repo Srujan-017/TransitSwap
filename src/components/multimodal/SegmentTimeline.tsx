@@ -43,6 +43,56 @@ const MODE_DOT: Record<MultimodalMode, string> = {
 function SegmentRow({ seg, profile }: { seg: RouteSegment; profile?: string }) {
   const durationMin = Math.ceil(seg.durationSeconds / 60)
   const isWheelchairWalk = seg.mode === "walking" && profile === "wheelchair"
+  const isTransitDeparture = (seg.mode === "bus" || seg.mode === "metro") && seg.transitDetails?.routeNumber
+
+  // Bus/metro legs with a real route number get the bold, fully-colored
+  // "departures board" treatment (like a real transit app's route-colored
+  // row) using the line's own real color; everything else keeps the
+  // lighter tinted-card style.
+  if (isTransitDeparture && seg.transitDetails) {
+    const lineColor = seg.transitDetails.lineColor
+    return (
+      <div className="rounded-2xl px-4 py-3 space-y-1.5 text-white" style={{ backgroundColor: lineColor }}>
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 rounded-xl text-base font-display font-bold bg-white/20 flex-shrink-0">
+            {seg.transitDetails.routeNumber}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold leading-tight truncate">
+              {seg.mode === "bus" && seg.transitDetails.towards ? `Towards ${seg.transitDetails.towards}` : seg.transitDetails.lineName}
+            </p>
+            <p className="text-[11px] text-white/80">{seg.from.name} → {seg.to.name}</p>
+          </div>
+          <span className="text-xs font-semibold text-white/90 whitespace-nowrap flex-shrink-0">{formatDuration(durationMin)}</span>
+        </div>
+        <p className="text-xs text-white/90 pl-[2.9rem]">
+          {seg.transitDetails.estimatedBoardingTime ? (
+            <>
+              Board by ~{seg.transitDetails.estimatedBoardingTime}
+              {seg.transitDetails.upcomingBoardingTimes && seg.transitDetails.upcomingBoardingTimes.length > 0 && (
+                <> · next: {seg.transitDetails.upcomingBoardingTimes.map((t) => `~${t}`).join(", ")}</>
+              )}
+            </>
+          ) : (
+            `Runs every ~${seg.transitDetails.waitMinutes} min (set a departure time for a boarding estimate)`
+          )}
+        </p>
+        {seg.transitDetails.stops.length > 2 && (
+          <div className="pl-[2.9rem] pt-0.5">
+            <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+              {seg.transitDetails.stops.map((stop) => (
+                <span key={stop} className="text-[11px] text-white/75 flex items-center gap-1">
+                  <span className="inline-block w-1 h-1 rounded-full bg-white/60" />
+                  {stop}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className={`rounded-xl border-l-4 px-4 py-3 space-y-1 ${MODE_COLOR[seg.mode]}`}>
       <div className="flex items-start justify-between gap-2">
@@ -67,19 +117,6 @@ function SegmentRow({ seg, profile }: { seg: RouteSegment; profile?: string }) {
 
       {seg.transitDetails && (seg.mode === "bus" || seg.mode === "metro") && (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-7 pt-0.5">
-          {seg.transitDetails.routeNumber && (
-            <span
-              className="inline-flex items-center justify-center min-w-[1.75rem] h-6 px-1.5 rounded-md text-xs font-bold text-white"
-              style={{ backgroundColor: seg.transitDetails.lineColor }}
-            >
-              {seg.transitDetails.routeNumber}
-            </span>
-          )}
-          {seg.mode === "bus" && seg.transitDetails.towards && (
-            <span className="text-xs font-medium text-navy-600">
-              towards {seg.transitDetails.towards}
-            </span>
-          )}
           <span className="text-xs text-navy-500 basis-full">
             {seg.transitDetails.estimatedBoardingTime ? (
               <>

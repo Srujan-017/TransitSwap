@@ -122,7 +122,10 @@ export default function ProfilePage() {
     setResetting(true)
     setSavedMessageIsError(false)
     try {
-      await intelligenceService.resetTransitDna()
+      const resetUser = await intelligenceService.resetTransitDna()
+      if (updateUser && resetUser) {
+        updateUser(resetUser)
+      }
       setSavedMessage("TransitDNA preference weights reset to baseline defaults!")
     } catch (err) {
       // Phase 12 fix — this used to report "TransitDNA reset in local mode."
