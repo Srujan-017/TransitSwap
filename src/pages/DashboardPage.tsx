@@ -371,12 +371,12 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          {/* Research Evaluation Metrics Card (Phase 16 - Viva Paper Support) */}
+          {/* Research Evaluation Metrics Card (simulated benchmark) */}
           <Card>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-indigo-600" />
-                <h2 className="font-display font-bold text-navy-900">Research Paper Benchmark Metrics (Phase 16)</h2>
+                <h2 className="font-display font-bold text-navy-900">Research Benchmark Metrics</h2>
               </div>
               <Badge variant="info">Simulated Benchmark</Badge>
             </div>
@@ -427,6 +427,10 @@ export default function DashboardPage() {
                   <strong>Disclaimer:</strong> {evaluation.benchmarkDisclaimer}
                 </div>
               )}
+              <p className="mb-4 text-xs text-navy-500">
+                Baseline comparisons, the ablation study and latency are on the{" "}
+                <Link to="/research" className="font-medium text-brand-600 hover:underline">Research page</Link>.
+              </p>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left text-navy-700">

@@ -3,8 +3,11 @@ import { FlaskConical, Brain, Activity, BarChart3, AlertTriangle } from "lucide-
 import Card from "../components/ui/Card"
 import Badge from "../components/ui/Badge"
 import LoadingSpinner from "../components/ui/LoadingSpinner"
+import Button from "../components/ui/Button"
+import BenchmarkSummary from "../components/research/BenchmarkSummary"
 import {
   intelligenceService,
+  type EvaluationMetrics,
   type MLEvaluationReport,
   type MLStatusResponse,
   type CoverageEvaluationReport,
@@ -34,6 +37,7 @@ export default function ResearchPage() {
       </div>
 
       <MLStatusCard />
+      <RouteBenchmarkCard />
       <MLBenchmarkCard />
       <ReliabilityCoverageCard />
       <HistoricalStatsCard />
@@ -93,6 +97,56 @@ function MLStatusCard() {
               {data.modelMetrics.logLoss !== undefined && <span>Log loss: <strong className="text-navy-800">{data.modelMetrics.logLoss.toFixed(3)}</strong></span>}
             </div>
           )}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// The route-ranking benchmark runs 22 scenarios (route generation, enrichment, Monte Carlo
+// per scenario) and takes ~20 s the first time, so — like the Dashboard's — it runs on demand.
+// The backend caches the result for 5 minutes, so a repeat click is effectively free.
+function RouteBenchmarkCard() {
+  const [data, setData] = useState<EvaluationMetrics | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  async function run() {
+    setLoading(true)
+    setError("")
+    try {
+      setData(await intelligenceService.getEvaluationMetrics())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load the route-ranking benchmark.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-display font-semibold text-navy-900 flex items-center gap-2">
+          <BarChart3 className="w-4.5 h-4.5 text-brand-600" /> Route Ranking Benchmark — vs 5 Baselines
+        </h2>
+        <Badge variant="info">Simulated Benchmark</Badge>
+      </div>
+      {error && (
+        <p role="alert" className="mb-3 flex items-center gap-2 text-sm text-danger">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {error}
+        </p>
+      )}
+      {data ? (
+        <BenchmarkSummary data={data} />
+      ) : loading ? (
+        <LoadingSpinner text="Running the 22-scenario benchmark (about 20 seconds the first time)…" />
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-navy-500">
+            Compares TransitSwap's ranking with five simpler planners on 22 scenarios, shows which features change the
+            result, and reports speed. Runs on demand because it is computationally heavy.
+          </p>
+          <Button onClick={run}>Run benchmark</Button>
         </div>
       )}
     </Card>

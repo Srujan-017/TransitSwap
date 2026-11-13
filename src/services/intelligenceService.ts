@@ -28,6 +28,15 @@ export interface EvaluationMetrics {
   totalScenariosEvaluated: number
   agreementRateWithShortestTimePercent: number
   agreementRateWithCheapestPercent: number
+  // Phase 9 baselines / latency / ablation (computed by the backend since Phase 9,
+  // first shown in the UI in completion-phase 3).
+  agreementRateWithLeastWalkingPercent: number
+  agreementRateWithFewestTransfersPercent: number
+  agreementRateWithRandomPercent: number
+  latencyP50Ms: number
+  latencyP95Ms: number
+  ablationDecisionChangeRatePercent: Record<string, number>
+  scenarioDatasetNote?: string
   transitSwapAverageReliability: number
   baselineShortestTimeAverageReliability: number
   transitSwapAverageWalkingMeters: number

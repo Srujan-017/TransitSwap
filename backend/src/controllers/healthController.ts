@@ -9,6 +9,6 @@ export function getHealth(_req: Request, res: Response) {
     timestamp: new Date().toISOString(),
     database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     version: "3.0.0",
-    phase: "Phase 30 — AI-assisted Urban Mobility Intelligence Platform",
+    phase: "TransitSwap — AI-assisted Urban Mobility Intelligence Platform",
   })
 }

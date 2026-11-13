@@ -62,7 +62,7 @@ app.get("/", (_req: Request, res: Response) => {
     success: true,
     name: "TransitSwap API",
     version: "3.0.0",
-    phase: "Phase 30 — AI-assisted Urban Mobility Intelligence Platform",
+    phase: "TransitSwap — AI-assisted Urban Mobility Intelligence Platform",
     description: "Multi-criteria intelligent routing: weighted scoring, rule-based accessibility, prototype reliability estimates, simulation-based connection risk, and TransitDNA adaptive preference learning.",
     docs: "/api/health",
   })
