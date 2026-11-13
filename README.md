@@ -5,6 +5,7 @@
 TransitSwap is a full-stack, AI-assisted urban mobility web application built as a final-year engineering project. It helps commuters choose the **smartest, safest, most reliable, and most accessible** journey — not simply the shortest route — by evaluating multiple real-world factors simultaneously.
 
 **Live demo:** frontend <https://transit-swap.vercel.app> · backend health <https://transitswap-backend.onrender.com/api/health> (the free backend host sleeps when idle; the first request can take ~30 s).
+**Demo material:** step-by-step demo script, presentation slides and viva answers are in [`docs/demo/`](docs/demo/).
 **Status:** CI (GitHub Actions) runs type-checking, the production build, 29 backend test files and 35 frontend tests on every push. The user interface was scanned with axe-core against WCAG 2.1 A/AA with no remaining violations on the main screens. All transit, accessibility and crowd data are **synthetic demonstration data** (see §16 and §19).
 
 ---
