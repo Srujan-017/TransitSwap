@@ -1,6 +1,6 @@
 # TransitSwap — Feature Upgrade Master Plan
 
-**Written:** 13 Nov 2026 · **Deadline:** about 19 Nov 2026 · **Status:** Phase 1 done; Phase 2 next
+**Written:** 13 Nov 2026 · **Deadline:** about 19 Nov 2026 · **Status:** Phases 1–2 done; Phase 3 next
 
 This plan covers everything you asked for on 13 Nov. It is split into 8 phases. Each phase:
 
@@ -220,7 +220,7 @@ It is tight but fits. If time runs short, the parts of Phase 6 most safely cut a
 | Phase | Status | Notes |
 |---|---|---|
 | 1. Quick fixes | ✅ done 13 Nov | Dashboard benchmark card removed. Research page shows a pre-computed snapshot (`src/data/benchmarkSnapshot.json`, regenerate with `backend/scripts/generate-benchmark-snapshot.ts`; re-run after Phases 3–5). Map opens on Bengaluru (12.9716, 77.5946, zoom 12). Place search prefers Bengaluru (`viewbox`, `countrycodes=in`; results elsewhere in India still available but ranked lower). 37 frontend tests, geocoding API test, both type-checks pass |
-| 2. Crowd data | pending | — |
+| 2. Crowd data | ✅ done 13 Nov | Complete synthetic hourly crowd profile for all 41 metro stations and 24 bus stops, weekday and weekend, 24 h (`backend/src/data/crowdData.ts`; four station types with documented load curves; the original 16 spot readings kept as anchors in `LEGACY_CROWD_DATA`). Bus crowd per route and hour. Crowd per metro/bus leg, judged where the rider boards and gets off at the time they will be there; route crowd = most crowded leg (was the average). Each leg shows "Crowd: LOW/MEDIUM/HIGH" on the route card. Walk/auto-only routes: LOW, not applicable. Also fixed: user reports could never push a quiet station above MEDIUM (blend cut-offs now 1.6/2.4). Paper stays pinned to commit `3f36ef6` (decision D2). 29/29 backend files strict, 39 frontend tests |
 | 3. Profile-aware routing | pending | — |
 | 4. Buses | pending | — |
 | 5. Weather | pending | — |

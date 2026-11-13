@@ -1,10 +1,10 @@
 import mongoose from "mongoose"
 import { CrowdReport } from "../models/CrowdReport"
-import { DEMO_CROWD_DATA, type DemoCrowdRecord } from "../data/crowdData"
-import { METRO_STATIONS, BUS_STOPS } from "../data/transitData"
+import { DEMO_CROWD_DATA, busRouteCrowdLevel, type DemoCrowdRecord } from "../data/crowdData"
+import { METRO_STATIONS, BUS_STOPS, BUS_ROUTES } from "../data/transitData"
 import { AppError } from "../middleware/errorHandler"
-import type { CrowdLevel, CrowdStationEstimate, RouteCrowdSummary } from "../types/intelligence"
-import type { MultimodalRoute } from "../types/multimodal"
+import type { CrowdLevel, CrowdStationEstimate, LegCrowd, RouteCrowdSummary } from "../types/intelligence"
+import type { MultimodalRoute, RouteSegment } from "../types/multimodal"
 
 const LEVEL_SCORE: Record<CrowdLevel, number> = { LOW: 1, MEDIUM: 2, HIGH: 3 }
 const SCORE_LEVEL: Record<number, CrowdLevel> = { 1: "LOW", 2: "MEDIUM", 3: "HIGH" }
@@ -50,12 +50,33 @@ function reportsApplyTo(when: Date): boolean {
   return Math.abs(when.getTime() - Date.now()) <= RECENT_REPORT_WINDOW_MS
 }
 
-export function findDemoCrowdRecord(stationId: string, when = new Date()): DemoCrowdRecord | undefined {
+// Index of the built-in hourly table by station + day type, so a lookup does not scan
+// every record (the table has one record per station, day type and hour).
+const DEMO_INDEX = new Map<string, DemoCrowdRecord[]>()
+for (const record of DEMO_CROWD_DATA) {
+  const key = `${record.stationId}|${record.dayType}`
+  const list = DEMO_INDEX.get(key)
+  if (list) list.push(record)
+  else DEMO_INDEX.set(key, [record])
+}
+
+/**
+ * The reading for a station at a time: the station's reading nearest in time on the same
+ * day type, accepted only within SLOT_WINDOW_MINUTES. With the full hourly table every
+ * station in the network always has one; a station with no records at all (or a custom,
+ * sparse `records` set — the window rule was written for those) gets undefined.
+ */
+export function findDemoCrowdRecord(
+  stationId: string,
+  when = new Date(),
+  records: DemoCrowdRecord[] = DEMO_CROWD_DATA,
+): DemoCrowdRecord | undefined {
   const dayType = currentDayType(when)
   const nowMinutes = when.getHours() * 60 + when.getMinutes()
+  const candidates = records === DEMO_CROWD_DATA ? (DEMO_INDEX.get(`${stationId}|${dayType}`) ?? []) : records
   let best: DemoCrowdRecord | undefined
   let bestGap = Infinity
-  for (const record of DEMO_CROWD_DATA) {
+  for (const record of candidates) {
     if (record.stationId !== stationId || record.dayType !== dayType) continue
     const gap = circularGapMinutes(nowMinutes, slotMinutes(record.timeSlot))
     if (gap < bestGap) {
@@ -64,17 +85,6 @@ export function findDemoCrowdRecord(stationId: string, when = new Date()): DemoC
     }
   }
   return bestGap <= SLOT_WINDOW_MINUTES ? best : undefined
-}
-
-function routeStationNames(route: MultimodalRoute) {
-  const names = new Set<string>()
-  for (const segment of route.segments) {
-    if (segment.mode === "metro" || segment.mode === "bus") {
-      names.add(segment.from.name)
-      names.add(segment.to.name)
-    }
-  }
-  return [...names]
 }
 
 /**
@@ -89,6 +99,29 @@ function resolveStationId(name: string): string | undefined {
     METRO_STATIONS.find((s) => s.name.toLowerCase() === normalized)?.id ??
     BUS_STOPS.find((s) => s.name.toLowerCase() === normalized)?.id
   )
+}
+
+function maxLevel(levels: Array<CrowdLevel | undefined>): CrowdLevel | undefined {
+  let best: CrowdLevel | undefined
+  for (const level of levels) {
+    if (level && (!best || LEVEL_SCORE[level] > LEVEL_SCORE[best])) best = level
+  }
+  return best
+}
+
+/**
+ * Maps the 70/30 blend of recent reports and the historical baseline (a score from 1 to 3) to a
+ * level. Plain rounding put the cut-offs at 1.5 and 2.5, which meant reports could never move
+ * a station more than one step away from its baseline when the baseline is at an extreme:
+ * two HIGH reports over a LOW baseline blend to 2.4 and rounded to MEDIUM. With a full hourly
+ * baseline that case is common, so the cut-offs are 1.6 and 2.4: unanimous reports always win,
+ * while mixed reports still pull the result only part of the way.
+ */
+export function blendedLevel(score: number): CrowdLevel {
+  const EPS = 1e-9
+  if (score <= 1.6 + EPS) return "LOW"
+  if (score >= 2.4 - EPS) return "HIGH"
+  return "MEDIUM"
 }
 
 function estimateLevel(levels: CrowdLevel[]) {
@@ -130,7 +163,7 @@ function buildEstimate(
     const DEMO_WEIGHT = 0.3
     const recentAvgScore = recentLevels.reduce((sum, level) => sum + LEVEL_SCORE[level], 0) / recentLevels.length
     const blendedScore = recentAvgScore * RECENT_WEIGHT + LEVEL_SCORE[demo.crowdLevel] * DEMO_WEIGHT
-    const level = SCORE_LEVEL[Math.round(blendedScore)]
+    const level = blendedLevel(blendedScore)
     return {
       stationId,
       stationName: resolvedName,
@@ -226,54 +259,115 @@ export const crowdService = {
     return { recent, demo }
   },
 
+  /**
+   * Crowd for a whole route, worked out leg by leg. Each metro and bus leg is checked where the
+   * rider boards and where they get off, at the time they will actually be there (the departure
+   * time plus the time spent on the earlier legs), and a bus leg also takes the crowd on board
+   * that bus route at that hour. A leg's crowd is its worst point; the route's crowd is its most
+   * crowded leg — one packed station is not averaged away by quiet ones. A route with no metro or
+   * bus leg (walk/auto only) has no transit crowd at all.
+   */
   async routeSummary(route: MultimodalRoute, when = new Date()): Promise<RouteCrowdSummary> {
-    const names = routeStationNames(route)
-    const resolved = names.map((name) => ({
-      name,
-      stationId: resolveStationId(name) ?? DEMO_CROWD_DATA.find((r) => r.stationName === name)?.stationId ?? name,
-    }))
+    interface Visit { name: string; stationId: string; time: Date }
+    interface RawLeg { segment: RouteSegment; board: Visit; alight: Visit }
 
-    // Phase 11 (P8) fix — one CrowdReport query covering every station on
-    // this route, instead of stationEstimate() issuing its own query per
-    // station (N+1: up to 4 stations x up to 4 candidate routes per request).
-    // Same match predicate as stationEstimate()'s single-station query
-    // (stationId OR stationName), just evaluated in memory per station
-    // against this one batch instead of a separate round trip each.
-    const reportsByStationId = new Map<string, Array<{ crowdLevel: CrowdLevel; stationName: string }>>()
-    if (mongoose.connection.readyState === 1 && resolved.length > 0 && reportsApplyTo(when)) {
-      const since = new Date(Date.now() - RECENT_REPORT_WINDOW_MS)
-      const ids = resolved.map((r) => r.stationId)
-      const allRecent = await CrowdReport.find({
-        $or: [{ stationId: { $in: ids } }, { stationName: { $in: names } }],
-        reportedAt: { $gte: since },
-        status: "accepted",
-      }).sort({ reportedAt: -1 })
+    const rawLegs: RawLeg[] = []
+    let elapsedSeconds = 0
+    for (const segment of route.segments) {
+      const start = new Date(when.getTime() + elapsedSeconds * 1000)
+      elapsedSeconds += segment.durationSeconds
+      const end = new Date(when.getTime() + elapsedSeconds * 1000)
+      if (segment.mode !== "metro" && segment.mode !== "bus") continue
+      const idOf = (name: string) =>
+        resolveStationId(name) ?? DEMO_CROWD_DATA.find((r) => r.stationName === name)?.stationId ?? name
+      rawLegs.push({
+        segment,
+        board: { name: segment.from.name, stationId: idOf(segment.from.name), time: start },
+        alight: { name: segment.to.name, stationId: idOf(segment.to.name), time: end },
+      })
+    }
 
-      for (const { name, stationId } of resolved) {
-        const matches = allRecent
-          .filter((r) => r.stationId === stationId || r.stationName === name)
-          .slice(0, 5)
-          .map((r) => ({ crowdLevel: r.crowdLevel, stationName: r.stationName }))
-        reportsByStationId.set(stationId, matches)
+    if (rawLegs.length === 0) {
+      return {
+        level: "LOW",
+        source: "NOT_APPLICABLE",
+        summary: "No metro or bus leg on this route, so there is no transit crowding to worry about.",
+        stations: [],
+        legs: [],
       }
     }
 
-    const estimates = resolved.map(({ name, stationId }) => {
-      const matches = reportsByStationId.get(stationId) ?? []
-      return buildEstimate(stationId, name, matches.map((m) => m.crowdLevel), matches[0]?.stationName, when)
+    // One CrowdReport query covering every stop on the route (not one per stop), evaluated
+    // in memory per stop — and only if some visit is close enough to "now" for reports to matter.
+    const visits = rawLegs.flatMap((leg) => [leg.board, leg.alight])
+    const reports: Array<{ stationId: string; stationName: string; crowdLevel: CrowdLevel }> = []
+    if (mongoose.connection.readyState === 1 && visits.some((v) => reportsApplyTo(v.time))) {
+      const since = new Date(Date.now() - RECENT_REPORT_WINDOW_MS)
+      const found = await CrowdReport.find({
+        $or: [{ stationId: { $in: visits.map((v) => v.stationId) } }, { stationName: { $in: visits.map((v) => v.name) } }],
+        reportedAt: { $gte: since },
+        status: "accepted",
+      }).sort({ reportedAt: -1 })
+      for (const r of found) reports.push({ stationId: r.stationId, stationName: r.stationName, crowdLevel: r.crowdLevel })
+    }
+
+    const estimateVisit = (visit: Visit): CrowdStationEstimate => {
+      const matches = reportsApplyTo(visit.time)
+        ? reports.filter((r) => r.stationId === visit.stationId || r.stationName === visit.name).slice(0, 5)
+        : []
+      return buildEstimate(visit.stationId, visit.name, matches.map((m) => m.crowdLevel), matches[0]?.stationName, visit.time)
+    }
+
+    const stations: CrowdStationEstimate[] = []
+    const legs: LegCrowd[] = rawLegs.map(({ segment, board, alight }) => {
+      const boardEstimate = estimateVisit(board)
+      const alightEstimate = estimateVisit(alight)
+      for (const estimate of [boardEstimate, alightEstimate]) {
+        if (!stations.some((s) => s.stationId === estimate.stationId)) stations.push(estimate)
+      }
+
+      let onboardLevel: CrowdLevel | undefined
+      let label = segment.transitDetails?.lineName ?? "Metro"
+      if (segment.mode === "bus") {
+        const number = segment.transitDetails?.routeNumber
+        label = number ? `Bus ${number}` : "Bus"
+        const busRoute = BUS_ROUTES.find((r) => r.number === number)
+        if (busRoute) onboardLevel = busRouteCrowdLevel(busRoute.id, currentDayType(board.time), board.time.getHours())
+      }
+
+      const level = maxLevel([boardEstimate.crowdLevel, alightEstimate.crowdLevel, onboardLevel])
+      const source: LegCrowd["source"] = [boardEstimate, alightEstimate].some((e) => e.source === "RECENT_USER_REPORT")
+        ? "RECENT_USER_REPORT"
+        : level ? "DEMO_DATA" : "UNAVAILABLE"
+      return {
+        segmentId: segment.id,
+        mode: segment.mode as "metro" | "bus",
+        label,
+        from: segment.from.name,
+        to: segment.to.name,
+        level,
+        source,
+        boardLevel: boardEstimate.crowdLevel,
+        alightLevel: alightEstimate.crowdLevel,
+        onboardLevel,
+      }
     })
-    const levels = estimates.map((e) => e.crowdLevel).filter((level): level is CrowdLevel => Boolean(level))
-    const level = estimateLevel(levels)
-    const source = estimates.some((e) => e.source === "RECENT_USER_REPORT")
+
+    const level = maxLevel(legs.map((leg) => leg.level))
+    const worst = level ? legs.find((leg) => leg.level === level) : undefined
+    const source = legs.some((leg) => leg.source === "RECENT_USER_REPORT")
       ? "RECENT_USER_REPORT"
-      : estimates.some((e) => e.source === "DEMO_DATA")
+      : legs.some((leg) => leg.source === "DEMO_DATA")
         ? "DEMO_DATA"
         : "UNAVAILABLE"
     return {
       level,
       source,
-      summary: level ? `${level} crowd estimate for key transit points.` : "Crowd information unavailable.",
-      stations: estimates,
+      summary: level && worst
+        ? `${level} crowd on the most crowded leg (${worst.label}: ${worst.from} → ${worst.to}).`
+        : "Crowd information unavailable.",
+      stations,
+      legs,
     }
   },
 }

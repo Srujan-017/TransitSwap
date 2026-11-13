@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { ChevronDown, ChevronUp, FlaskConical } from "lucide-react"
-import type { MultimodalRoute, MultimodalMode, RouteSegment } from "../../types/multimodal"
+import type { MultimodalRoute, MultimodalMode, RouteSegment, LegCrowd } from "../../types/multimodal"
 import { formatDuration, formatDistance } from "../../utils/formatters"
 
 interface Props {
@@ -40,7 +40,27 @@ const MODE_DOT: Record<MultimodalMode, string> = {
   auto:    "bg-orange-500",
 }
 
-function SegmentRow({ seg, profile }: { seg: RouteSegment; profile?: string }) {
+const CROWD_CHIP: Record<string, string> = {
+  LOW: "bg-emerald-100 text-emerald-800",
+  MEDIUM: "bg-amber-100 text-amber-800",
+  HIGH: "bg-red-100 text-red-800",
+}
+
+// Crowd on a metro/bus leg. The level is always spelled out ("Crowd: HIGH"), never colour alone.
+function CrowdChip({ crowd, onColor = false }: { crowd?: LegCrowd; onColor?: boolean }) {
+  if (!crowd || !crowd.level) return null
+  const tone = onColor ? "bg-white text-navy-900" : CROWD_CHIP[crowd.level]
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}
+      title={`Boarding ${crowd.boardLevel ?? "unknown"}, getting off ${crowd.alightLevel ?? "unknown"}${crowd.onboardLevel ? `, on board ${crowd.onboardLevel}` : ""} (demo data)`}
+    >
+      Crowd: {crowd.level}
+    </span>
+  )
+}
+
+function SegmentRow({ seg, profile, crowd }: { seg: RouteSegment; profile?: string; crowd?: LegCrowd }) {
   const durationMin = Math.ceil(seg.durationSeconds / 60)
   const isWheelchairWalk = seg.mode === "walking" && profile === "wheelchair"
   const isTransitDeparture = (seg.mode === "bus" || seg.mode === "metro") && seg.transitDetails?.routeNumber
@@ -65,6 +85,9 @@ function SegmentRow({ seg, profile }: { seg: RouteSegment; profile?: string }) {
           </div>
           <span className="text-xs font-semibold text-white/90 whitespace-nowrap flex-shrink-0">{formatDuration(durationMin)}</span>
         </div>
+        {crowd?.level && (
+          <div className="pl-[2.9rem]"><CrowdChip crowd={crowd} onColor /></div>
+        )}
         <p className="text-xs text-white/90 pl-[2.9rem]">
           {seg.transitDetails.estimatedBoardingTime ? (
             <>
@@ -113,6 +136,7 @@ function SegmentRow({ seg, profile }: { seg: RouteSegment; profile?: string }) {
             {seg.transitDetails.lineName}
           </span>
         )}
+        <CrowdChip crowd={crowd} />
       </div>
 
       {seg.transitDetails && (seg.mode === "bus" || seg.mode === "metro") && (
@@ -186,7 +210,7 @@ export default function SegmentTimeline({ route, profile }: Props) {
               {i < route.segments.length - 1 && (
                 <div className="absolute left-[22px] top-full w-0.5 h-2 bg-navy-200 z-10" />
               )}
-              <SegmentRow seg={seg} profile={profile} />
+              <SegmentRow seg={seg} profile={profile} crowd={route.crowd?.legs?.find((leg) => leg.segmentId === seg.id)} />
             </div>
           ))}
         </div>

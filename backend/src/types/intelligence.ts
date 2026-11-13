@@ -3,7 +3,7 @@ import type { MultimodalRoute, RouteSegment } from "./multimodal"
 
 export type AccessibilityStatus = "accessible" | "partially_accessible" | "not_accessible" | "unknown"
 export type CrowdLevel = "LOW" | "MEDIUM" | "HIGH"
-export type DataSource = "LIVE_USER_REPORT" | "RECENT_USER_REPORT" | "HISTORICAL_DATA" | "DEMO_DATA" | "UNAVAILABLE"
+export type DataSource = "LIVE_USER_REPORT" | "RECENT_USER_REPORT" | "HISTORICAL_DATA" | "DEMO_DATA" | "UNAVAILABLE" | "NOT_APPLICABLE"
 export type WeatherImpactLevel = "low" | "medium" | "high" | "unavailable"
 
 export interface WeatherData {
@@ -105,11 +105,28 @@ export interface CrowdStationEstimate {
   summary: string
 }
 
+// Crowd on one metro or bus leg: the worse of boarding and getting off (and, for a bus,
+// the crowd on board that route at that hour), at the time the rider reaches the leg.
+export interface LegCrowd {
+  segmentId: string
+  mode: "metro" | "bus"
+  label: string // line name, or "Bus 5"
+  from: string
+  to: string
+  level?: CrowdLevel
+  source: DataSource
+  boardLevel?: CrowdLevel
+  alightLevel?: CrowdLevel
+  onboardLevel?: CrowdLevel
+}
+
 export interface RouteCrowdSummary {
   level?: CrowdLevel
   source: DataSource
   summary: string
   stations: CrowdStationEstimate[]
+  // Per metro/bus leg; the route's level is the most crowded leg.
+  legs?: LegCrowd[]
 }
 
 export interface ReliabilityAnalysis {

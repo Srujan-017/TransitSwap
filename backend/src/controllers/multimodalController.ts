@@ -179,12 +179,20 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
       if (route.accessibility) {
         route.accessibility.blocked = true
         route.accessibility.accessibilityScore = 0
-        // Name the crowded stations so the rider (and the exclusion list) can see which ones.
-        const crowded = (route.crowd?.stations ?? [])
-          .filter((s) => s.crowdLevel === "HIGH")
-          .map((s) => s.stationName)
+        // Name the crowded legs (and stations) so the rider and the exclusion list can see which.
+        const crowdedLegs = (route.crowd?.legs ?? [])
+          .filter((leg) => leg.level === "HIGH")
+          .map((leg) => `${leg.label} from ${leg.from} to ${leg.to}`)
+        const crowdedStations = (route.crowd?.stations ?? [])
+          .filter((st) => st.crowdLevel === "HIGH")
+          .map((st) => st.stationName)
+        const crowded = crowdedStations.length
+          ? `HIGH-crowd station ${crowdedStations.join(", ")}`
+          : crowdedLegs.length
+            ? `a HIGH-crowd leg (${crowdedLegs.join("; ")})`
+            : "a HIGH-crowd station"
         route.accessibility.rejectionReason =
-          `Route excluded: passes through ${crowded.length ? `HIGH-crowd station ${crowded.join(", ")}` : "a HIGH-crowd station"}, unsuitable for your selected profile.`
+          `Route excluded: passes through ${crowded}, unsuitable for your selected profile.`
         route.accessibility.summary = route.accessibility.rejectionReason
         route.accessibility.blockedReasonType = "crowd"
         excludedRoutes.push(toExcludedSummary(route, route.accessibility))

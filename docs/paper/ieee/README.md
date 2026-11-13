@@ -37,6 +37,14 @@ python scripts/make_figures.py                                             # nee
 
 No network or database is needed: the experiments use the backend's demo mode, an offline road-leg model, a seeded OD sample and a pinned clock, so every number comes out identical on each run except the timings.
 
+**Important — the paper is pinned to the code at commit `3f36ef6`.** After that commit the application gained a complete hourly crowd model (every station, every hour), per-leg crowd, profile-aware routing with door-to-door autos, a larger bus network and weather rules (see `FEATURE_UPGRADE_PLAN.md`). The experiment scripts call the production services, so running them on a later commit gives different numbers from the ones in the paper. To reproduce the paper exactly:
+
+```
+git checkout 3f36ef6
+```
+
+and run the commands above. The paper's limitations section already states that the experiment uses the sparse 14-station crowd table; the newer behaviour is described in the application documentation, not re-evaluated here.
+
 ## References
 
 Every reference is dated 2023–2026. Twenty-four are peer-reviewed journal articles; each one's authors, volume, issue, pages and year were taken from the Crossref registry by DOI and cross-checked in OpenAlex. The remaining one is the GTFS standard (accessed Nov. 2026), which has no journal equivalent. The UN Convention on the Rights of Persons with Disabilities and India's RPwD Act 2016 are discussed through recent peer-reviewed analyses of them (references 2–4) rather than cited as 2006/2016 documents. DOIs are kept in `references.bib` (`doi` field, which the IEEE style file does not print) and listed here so anyone can check them:

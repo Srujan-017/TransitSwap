@@ -53,6 +53,7 @@ function sourceLabel(source?: string) {
   if (source === "LIVE_USER_REPORT") return "User report"
   if (source === "DEMO_DATA") return "Demo data"
   if (source === "HISTORICAL_DATA") return "Historical data"
+  if (source === "NOT_APPLICABLE") return "No metro or bus leg"
   return "Unavailable"
 }
 
@@ -396,7 +397,7 @@ export default function MultimodalResults({
 
         <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <Users className="w-4 h-4 text-amber-600" /> Station Crowd
+            <Users className="w-4 h-4 text-amber-600" /> Crowd on this route
           </div>
           <Badge variant={selected.crowd?.level === "LOW" ? "success" : selected.crowd?.level === "HIGH" ? "danger" : "warning"}>
             {selected.crowd?.level ?? "Unavailable"}
@@ -404,11 +405,18 @@ export default function MultimodalResults({
           <p className="text-xs text-navy-500">{selected.crowd?.summary}</p>
           <p className="text-[11px] text-navy-400">{sourceLabel(selected.crowd?.source)}</p>
           <div className="space-y-1">
-            {crowdStations.slice(0, 2).map((station) => (
-              <p key={station.stationId} className="text-[11px] text-navy-500">
-                {station.stationName}: {station.crowdLevel ?? "unknown"} ({sourceLabel(station.source)})
-              </p>
-            ))}
+            {selected.crowd?.legs && selected.crowd.legs.length > 0
+              ? selected.crowd.legs.map((leg) => (
+                  <p key={leg.segmentId} className="text-[11px] text-navy-500">
+                    <span className="font-semibold text-navy-700">{leg.label}</span> {leg.from} → {leg.to}:{" "}
+                    <span className="font-semibold">{leg.level ?? "unknown"}</span>
+                  </p>
+                ))
+              : crowdStations.slice(0, 2).map((station) => (
+                  <p key={station.stationId} className="text-[11px] text-navy-500">
+                    {station.stationName}: {station.crowdLevel ?? "unknown"} ({sourceLabel(station.source)})
+                  </p>
+                ))}
           </div>
         </div>
       </div>
