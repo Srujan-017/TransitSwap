@@ -1,0 +1,37 @@
+<svg viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif">
+  <rect width="980" height="620" fill="white" />
+  <rect x="15" y="40" width="110" height="34" fill="#0f172a" rx="4" />
+      <text x="70" y="54" text-anchor="middle" font-size="9" font-weight="bold" fill="white">Commuter</text>
+      <text x="70" y="66" text-anchor="middle" font-size="8" fill="#bae6fd"></text>
+      <line x1="70" y1="74" x2="70" y2="580" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="3 3" /><rect x="165" y="40" width="110" height="34" fill="#0f172a" rx="4" />
+      <text x="220" y="54" text-anchor="middle" font-size="9" font-weight="bold" fill="white">PlanTripPage</text>
+      <text x="220" y="66" text-anchor="middle" font-size="8" fill="#bae6fd">(Frontend)</text>
+      <line x1="220" y1="74" x2="220" y2="580" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="3 3" /><rect x="335" y="40" width="110" height="34" fill="#0f172a" rx="4" />
+      <text x="390" y="54" text-anchor="middle" font-size="9" font-weight="bold" fill="white">multimodal</text>
+      <text x="390" y="66" text-anchor="middle" font-size="8" fill="#bae6fd">Controller</text>
+      <line x1="390" y1="74" x2="390" y2="580" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="3 3" /><rect x="485" y="40" width="110" height="34" fill="#0f172a" rx="4" />
+      <text x="540" y="54" text-anchor="middle" font-size="9" font-weight="bold" fill="white">multimodal</text>
+      <text x="540" y="66" text-anchor="middle" font-size="8" fill="#bae6fd">Service</text>
+      <line x1="540" y1="74" x2="540" y2="580" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="3 3" /><rect x="615" y="40" width="110" height="34" fill="#0f172a" rx="4" />
+      <text x="670" y="54" text-anchor="middle" font-size="9" font-weight="bold" fill="white">accessibility /</text>
+      <text x="670" y="66" text-anchor="middle" font-size="8" fill="#bae6fd">crowd / weather /</text>
+      <line x1="670" y1="74" x2="670" y2="580" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="3 3" /><rect x="785" y="40" width="110" height="34" fill="#0f172a" rx="4" />
+      <text x="840" y="54" text-anchor="middle" font-size="9" font-weight="bold" fill="white">mlPreference</text>
+      <text x="840" y="66" text-anchor="middle" font-size="8" fill="#bae6fd">Service</text>
+      <line x1="840" y1="74" x2="840" y2="580" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="3 3" /><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#0f172a" /></marker></defs><line x1="70" y1="100" x2="214" y2="100" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="145" y="95" text-anchor="middle" font-size="9" fill="#0f172a">Enter origin, destination, profile</text><line x1="220" y1="138" x2="384" y2="138" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="305" y="133" text-anchor="middle" font-size="9" fill="#0f172a">POST /routes/multimodal</text><line x1="390" y1="176" x2="534" y2="176" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="465" y="171" text-anchor="middle" font-size="9" fill="#0f172a">generateRoutes(request)</text><line x1="540" y1="214" x2="546" y2="214" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="540" y="209" text-anchor="middle" font-size="9" fill="#0f172a">graph search + 4 fixed patterns → Pareto filter</text><line x1="540" y1="252" x2="396" y2="252" stroke="#0f172a" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrow)" />
+      <text x="465" y="247" text-anchor="middle" font-size="9" fill="#0f172a">candidate routes[]</text><line x1="390" y1="290" x2="664" y2="290" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="530" y="285" text-anchor="middle" font-size="9" fill="#0f172a">filterRoutes(routes, profile)</text><line x1="670" y1="328" x2="676" y2="328" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="670" y="323" text-anchor="middle" font-size="9" fill="#0f172a">hard accessibility filter (per profile)</text><line x1="670" y1="366" x2="396" y2="366" stroke="#0f172a" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrow)" />
+      <text x="530" y="361" text-anchor="middle" font-size="9" fill="#0f172a">accessible routes[]</text><line x1="390" y1="404" x2="664" y2="404" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="530" y="399" text-anchor="middle" font-size="9" fill="#0f172a">enrich: weather + crowd + reliability</text><line x1="670" y1="442" x2="396" y2="442" stroke="#0f172a" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrow)" />
+      <text x="530" y="437" text-anchor="middle" font-size="9" fill="#0f172a">enriched routes[]</text><line x1="390" y1="480" x2="834" y2="480" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="615" y="475" text-anchor="middle" font-size="9" fill="#0f172a">getModelStatus(userId, profile) + rankRoutes()</text><line x1="840" y1="518" x2="846" y2="518" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="840" y="513" text-anchor="middle" font-size="9" fill="#0f172a">profile weights ± learned weights (floored)</text><line x1="840" y1="556" x2="396" y2="556" stroke="#0f172a" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrow)" />
+      <text x="615" y="551" text-anchor="middle" font-size="9" fill="#0f172a">ranked routes + transitDnaScore</text><line x1="390" y1="594" x2="226" y2="594" stroke="#0f172a" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrow)" />
+      <text x="305" y="589" text-anchor="middle" font-size="9" fill="#0f172a">{success, data: rankedRoutes}</text><line x1="220" y1="632" x2="76" y2="632" stroke="#0f172a" stroke-width="1.2"  marker-end="url(#arrow)" />
+      <text x="145" y="627" text-anchor="middle" font-size="9" fill="#0f172a">Map + ranked route cards + Why Recommended</text>
+  </svg>

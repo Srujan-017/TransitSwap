@@ -1,0 +1,270 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% Compile with: pdflatex -> bibtex -> pdflatex -> pdflatex (Overleaf does this automatically).
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+\usepackage{xcolor}
+
+\begin{document}
+
+\title{TransitSwap: Inclusive Multimodal Journey Planning with Profile-Specific Hard Accessibility Constraints}
+
+% Five author blocks: IEEEtran wraps them as three on the first row and two on the second.
+\author{
+\IEEEauthorblockN{Srujan V}
+\IEEEauthorblockA{\textit{Information Science and Engineering} \\
+\textit{Don Bosco Institute of Technology}\\
+Bengaluru, India \\
+vsrujan480@gmail.com}
+\and
+\IEEEauthorblockN{AL Abhishek}
+\IEEEauthorblockA{\textit{Information Science and Engineering} \\
+\textit{Don Bosco Institute of Technology}\\
+Bengaluru, India \\
+abhishek.db23is001@gmail.com}
+\and
+\IEEEauthorblockN{Shreyas M}
+\IEEEauthorblockA{\textit{Information Science and Engineering} \\
+\textit{Don Bosco Institute of Technology}\\
+Bengaluru, India \\
+shreyasmganiga@gmail.com}
+\and
+\IEEEauthorblockN{B Anand}
+\IEEEauthorblockA{\textit{Information Science and Engineering} \\
+\textit{Don Bosco Institute of Technology}\\
+Bengaluru, India \\
+b.anandvalmiki01@gmail.com}
+\and
+\IEEEauthorblockN{Swathi B Patil}
+\IEEEauthorblockA{\textit{Assistant Professor} \\
+\textit{Information Science and Engineering} \\
+\textit{Don Bosco Institute of Technology}\\
+Bengaluru, India}
+}
+
+\maketitle
+
+\begin{abstract}
+Mainstream journey planners optimise travel time and treat accessibility, if at all, as a soft preference or a single trip-level flag, so a rider who cannot climb stairs may still be shown a journey that is physically impossible for them. We present TransitSwap, a multimodal (metro, bus, auto-rickshaw and walking) journey planner that enforces accessibility as profile-specific hard constraints for seven mobility profiles---standard, wheelchair, senior, pregnant, stroller, heavy luggage and reduced mobility---over station infrastructure, walking/rolling distance and crowding, and only then ranks the remaining routes with a profile-weighted, optionally personalised multi-criteria scorer. Each excluded route carries a typed, human-readable reason, and incomplete station data are surfaced as warnings rather than silently assumed accessible. We evaluate the deployed pipeline on 520 origin--destination pairs over a synthetic Bengaluru demonstration network (41 metro stations, 24 bus stops). Under infrastructure constraints alone, a shortest-time planner recommends a route that a wheelchair user cannot complete on 35.6\% of trips; 19.2\% of trips have no step-free route at all, and on every one of them both the shortest-time planner and a soft-scoring planner using identical features silently return an unusable journey. Hard constraints remove both failure modes at a median detour of 5.7~min for the 17.4\% of feasible trips that need one, add under 0.3~ms per query (90th percentile), and expose interchange lifts as single points of failure: one lift outage at the main interchange disconnects 15.7\% of wheelchair-feasible trips.
+\end{abstract}
+
+\begin{IEEEkeywords}
+accessible routing, inclusive mobility, multimodal journey planning, hard constraints, public transport, wheelchair navigation, explainable recommendation
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Public transport is how millions of urban residents reach work, education and care, but not every rider can use every route. More than 1.3 billion people worldwide live with disabilities~\cite{elorduy2025burgos}. The UN Convention on the Rights of Persons with Disabilities was the first major human-rights treaty with a dedicated accessibility provision, its Article~9, and treats accessibility as a precondition for full participation in society~\cite{ferri2025embodied,bose2025socialaudit}. In India, the Rights of Persons with Disabilities Act, 2016 mandates accessibility across public and private buildings~\cite{bose2025socialaudit}, yet fragmented governance and weak accountability still hold back inclusive urban development~\cite{gupta2026governing}, even as Indian cities rapidly build new metro systems~\cite{kuriakose2025metro}. Problems in using public transport are among the main causes of social exclusion for people with disabilities~\cite{elorduy2025review}, and many older adults also find public transport difficult to use~\cite{gu2024older}. Beyond permanent disability, many riders are constrained situationally: pregnant women, parents pushing strollers and travellers with heavy luggage also meet stairs, missing lifts, long walks and crowded platforms.
+
+Journey planners rarely model these constraints faithfully. Timetable routing algorithms optimise arrival time and transfers~\cite{agarwal2024tbtr,grossmann2026flash}; where accessibility is supported, it is usually reduced to a tri-state wheelchair flag per stop or trip in the General Transit Feed Specification (GTFS)~\cite{gtfs}, or added as one more weighted cost term. A weighted term is a preference, not a guarantee: a sufficiently faster or cheaper route can outscore an accessible one, and when no accessible route exists a ranker still returns its best---unusable---candidate. Wheelchair users pay a large time penalty to reach the same opportunities over the same network~\cite{hernandez2023wheelchair}, step-free access is far from universal even in major metro systems~\cite{moran2026stairway,arai2026elevator}, and disruptions make accessibility change over time~\cite{liu2024disruptions}.
+
+We argue that feasibility and preference should be separated: requirements a rider cannot trade away must act as hard constraints applied \emph{before} ranking, and every exclusion must be explainable. Our contributions are:
+\begin{itemize}
+\item a profile-specific constraint model for seven mobility profiles over station infrastructure, walking/rolling distance and crowding, evaluated where a rider boards, alights or transfers, with open-world handling of missing data and a typed reason for every excluded route (Sections~\ref{sec:problem}--\ref{sec:system});
+\item TransitSwap, an open-source, end-to-end multimodal planner for Bengaluru that applies these constraints ahead of a profile-floored, optionally personalised ranker and provides an Accessibility Check panel, voice-guided navigation and an operator console for live lift-status updates (Section~\ref{sec:system});
+\item a reproducible evaluation on 520 origin--destination (OD) pairs quantifying how often shortest-time and soft-scoring policies recommend infeasible routes, the travel-time price of accessibility and network-wide lift-outage criticality, with infrastructure constraints separated from a data-sensitive crowd constraint (Sections~\ref{sec:setup}--\ref{sec:results}).
+\end{itemize}
+
+\section{Related Work}\label{sec:related}
+
+\textit{Journey planning.} Trip-based and round-based (RAPTOR-family) algorithms compute Pareto-optimal timetable journeys over arrival time and transfers on country-scale networks~\cite{agarwal2024tbtr,grossmann2026flash}. Open-source stacks combine such algorithms with OpenStreetMap network data~\cite{acharya2025osm} and road routers such as OSRM. Accessibility typically comes from GTFS, whose stop- and trip-level wheelchair fields encode only ``unknown'', ``possible'' or ``not possible''~\cite{gtfs}: no stairs, ramps, lift state or user-specific thresholds.
+
+\textit{Accessible routing.} Recent work personalises pedestrian routing for wheelchair users: Naghdizadegan Jahromi et al.\ weight sidewalk segments by length and each user's capabilities~\cite{naghdizadegan2025sidewalk}, Majic et al.\ identify the OpenStreetMap tags that matter for wheelchair navigation~\cite{majic2026osm}, and Özdemir builds an accessible-route mobile application for a historic city centre~\cite{ozdemir2025routes}. For transit, Moran et al.\ survey stairs and entrance-to-platform paths at 85 New York subway stations~\cite{moran2026stairway}, and Arai et al.\ show that wheelchair users' platform travel times in Tokyo are more than twice those of pedestrians and depend on elevator placement~\cite{arai2026elevator}. These efforts address the pedestrian network, station data or infrastructure planning; they neither plan multimodal transit journeys across several mobility profiles nor guarantee that recommendations respect a profile's limits.
+
+\textit{Crowding, reliability and personalisation.} Riders attach a real cost to crowding~\cite{fedujwar2024crowding} and change where they wait when given real-time crowding information~\cite{leprevost2026crowding}; travel-time reliability also shapes route choice~\cite{zhu2025reliability}. Both are usually folded into a generalised cost. Recent journey planners personalise criterion weights for each traveller, some inferring them from observed choices~\cite{bayliss2025maas,mandzuka2026preference}, and pairwise learning to rank such as RankNet~\cite{koppel2025ranknet} fits ``chosen over rejected'' route pairs naturally. Explanations aim to increase transparency and trust in recommenders, although their effect depends on the user~\cite{wardatzky2025explanations}. TransitSwap uses these ideas strictly downstream of feasibility: preferences may reorder accessible routes but never re-admit an inaccessible one.
+
+\section{Problem Formulation}\label{sec:problem}
+
+A query consists of an origin $o$, a destination $d$ and a mobility profile $p \in P$, where $P = \{$standard, wheelchair, senior, pregnant, stroller, luggage, reduced mobility$\}$. A candidate generator returns routes $\mathcal{R}(o,d)$; each route $r$ is a sequence of walk, metro, bus or auto-rickshaw legs with duration $T(r)$, fare $C(r)$, walking distance $W(r)$ and transfer count $K(r)$. Let $S(r)$ be the stations at which the rider boards, alights or transfers; stations passed on board are excluded because their entrances are never used. Each station $s$ has attributes $\mathbf{a}_s$---lift, ramp, escalator, step-free entrance and platform, wheelchair accessibility, stair count and overall status---where every Boolean attribute takes a value in $\{\mathrm{true}, \mathrm{false}, \mathrm{unknown}\}$.
+
+A route is \emph{feasible} for profile $p$ if and only if
+\begin{equation}
+\begin{split}
+F_p(r) = {} & \bigl[\forall s \in S(r){:}\ \neg g_p(\mathbf{a}_s)\bigr] \\
+& \wedge \bigl[W(r) \le W^{\max}_{p}\bigr] \\
+& \wedge \bigl[p \notin P_c \vee c(r) \ne \mathrm{HIGH}\bigr],
+\end{split}
+\label{eq:feasible}
+\end{equation}
+where $g_p$ is the profile's station blocking predicate (Table~\ref{tab:rules}), $W^{\max}_{p}$ is a walking/rolling cap (1,200~m for wheelchair, stroller and reduced mobility, unbounded otherwise), $P_c$ is the set of crowd-sensitive profiles and $c(r) \in \{\mathrm{LOW}, \mathrm{MEDIUM}, \mathrm{HIGH}\}$ is the route's aggregate crowd level. Predicates test only explicit negatives (\emph{false} or \emph{not accessible}); an unknown attribute never blocks a route but produces a warning, an open-world choice discussed in Section~\ref{sec:discussion}.
+
+Let $\mathcal{R}_p = \{r \in \mathcal{R} : F_p(r)\}$. If $\mathcal{R}_p \neq \emptyset$ the planner returns $\mathcal{R}_p$ ordered by a profile score $S_p(r)$; otherwise it returns an explicit infeasibility outcome. In both cases every $r \in \mathcal{R} \setminus \mathcal{R}_p$ keeps a reason $\rho(r)$ whose type is \emph{station}, \emph{walking} or \emph{crowd}. Soft scoring, by contrast, ranks all of $\mathcal{R}$ with an accessibility term inside the score: no weighting guarantees that its top route satisfies~\eqref{eq:feasible}, and when $\mathcal{R}_p = \emptyset$ it still returns an infeasible route.
+
+\begin{table}[t]
+\caption{Hard Constraints per Mobility Profile}
+\label{tab:rules}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{1.45cm}>{\raggedright\arraybackslash}p{4.35cm}cc@{}}
+\toprule
+Profile & Blocks the route if a visited station\ldots & Cap & Crowd \\
+\midrule
+Standard & --- & --- & --- \\
+Wheelchair & is not accessible; or is not wheelchair accessible; or has stairs with neither lift nor ramp; or lacks step-free entrance, lift and ramp; or has a non-step-free platform; or has stairs and a ramp but no lift or confirmed step-free platform & 1.2~km & \checkmark \\
+Stroller & is not accessible; or has $>$20 stairs with neither lift nor ramp & 1.2~km & \checkmark \\
+Reduced mobility & is not accessible; or has $>$15 stairs and no step-free entrance, lift or ramp & 1.2~km & --- \\
+Senior, pregnant, luggage & is not accessible and has $>$35 stairs & --- & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{System Design}\label{sec:system}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig1_pipeline.pdf}
+\caption{TransitSwap pipeline. Hard constraints (blue) act before ranking; the crowd rule runs after enrichment because crowd estimates are computed per candidate. Every exclusion keeps a typed reason.}
+\label{fig:pipeline}
+\end{figure*}
+
+Fig.~\ref{fig:pipeline} summarises the pipeline. TransitSwap is a React/TypeScript web client backed by an Express/TypeScript API and MongoDB; without a database the backend degrades to seeded demonstration data, the mode used in our experiments.
+
+\subsection{Candidate Generation}
+Candidates come from four fixed journey patterns (e.g., walk--metro--walk, walk--metro--auto) and from a bounded multi-criteria label search over a stop graph with in-vehicle edges along each metro line and bus route, walking transfers up to 600~m and auto-rickshaw egress legs of 0.5--8~km. The search is capped at six hops, three transfers, 1,500 iterations and a 300-label queue, returning at most eight candidates; an exact Pareto filter over $(T, C, W, K)$ is then applied to the union. Stations are reachable within 2~km (metro) or 1.2~km (bus) of each endpoint, road legs use OSRM over OpenStreetMap~\cite{acharya2025osm}, and waits derive from each line's headway. The search trades completeness for guaranteed termination and is not a RAPTOR or trip-based implementation~\cite{agarwal2024tbtr,grossmann2026flash}.
+
+\subsection{Infrastructure Constraints}
+The predicates in Table~\ref{tab:rules} are deliberately graded, from strict for wheelchair users to permissive for senior, pregnant and luggage riders, who otherwise rely on warnings and ranking weights. Each surviving route also receives a transparent 0--100 accessibility score (points for step-free entrance and platform, lift, ramp, escalator, tactile paving, few stairs and accessible toilets; unknown values earn partial credit) adjusted for stairs, walking and transfers. An operator console edits station records; marking a lift \emph{broken} sets the lift and wheelchair-access attributes to false and the status to \emph{not accessible}, which takes effect on the next query.
+
+\subsection{Crowd Constraint}
+A per-station estimate blends recent rider reports (70\%) with a historical table (30\%). The table reading used is the station's reading nearest in time on the same day type, accepted only within two hours of the time of travel; if none qualifies there is no historical estimate, and a missing estimate never blocks a route. The route level $c(r)$ is the rounded mean over the stations in $S(r)$ that have data. Because estimates exist only after enrichment, the crowd rule runs as a second filter (Fig.~\ref{fig:pipeline}) for the wheelchair, senior, pregnant, stroller and luggage profiles; reduced mobility is exempt, and for other profiles a HIGH estimate yields a warning only.
+
+\subsection{Ranking}
+Each feasible route maps to nine features in $[0,1]$: time, fare, walking, reliability, accessibility, crowding, weather, missed-connection risk and transfers. Lower-is-better quantities use relative min--max normalisation over the candidate set with a minimum spread $\delta$ (10~min, INR~20, 500~m or one transfer):
+\begin{equation}
+\tilde{x}(r) = \mathrm{clip}\!\left(1 - \frac{x(r) - \min_{\mathcal{R}} x}{\max\bigl(\max_{\mathcal{R}} x - \min_{\mathcal{R}} x,\ \delta\bigr)},\ 0,\ 1\right).
+\label{eq:norm}
+\end{equation}
+The score is $S_p(r) = \sum_k w_{p,k}\,\tilde{x}_k(r)$ with profile presets that emphasise what each group cares about (e.g., accessibility weight 0.50 for wheelchair users, walking weight 0.35 for pregnant riders). Once at least five pairwise comparisons have been recorded from a user's route choices, weights are personalised by pairwise logistic regression on feature differences $\Delta\mathbf{x} = \mathbf{x}_i - \mathbf{x}_j$ between chosen and rejected routes,
+\begin{equation}
+P(i \succ j) = \sigma\bigl(\mathbf{w}^{\top}\Delta\mathbf{x}\bigr),
+\label{eq:pairwise}
+\end{equation}
+trained by batch gradient descent with $L_2$ regularisation and non-negative weights, in the spirit of pairwise learning to rank~\cite{koppel2025ranknet}. A profile floor then raises the crowding, walking and accessibility weights back to at least the profile preset, so personalisation can sharpen but never dilute a profile's safety-relevant sensitivity. Ranking only ever sees $\mathcal{R}_p$.
+
+\subsection{Interface and Explanations}
+The recommended route carries an \emph{Accessibility Check} panel listing its aggregate status, per-station status, warnings (e.g., unverified lift data, stair counts, rolling distance above 700~m, HIGH crowding) and data source. Plain-language ``why recommended'' tags appear only when the underlying claim is verified against the candidate set~\cite{wardatzky2025explanations}. When $\mathcal{R}_p = \emptyset$ the rider receives an explicit ``no accessible route'' response for the selected profile instead of an unsuitable journey. A voice-guided navigation mode narrates each leg with the Web Speech API and adapts its phrasing to the profile (``wheel toward'' for wheelchair users).
+
+\section{Experimental Setup}\label{sec:setup}
+
+\textit{Network and data.} We use TransitSwap's seeded Bengaluru demonstration network: three metro lines with 41 stations and two interchanges (Majestic and RV Road), ten bus routes with 24 stops, and 65 station accessibility records (29 accessible, 27 partially accessible, 6 not accessible, 3 unknown). Station names are real, but coordinates are approximate and all accessibility, crowd and timetable attributes are synthetic; no station was surveyed. The historical crowd table holds 16 records for 14 stations. Under Table~\ref{tab:rules}, 12 stations restrict wheelchair users, 6 restrict stroller and reduced-mobility users and 2 restrict senior, pregnant and luggage users.
+
+\textit{OD pairs.} We combine the system's 22 curated benchmark scenarios, spanning all three lines, both interchanges and bus-only and mixed-mode corridors, with 500 pairs sampled uniformly without replacement (fixed seed) from ordered station/stop pairs at least 2~km apart; each endpoint is displaced 150--400~m at a random bearing so trips start at an address rather than a platform. Of the 522 pairs, 520 yield at least one candidate (2,147 candidates; median four per pair).
+
+\textit{Policies.} \emph{Time} selects the fastest candidate, as a time-optimising planner would. \emph{Soft} ranks all candidates with TransitSwap's own profile weights and features; infeasible candidates keep their worst-case accessibility score of zero but remain eligible, a deliberately strong soft baseline. \emph{Hard} (TransitSwap) applies~\eqref{eq:feasible} and then ranks $\mathcal{R}_p$. We report two constraint variants: \emph{infrastructure} (station rule and walking cap) and \emph{deployed} (adding the crowd rule) at a weekday 08:30 peak and 14:30 off-peak.
+
+\textit{Metrics.} The \emph{infeasible-recommendation rate} is the share of OD pairs whose recommended route violates~\eqref{eq:feasible}, split into \emph{avoidable} cases (a feasible route existed) and \emph{silent failures} ($\mathcal{R}_p = \emptyset$). We also report the share of pairs with no feasible route (Wilson 95\% intervals), the \emph{price of accessibility} (extra minutes of the fastest feasible route over the fastest route), the completeness of exclusion reasons and per-query cost. For lift criticality we apply the operator's \emph{lift broken} transformation to each of the 35 lift-equipped stations in turn and count wheelchair-feasible pairs that become disconnected or whose recommendation changes.
+
+\textit{Implementation.} Experiments call the production services in their deployed order, use a deterministic offline road-leg model (great-circle distance $\times$1.2) instead of live OSRM, run without a database, and pin the system clock because crowd estimates depend on the time of day. They ran on a laptop (AMD Ryzen~5 7520U, 8~GB RAM, Node.js~20); scripts in the repository regenerate every number, table and figure, identically apart from timings.
+
+\section{Results}\label{sec:results}
+
+\begin{table}[t]
+\caption{Worked Example: Wheelchair Query from an Address near Hoodi Metro to One near Trinity Metro}
+\label{tab:example}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}c>{\raggedright\arraybackslash}p{1.75cm}rr>{\raggedright\arraybackslash}p{3.62cm}@{}}
+\toprule
+ & Transit legs & Min & Roll (m) & Outcome and engine reason (verbatim) \\
+\midrule
+A & metro Hoodi--Indiranagar, then auto & 23 & 346 & Excluded, station: ``Indiranagar Metro is explicitly not wheelchair accessible.'' \\
+B & metro Hoodi--Trinity & 25 & 568 & Excluded, station: ``Trinity Metro is marked not accessible.'' \\
+C & metro Hoodi--Halasuru & 44 & 2,275 & Excluded, walking: ``This route requires 2275m of walking/rolling, exceeding the 1200m limit for this profile.'' \\
+D & metro Hoodi--MG Road, then auto & 27 & 346 & Recommended; all visited stations accessible \\
+\bottomrule
+\multicolumn{5}{@{}p{0.97\columnwidth}@{}}{\scriptsize Walks to and from the stations are included in the times but not listed. A time-optimal planner returns A. Under the crowd rule at the 08:30 peak, D is also excluded (MG Road's historical crowd record is HIGH) and the rider receives an explicit ``no accessible route'' response.}
+\end{tabular}
+\end{table}
+
+\subsection{Worked Example}
+Table~\ref{tab:example} shows one evaluation query with the engine's verbatim reasons. The fastest candidate (A) alights at Indiranagar, which is not wheelchair accessible, and the direct route (B) alights at Trinity, which is marked not accessible; a third candidate (C) would require 2.3~km of rolling. TransitSwap recommends D, which rides past both stations to MG Road, an accessible station, and completes the trip by auto-rickshaw only four minutes slower than A---the route a time-optimal planner would have returned. Because pass-through stations are never constrained, this kind of ``ride past and double back'' alternative is found automatically.
+
+\begin{table}[t]
+\caption{Infeasible Recommendations under Infrastructure Constraints ($n = 520$ OD Pairs)}
+\label{tab:violations}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+ & Excl. & No & \multicolumn{3}{c}{Infeasible recommendation, \%} \\
+\cmidrule(l){4-6}
+Profile & cand.\ \% & route \% & Time (a/s) & Soft (a/s) & Hard \\
+\midrule
+Wheelchair & 55.4 & 19.2 & 35.6 (85/100) & 19.2 (0/100) & 0 \\
+Stroller & 42.7 & 9.0 & 17.3 (43/47) & 9.0 (0/47) & 0 \\
+Reduced mob. & 42.7 & 9.0 & 17.3 (43/47) & 9.0 (0/47) & 0 \\
+Senior & 7.7 & 1.3 & 3.7 (12/7) & 2.9 (8/7) & 0 \\
+Pregnant & 7.7 & 1.3 & 3.7 (12/7) & 3.1 (9/7) & 0 \\
+Luggage & 7.7 & 1.3 & 3.7 (12/7) & 2.1 (4/7) & 0 \\
+Standard & 0.0 & 0.0 & 0.0 (0/0) & 0.0 (0/0) & 0 \\
+\bottomrule
+\multicolumn{6}{@{}p{0.97\columnwidth}@{}}{\scriptsize a/s: number of OD pairs with an avoidable violation (a feasible route existed) / a silent failure (no feasible route existed). Weekday 08:30; at 14:30 only Soft differs, for senior (2.5), pregnant (2.7) and luggage (1.9) riders.}
+\end{tabular}
+\end{table}
+
+\subsection{Infeasible Recommendations}
+Table~\ref{tab:violations} reports infrastructure-constraint results. A time-optimising planner recommends a route that a wheelchair user cannot complete on 35.6\% of trips (95\% CI 31.6--39.8\%): 85 of these 185 cases are avoidable---an accessible route existed but was slower---and 100 are silent failures on the 19.2\% of trips with no step-free route at all. The soft scorer avoids every avoidable case for wheelchair, stroller and reduced-mobility users, whose presets weight accessibility heavily (0.35--0.50), yet fails silently on every trip without a feasible route. For senior, pregnant and luggage users, whose accessibility weights are lower (0.20--0.30), it also makes 4--9 avoidable errors. The hard policy makes no infeasible recommendation by construction, and our replication of the deployed controller confirmed zero violations in every profile--trip evaluation. All 1,189 wheelchair exclusions (55.4\% of candidates) carried a typed, non-empty reason naming the violating station and attribute or the excess distance.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig2_infeasible.pdf}
+\caption{Share of OD pairs with no feasible route ($n=520$). Senior, pregnant and luggage profiles share identical rules and are shown as one row; the standard profile is never constrained (0\%).}
+\label{fig:infeasible}
+\end{figure}
+
+\subsection{Effect of the Crowd Constraint}
+Adding the crowd rule (Fig.~\ref{fig:infeasible}) has no effect at 14:30, when only two stations have readings and both are MEDIUM, but at the 08:30 peak it raises the share of trips without a feasible route from 19.2\% to 41.5\% for wheelchair users and from 1.3\% to 17.9\% for senior, pregnant and luggage users, for whom 86\% of peak-hour exclusions are crowd-driven; reduced-mobility users, exempt from the rule, are unaffected. The size of this effect reflects data rather than behaviour: the crowd table holds one or two readings for each of only 14 stations. Under the deployed constraints soft scoring also degrades: avoidable violations rise to 27.6\% of feasible wheelchair trips at peak for the time policy and to 10.2\% for the soft scorer. The crowd rule further interacts with the absence of a walking cap for seniors: at peak, the 90th-percentile walking distance of their recommendations rises by about half, from 972~m to 1,425~m, as crowded transit options disappear.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig3_detours.pdf}
+\caption{Price of accessibility under infrastructure constraints: extra time of the fastest feasible route over the fastest route, for trips where it is positive. Boxes show quartiles, whiskers the 5th--95th percentiles, dots individual trips.}
+\label{fig:detours}
+\end{figure}
+
+\subsection{Price of Accessibility}
+Hard constraints seldom cost much time (Fig.~\ref{fig:detours}). Under infrastructure constraints, 17.4\% of wheelchair trips with a feasible route need a slower route than the fastest overall, with a median penalty of 5.7~min (interquartile range 3.5--9.6~min, 90th percentile 18.6~min); averaged over all feasible wheelchair trips the penalty is 1.8~min. Stroller and reduced-mobility users need a detour on 8.2\% of trips (median 4.9~min) and senior, pregnant and luggage users on 2.3\% (median 9.6~min). Feasible routes are not longer to roll: wheelchair recommendations have a median rolling distance of 435~m and never exceed the 1.2~km cap.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig4_lifts.pdf}
+\caption{Lift-outage criticality: wheelchair-feasible trips disconnected or rerouted when a single station's lift is marked broken (infrastructure constraints, top 10 of 35 lift-equipped stations).}
+\label{fig:lifts}
+\end{figure}
+
+\subsection{Lift-Outage Criticality}
+Fig.~\ref{fig:lifts} ranks stations by the wheelchair trips that a single lift outage disconnects. Thirty of the 35 lift-equipped stations affect at least one trip, but impact is concentrated: both interchanges top the ranking, an outage at Majestic disconnecting 66 of 420 wheelchair-feasible trips (15.7\%) and rerouting 56 more, and one at RV Road disconnecting 52 (12.4\%). The five most critical stations account for 41.7\% of all single-outage disconnections. Such a ranking can prioritise lift maintenance, outage communication and new lift placement~\cite{arai2026elevator}, and because station updates affect the next query, the same computation can run continuously on live disruption feeds~\cite{liu2024disruptions}.
+
+\subsection{Transparency and Cost}
+Every exclusion in every condition carried a typed, human-readable reason (all 166--1,649 exclusions per constrained profile and condition). The open-world policy keeps uncertainty visible: 28.6\% of wheelchair recommendations carry an ``unverified lift'' or ``incomplete data'' warning, against about 8\% for other profiles. Accessibility evaluation takes a median of 0.03--0.06~ms per query (90th percentile at most 0.28~ms) against 10.5~ms for candidate generation, and the full 22-scenario benchmark runs at 11~ms (median) and 13~ms (95th percentile) per scenario. For the unconstrained standard profile the ranker agrees with the shortest-time choice on 95\% of curated scenarios, and zeroing any single non-time feature changes the top route on 9--27\% of them: for unconstrained riders TransitSwap behaves much like a time-optimal planner, so the differences above stem from the constraints.
+
+\section{Discussion and Limitations}\label{sec:discussion}
+
+\textit{Hard versus soft.} A well-tuned soft scorer often finds an accessible route when one exists, but its correctness rests on weight calibration that personalisation may erode, and it degrades as constraints multiply. When no accessible route exists any scorer still returns something; only an explicit feasibility check can answer ``none''.
+
+\textit{Validity of the rules.} The thresholds in Table~\ref{tab:rules} (1.2~km; 15, 20 and 35 stairs) are design assumptions, not clinically validated limits, and should be set with disability organisations and, ideally, per rider. The wheelchair rule blocks a station whose platform is recorded as not step-free, and does not accept a ramp in place of a lift where stairs remain, but it relies on the recorded attributes being right; the senior, pregnant and luggage rules are permissive and rely on warnings. Constraints are evaluated at boarding, alighting and transfer stations, so sidewalk barriers between stops, the focus of pedestrian routing work~\cite{naghdizadegan2025sidewalk,majic2026osm,ozdemir2025routes}, are not modelled. Treating unknown attributes as non-blocking avoids discarding most routes on incomplete data but can admit an inaccessible station; TransitSwap warns instead, and a stricter opt-in policy is straightforward.
+
+\textit{Data.} All accessibility, crowd and timetable data are synthetic and coordinates approximate, so absolute rates are not statements about Bengaluru's real network. The crowd results depend on a sparse table (one or two readings for each of 14 stations, so the rule is inactive outside the hours around those readings); we therefore report crowd effects separately and regard the crowd rule as a policy that should be opt-in and backed by real occupancy data. Travel times use an offline road model rather than live routing.
+
+\textit{No user study.} We evaluated algorithmic behaviour, not user experience. Participatory evaluation with disabled riders, older adults and caregivers is the most important next step, together with real GTFS feeds and station pathway data and validating thresholds with the people they protect.
+
+\section{Conclusion}\label{sec:conclusion}
+
+TransitSwap shows that accessibility requirements can be enforced as hard, explainable constraints in a multimodal journey planner at negligible computational cost. On 520 trips over a demonstration network, a time-optimal planner would send wheelchair users down an unusable route on more than a third of trips, and both time-optimal and soft-scoring planners fail silently whenever no accessible route exists. Hard constraints eliminate both failure modes, usually at a detour of a few minutes, and the same machinery identifies interchange lifts as single points of failure. The source code and the scripts that regenerate every number and figure in this paper are openly available at \url{https://github.com/Srujan-017/TransitSwap}.
+
+\section*{Acknowledgment}
+
+The authors thank the Department of Information Science and Engineering, Don Bosco Institute of Technology, Bengaluru, for its support and facilities. \emph{Use of generative AI:} an AI assistant (Claude, Anthropic) was used to help develop the software, run and analyse the experiments, and draft and edit this manuscript and its figures; the authors reviewed and verified all content and take full responsibility for the paper.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

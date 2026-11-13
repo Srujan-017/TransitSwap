@@ -54,7 +54,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="relative z-10">
-          <p className="text-navy-500 text-xs">© 2025 TransitSwap · Urban Mobility Intelligence</p>
+          <p className="text-navy-500 text-xs">© {new Date().getFullYear()} TransitSwap · Urban Mobility Intelligence</p>
         </div>
       </div>
 

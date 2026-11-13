@@ -207,7 +207,10 @@ export default function ActiveNavigationView({ route, origin, destination, profi
         <div className="flex items-center gap-2">
           <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-full bg-navy-50 text-xs font-medium text-navy-500">
             <Compass className="w-3.5 h-3.5 flex-shrink-0" />
-            {nav.isTrackingLive ? (
+            {nav.isComplete ? (
+              // Tracking has stopped on arrival; "Location unavailable — use Next step" would be wrong here.
+              <span>You have arrived — tap Done to finish</span>
+            ) : nav.isTrackingLive ? (
               <span className="flex items-center gap-1 text-emerald-600">
                 <MapPin className="w-3 h-3" /> Following your location
               </span>

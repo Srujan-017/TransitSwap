@@ -1,0 +1,43 @@
+<svg viewBox="0 0 760 600" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif">
+  <rect width="760" height="600" fill="white" />
+  <rect x="150" y="60" width="460" height="500" rx="12" fill="none" stroke="#e2e8f0" stroke-width="1.5" /><text x="380" y="50" text-anchor="middle" font-size="11" fill="#64748b">TransitSwap</text>
+    <circle cx="50" cy="220" r="10" fill="white" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="50" y1="230" x2="50" y2="258" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="36" y1="240" x2="64" y2="240" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="50" y1="258" x2="38" y2="278" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="50" y1="258" x2="62" y2="278" stroke="#0f172a" stroke-width="1.5" />
+    <text x="50" y="292" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f172a">Commuter</text>
+    <circle cx="50" cy="420" r="10" fill="white" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="50" y1="430" x2="50" y2="458" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="36" y1="440" x2="64" y2="440" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="50" y1="458" x2="38" y2="478" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="50" y1="458" x2="62" y2="478" stroke="#0f172a" stroke-width="1.5" />
+    <text x="50" y="492" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f172a">Registered
+User</text>
+    <circle cx="700" cy="160" r="10" fill="white" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="700" y1="170" x2="700" y2="198" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="686" y1="180" x2="714" y2="180" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="700" y1="198" x2="688" y2="218" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="700" y1="198" x2="712" y2="218" stroke="#0f172a" stroke-width="1.5" />
+    <text x="700" y="232" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f172a">Admin</text>
+    <circle cx="700" cy="420" r="10" fill="white" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="700" y1="430" x2="700" y2="458" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="686" y1="440" x2="714" y2="440" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="700" y1="458" x2="688" y2="478" stroke="#0f172a" stroke-width="1.5" />
+    <line x1="700" y1="458" x2="712" y2="478" stroke="#0f172a" stroke-width="1.5" />
+    <text x="700" y="492" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f172a">Researcher</text><ellipse cx="300" cy="100" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="300" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="300" y="98">Search &amp;</tspan><tspan x="300" y="110">Plan Route</tspan></text><ellipse cx="470" cy="100" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="470" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="470" y="98">Select Accessibility</tspan><tspan x="470" y="110">Profile</tspan></text><ellipse cx="300" cy="170" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="300" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="300" y="168">View Route</tspan><tspan x="300" y="180">Explanation</tspan></text><ellipse cx="470" cy="170" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="470" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="470" y="168">View Map &amp;</tspan><tspan x="470" y="180">Step-by-Step</tspan></text><ellipse cx="300" cy="240" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="300" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="300" y="244">Register / Login</tspan></text><ellipse cx="470" cy="240" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="470" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="470" y="238">Save Journey /</tspan><tspan x="470" y="250">Route / Place</tspan></text><ellipse cx="300" cy="310" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="300" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="300" y="308">View Dashboard</tspan><tspan x="300" y="320">&amp; History</tspan></text><ellipse cx="470" cy="310" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="470" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="470" y="308">Submit Crowd</tspan><tspan x="470" y="320">Report</tspan></text><ellipse cx="300" cy="380" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="300" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="300" y="378">Submit Accessibility</tspan><tspan x="300" y="390">Report</tspan></text><ellipse cx="470" cy="380" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="470" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="470" y="378">Give Route</tspan><tspan x="470" y="390">Feedback</tspan></text><ellipse cx="300" cy="450" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="300" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="300" y="448">Set Travel</tspan><tspan x="300" y="460">Preferences</tspan></text><ellipse cx="470" cy="450" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="470" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="470" y="448">Manage Station</tspan><tspan x="470" y="460">Accessibility</tspan></text><ellipse cx="300" cy="520" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="300" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="300" y="518">Review Accessibility</tspan><tspan x="300" y="530">Reports</tspan></text><ellipse cx="470" cy="520" rx="75" ry="32" fill="white" stroke="#0f172a" stroke-width="1.3" />
+    <text x="470" text-anchor="middle" font-size="10.5" fill="#0f172a"><tspan x="470" y="518">View Evaluation</tspan><tspan x="470" y="530">&amp; Benchmark</tspan></text><line x1="60" y1="220" x2="225" y2="100" stroke="#64748b" stroke-width="1" /><line x1="60" y1="230" x2="225" y2="170" stroke="#64748b" stroke-width="1" /><line x1="60" y1="245" x2="225" y2="240" stroke="#64748b" stroke-width="1" /><line x1="60" y1="420" x2="225" y2="310" stroke="#64748b" stroke-width="1" /><line x1="60" y1="420" x2="225" y2="380" stroke="#64748b" stroke-width="1" /><line x1="60" y1="420" x2="225" y2="450" stroke="#64748b" stroke-width="1" /><line x1="60" y1="420" x2="395" y2="240" stroke="#64748b" stroke-width="1" /><line x1="60" y1="420" x2="395" y2="100" stroke="#64748b" stroke-width="1" /><line x1="690" y1="160" x2="395" y2="450" stroke="#64748b" stroke-width="1" /><line x1="690" y1="160" x2="395" y2="520" stroke="#64748b" stroke-width="1" /><line x1="690" y1="420" x2="545" y2="520" stroke="#64748b" stroke-width="1" /><line x1="395" y1="100" x2="545" y2="100" stroke="#64748b" stroke-width="1" /><text x="380" y="35" text-anchor="middle" font-size="9" fill="#64748b">&lt;&lt;extend&gt;&gt;</text>
+  </svg>

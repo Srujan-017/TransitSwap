@@ -4,6 +4,9 @@
 
 TransitSwap is a full-stack, AI-assisted urban mobility web application built as a final-year engineering project. It helps commuters choose the **smartest, safest, most reliable, and most accessible** journey — not simply the shortest route — by evaluating multiple real-world factors simultaneously.
 
+**Live demo:** frontend <https://transit-swap.vercel.app> · backend health <https://transitswap-backend.onrender.com/api/health> (the free backend host sleeps when idle; the first request can take ~30 s).
+**Status:** CI (GitHub Actions) runs type-checking, the production build, 29 backend test files and 35 frontend tests on every push. The user interface was scanned with axe-core against WCAG 2.1 A/AA with no remaining violations on the main screens. All transit, accessibility and crowd data are **synthetic demonstration data** (see §16 and §19).
+
 ---
 
 ## Table of Contents
@@ -103,7 +106,7 @@ The Transit Intelligence Engine runs the following pipeline on every route reque
 | 7. Monte Carlo risk | `reliabilityService` | 1,000-trial empirical-resampling missed-connection % — computed and displayed, but not currently one of the ranking engine's input features (see §13) |
 | 8. Smart departure | `reliabilityService` | Optimal departure offset suggestion |
 | 9. Last-mile options | `reliabilityService` | Walk / Auto / Bike final-leg choices |
-| 10. TransitDNA scoring | `transitDnaService` / `mlPreferenceService` | Weighted-linear composite score 0–100 over 7 features; weights are either a profile preset or a per-user trained Pairwise Logistic Regression model |
+| 10. TransitDNA scoring | `transitDnaService` / `mlPreferenceService` | Weighted-linear composite score 0–100 over 9 features; weights are either a profile preset or a per-user trained Pairwise Logistic Regression model |
 | 11. Explainability | `transitDnaService` | Human-readable recommendation reasons, each checked against the actual candidate set before being shown |
 
 ---
@@ -132,6 +135,13 @@ The Transit Intelligence Engine runs the following pipeline on every route reque
 | 18 | Explainable AI — "Why Recommended?" rationale cards |
 | 19 | Journey feedback UI with star ratings + TransitDNA preference learning |
 | 20 | Full QA, TypeScript 0-error build, README documentation |
+| 21 | Hard accessibility constraints: 1,200 m walking/rolling cap (wheelchair, stroller, reduced mobility) and a HIGH-crowd rule (wheelchair, senior, pregnant, stroller, luggage), with a typed, human-readable reason for every excluded route |
+| 22 | Graph-search candidate generation, 9-feature ranker (adds missed-connection risk and transfers), valid pairwise learning with a held-out evaluation |
+| 23 | Voice-guided turn-by-turn navigation for a selected journey (Web Speech API), manual "Next step" always available |
+| 24 | Bus route numbers, boarding times and direction; map layers, fullscreen, locate-me and click-for-address |
+| 25 | Research page: ML status for the user's profile, route-ranking benchmark vs 5 baselines with ablation and latency, prediction-interval coverage |
+| 26 | Admin console: station accessibility and lift status, crowd-report moderation, community accessibility reports |
+| 27 | Accessibility audit of the app itself (axe-core, WCAG 2.1 A/AA) and a GitHub Actions CI pipeline |
 
 ---
 
@@ -163,7 +173,7 @@ The Transit Intelligence Engine runs the following pipeline on every route reque
 ### Algorithms (custom implementations)
 | Algorithm | Purpose |
 |-----------|---------|
-| Multi-criteria weighted-linear scoring (7 features) | Route ranking across time, cost, walking, reliability, accessibility, crowd, weather |
+| Multi-criteria weighted-linear scoring (9 features) | Route ranking across time, cost, walking, reliability, accessibility, crowd, weather, missed-connection risk, transfers |
 | Pairwise Logistic Regression (batch gradient descent) | Learns a per-user weight vector from recorded route choices, feeding the scoring above |
 | Empirical-resampling Monte Carlo (1,000 trials) | Transfer connection failure risk estimation — resamples directly from stored historical delay observations, not a parametric distribution |
 | Sample mean / standard deviation with hierarchical fallback | Data-driven 90%/95% arrival prediction intervals, refusing to report a confidence level without enough observations |
@@ -427,21 +437,21 @@ TransitDNA is TransitSwap's personalized mobility preference system. It combines
 
 ### How It Works
 
-1. **7-dimensional feature vector**: every candidate route is normalized (relative min-max across the candidate set) into `[time, cost, walking, reliability, accessibility, crowd, weather]`, each in `[0, 1]` where 1.0 is best.
+1. **9-dimensional feature vector**: every candidate route is normalized (relative min-max across the candidate set) into `[time, cost, walking, reliability, accessibility, crowd, weather, connectionRisk, transfers]`, each in `[0, 1]` where 1.0 is best.
 
 2. **Cold start**: before a user has enough data, scoring uses a fixed profile-preset weight vector (e.g. the `wheelchair` profile weights accessibility at 0.50; `fastest` weights time at 0.60 — see `mlPreferenceService.getProfileWeights`), adjusted by that user's explicit preferences.
 
 3. **Recording a choice**: when a user saves a journey, the chosen route and its rejected alternatives are converted into pairwise feature-difference samples (`chosen_features − rejected_features`) and stored.
 
-4. **Training**: once a user has at least 5 recorded samples, a Pairwise Logistic Regression model is trained by batch gradient descent (learning rate 0.05, 200 iterations, L2 regularization 0.01) to predict `P(chosen ≻ rejected) = σ(w · Δfeatures)`. The trained 7-weight vector replaces the profile preset for that user's future route rankings.
+4. **Training**: once a user has at least 5 recorded samples, a Pairwise Logistic Regression model is trained by batch gradient descent (learning rate 0.05, 200 iterations, L2 regularization 0.01) to predict `P(chosen ≻ rejected) = σ(w · Δfeatures)`. The trained 9-weight vector replaces the profile preset for that user's future route rankings.
 
 5. **Scoring**: `compositeScore = round(100 × (w · features + preferred_mode_bonus))`, where `w` is either the trained model (once personalized) or the profile preset (otherwise).
 
 6. **Reset**: resetting TransitDNA from the Profile page clears the trained model and its training samples, returning that user to the profile-preset baseline.
 
-### Known limitation (tracked for a future phase)
+### Validity of the learning (fixed in Phase 8)
 
-The pairwise training samples currently only record the *chosen-over-rejected* direction (label = 1); the mirrored *rejected-over-chosen* (label = 0) pair is not yet recorded. This makes the training set single-class, so the model's reported training/test accuracy is not currently a meaningful metric. The ranking mechanism itself (scoring routes with the trained weight vector) still works and is covered by the test suite — this limitation affects how trustworthy the *reported accuracy numbers* are, not whether personalization runs at all.
+Every choice is stored as **both** a `chosen − rejected` sample (label 1) and its mirror (label 0), so the training set contains both classes; accuracy is reported only on a shuffled, stratified held-out split. On the synthetic benchmark (`GET /api/evaluation/ml`, shown on the Research page) the learned model scores about **87.5% against 91.7% for the rule-based baseline** — i.e. the learned model does *not* beat the hand-tuned rules on synthetic data. That is reported as measured, not tuned away; the contribution of the system is the constraint layer, the explanations and the evaluation method, not a claim that the learned model is better.
 
 ---
 
@@ -456,10 +466,17 @@ The accessibility engine (`accessibilityService.ts`) filters routes based on the
 | Profile | Requirement |
 |---------|------------|
 | `standard` / `fastest` / `cheapest` / `comfort` | No hard filtering — soft scoring only |
-| `wheelchair` | **Hard-blocked** if a station is marked not accessible, explicitly not wheelchair-accessible, or has stairs with no lift and no ramp |
+| `wheelchair` | **Hard-blocked** if a station is marked not accessible, explicitly not wheelchair-accessible, has stairs with no lift and no ramp, has a platform recorded as not step-free, or has stairs and only a ramp (no lift, platform not confirmed step-free) |
 | `senior` / `pregnant` / `luggage` | Hard-blocked only for extreme cases (marked not accessible AND >35 stairs); otherwise soft-scored on stairs, walking distance and transfers |
 | `stroller` | Hard-blocked if marked not accessible, or >20 stairs with no lift/ramp |
 | `reduced_mobility` | Hard-blocked if marked not accessible, or no step-free alternative with >15 stairs |
+
+Two further hard rules apply beyond the station checks:
+
+- **Walking/rolling cap** — wheelchair, stroller and reduced-mobility routes with more than **1,200 m** of walking/rolling are excluded.
+- **Crowd rule** — wheelchair, senior, pregnant, stroller and luggage routes through a station estimated **HIGH** crowd at the time of travel are excluded. Historical crowd readings are matched to the station's nearest reading on the same day type within 2 hours of the travel time; outside that window the crowd is "unavailable", and an unavailable estimate never excludes a route. User crowd reports (last 90 minutes) apply only to trips happening about now.
+
+Unknown (missing) attributes never exclude a route; they produce a warning instead. Every excluded route is returned with a typed reason (`station`, `walking_distance`, `crowd`), shown on the Plan Trip page ("N other routes were excluded for your profile — see why"; and, when none is left, which routes existed and why each was ruled out).
 
 Accessibility data is a **synthetic prototype dataset** (`backend/src/data/accessibilityData.ts` — the file's own header states "No stations were physically surveyed"), not a real survey. It is designed so a real field-surveyed or transit-authority dataset can replace it without changing the scoring/filtering logic above.
 
@@ -504,7 +521,7 @@ For routes with 1+ transfers (`reliabilityService.calculateMissedConnectionRisk`
 - `overallRiskPercent = missed_trials / 1000`.
 - A separate deterministic variant of the same calculation (no random sampling) is used only to rank Smart Departure candidate offsets against each other, so repeated requests for the same route always rank them the same way.
 
-This risk score is computed and shown to the user on every route, but — as of this phase — is **not yet one of the 7 features the ranking engine scores routes on** (see §11); it does not currently change which route is recommended first, even when a route's risk is very high.
+This risk score is shown on every route and is one of the 9 ranking features (as `connectionRisk = 1 − risk/100`, see §11), so a high-risk route is ranked lower, all else equal.
 
 ---
 
@@ -683,7 +700,7 @@ Actual captured run (`evaluationService.runEvaluation()`, OSRM unreachable so al
 
 **Q: What makes TransitSwap different from Google Maps?**
 
-> Google Maps primarily optimizes for travel time. TransitSwap scores candidate routes across 7 features — time, cost, walking distance, reliability, accessibility, crowd and weather — with per-mobility-profile hard accessibility constraints, and explains every recommendation in plain language, checked against the actual candidate set before being shown.
+> Google Maps primarily optimizes for travel time. TransitSwap scores candidate routes across 9 features — time, cost, walking distance, reliability, accessibility, crowd, weather, missed-connection risk and transfers — with per-mobility-profile hard accessibility constraints, and explains every recommendation in plain language, checked against the actual candidate set before being shown.
 
 **Q: How does the Monte Carlo simulation work?**
 
@@ -691,7 +708,7 @@ Actual captured run (`evaluationService.runEvaluation()`, OSRM unreachable so al
 
 **Q: How does TransitDNA learn user preferences?**
 
-> It trains a Pairwise Logistic Regression model per user: a user's chosen route and each rejected alternative become a 7-dimensional feature-difference sample, and once a user has 5+ samples, batch gradient descent (lr 0.05, 200 iterations, L2 regularization) fits a weight vector predicting which route they'll prefer. I'll also flag a real limitation: training currently only records the chosen-over-rejected direction, not the mirrored pair, so the model's *reported accuracy number* isn't meaningful yet — the ranking mechanism itself still works and is covered by tests, but I wouldn't defend the accuracy figure under questioning.
+> It trains a Pairwise Logistic Regression model per user: a user's chosen route and each rejected alternative become a 9-dimensional feature-difference sample, and once a user has 5+ samples, batch gradient descent (lr 0.05, 200 iterations, L2 regularization) fits a weight vector predicting which route they'll prefer. I'll also be upfront about the result: both directions of each choice are recorded and accuracy is measured on a held-out split, and on the synthetic benchmark the learned model (about 87.5%) does not beat the rule-based baseline (about 91.7%) — a real finding that I report rather than hide.
 
 **Q: What happens if MongoDB is down?**
 
@@ -727,6 +744,8 @@ The application includes the following main views:
 - **Plan Trip** — Multimodal route planner with Explainability cards, confidence intervals, Monte Carlo risk, smart departure, last-mile options
 - **History** — Saved journeys with star-rating feedback panel and TransitDNA learning trigger
 - **Profile** — Mobility profile editor, preference toggles, TransitDNA weight display and reset
+- **Research** — ML status for your profile, route-ranking benchmark vs 5 baselines (ablation, latency), prediction-interval coverage
+- **Journey navigation** — step-by-step, voice-guided navigation card with arrival estimate and next stop
 
 ---
 

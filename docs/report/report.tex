@@ -1,0 +1,1063 @@
+\documentclass[12pt,a4paper]{report}
+
+% ============================================================
+% PACKAGES
+% ============================================================
+\usepackage[a4paper,left=1.5in,right=1in,top=1in,bottom=1in]{geometry}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{setspace}
+\usepackage{xcolor}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{float}
+
+\definecolor{navy}{HTML}{0F172A}
+\definecolor{brand}{HTML}{0EA5E9}
+\definecolor{codebg}{HTML}{F8FAFC}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=navy,
+  citecolor=navy,
+  urlcolor=brand,
+  pdftitle={TransitSwap: A Transparent, Accessibility-Aware Multimodal Transit Route Planner},
+  pdfauthor={Srujan V, AL Abhishek, Shreyas M, B Anand}
+}
+
+% ---- Chapter / section heading style (centered bold caps, matching the reference) ----
+\titleformat{\chapter}[display]
+  {\centering\normalfont\bfseries\Large}
+  {\chaptertitlename\ \thechapter}{8pt}{\Large\uppercase}
+\titlespacing*{\chapter}{0pt}{-20pt}{30pt}
+\titleformat{\section}{\normalfont\bfseries\large}{\thesection}{8pt}{}
+\titleformat{\subsection}{\normalfont\bfseries\normalsize}{\thesubsection}{6pt}{}
+
+% ---- Header / footer, matching the reference's running-title + page-number style ----
+\setlength{\headheight}{15pt}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{1.2pt}
+\renewcommand{\footrulewidth}{0.6pt}
+\fancyhead[L]{\small\bfseries TransitSwap: A Transparent, Accessibility-Aware Multimodal Transit Route Planner}
+\fancyfoot[C]{\small\thepage}
+\fancyfoot[L]{\small 2025--26}
+
+\setstretch{1.25}
+\setlength{\cftbeforechapskip}{8pt}
+\renewcommand{\cftchapfont}{\bfseries}
+
+% ---- Listings style for pseudocode / real code excerpts ----
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  showstringspaces=false,
+  columns=flexible,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  xleftmargin=1.8em,
+}
+
+% ---- Placeholder figure box, used throughout Chapter 7 where the author will
+%      paste in real application screenshots before submission ----
+\newcommand{\screenshotplaceholder}[2]{%
+  \begin{figure}[H]
+    \centering
+    \fbox{\begin{minipage}[c][6cm][c]{0.85\textwidth}
+      \centering
+      \textit{\textcolor{gray}{[ Insert screenshot here: #2 ]}}
+    \end{minipage}}
+    \caption{#1}
+  \end{figure}
+}
+
+\begin{document}
+
+% ============================================================
+% TITLE PAGE
+% ============================================================
+\begin{titlepage}
+\begin{center}
+
+{\Large \textbf{<YOUR UNIVERSITY NAME HERE>}}\\[2pt]
+{\small ``<University motto / address>''}\\[30pt]
+
+{\large \textbf{PROJECT REPORT}}\\[4pt]
+On\\[10pt]
+
+{\Huge \textbf{TransitSwap}}\\[6pt]
+{\Large \textbf{A Transparent, Accessibility-Aware Multimodal}}\\
+{\Large \textbf{Transit Route Planner}}\\[20pt]
+
+{\normalsize Submitted in partial fulfillment of the requirements of the degree of}\\[6pt]
+{\large \textbf{BACHELOR OF ENGINEERING}}\\[4pt]
+in\\[4pt]
+{\large \textbf{Information Science and Engineering}}\\[6pt]
+{\normalsize For the academic year}\\
+{\normalsize 2025--2026}\\[24pt]
+
+{\normalsize Submitted By}\\[6pt]
+{\large \textbf{Srujan V}} \quad (\textbf{<USN>})\\
+{\large \textbf{AL Abhishek}} \quad (\textbf{<USN>})\\
+{\large \textbf{Shreyas M}} \quad (\textbf{<USN>})\\
+{\large \textbf{B Anand}} \quad (\textbf{<USN>})\\[20pt]
+
+{\normalsize Under the guidance of}\\[6pt]
+{\large \textbf{Swathi B Patil}}\\
+{\normalsize Assistant Professor, Dept. of Information Science and Engineering,}\\
+{\normalsize Don Bosco Institute of Technology}\\[30pt]
+
+{\large \textbf{DEPARTMENT OF INFORMATION SCIENCE AND ENGINEERING}}\\[4pt]
+{\large \textbf{DON BOSCO INSTITUTE OF TECHNOLOGY}}\\[2pt]
+{\normalsize <Affiliation line, e.g. An Autonomous Institute, Affiliated to University>}\\
+{\normalsize Bengaluru, Karnataka, India}\\
+
+\end{center}
+\end{titlepage}
+
+% ============================================================
+% CERTIFICATE
+% ============================================================
+\thispagestyle{empty}
+\begin{center}
+{\large \textbf{DON BOSCO INSTITUTE OF TECHNOLOGY}}\\
+{\small <Affiliation line>}\\
+{\small Bengaluru, Karnataka, India}\\[16pt]
+{\large \textbf{DEPARTMENT OF INFORMATION SCIENCE AND ENGINEERING}}\\[12pt]
+{\Large \textbf{CERTIFICATE}}
+\end{center}
+\vspace{10pt}
+\noindent
+Certified that the project work entitled \textbf{``TransitSwap: A Transparent, Accessibility-Aware
+Multimodal Transit Route Planner''} is a bonafide work carried out by \textbf{Srujan V, AL Abhishek, Shreyas M and B Anand},
+bearing \textbf{USNs <USN>, <USN>, <USN> and <USN>} respectively, bonafide students of \textbf{Don Bosco Institute of Technology}, in partial
+fulfillment for the award of the degree of Bachelor of Engineering in \textbf{Information Science and Engineering} of
+\textbf{<University Name>} during the academic year 2025--26. It is certified that all
+corrections/suggestions indicated during the internal assessment have been incorporated in the
+report deposited in the departmental library. The project report has been approved as it
+satisfies the academic requirements with respect to the project work prescribed for the said
+degree.
+
+\vspace{40pt}
+\noindent
+\begin{minipage}{0.3\textwidth}
+\centering
+Signature of the Guide\\[20pt]
+\textbf{Swathi B Patil}\\
+Assistant Professor
+\end{minipage}
+\hfill
+\begin{minipage}{0.3\textwidth}
+\centering
+Signature of the HOD\\[20pt]
+\textbf{<HOD Name>}\\
+Professor \& Head
+\end{minipage}
+\hfill
+\begin{minipage}{0.3\textwidth}
+\centering
+Signature of the Principal\\[20pt]
+\textbf{<Principal Name>}\\
+Principal
+\end{minipage}
+
+\vspace{30pt}
+\noindent
+\textbf{Name of the Examiners} \hfill \textbf{Signature with Date}\\[10pt]
+1. \underline{\hspace{12cm}}\\[8pt]
+2. \underline{\hspace{12cm}}
+
+\clearpage
+
+% ============================================================
+% DECLARATION
+% ============================================================
+\thispagestyle{empty}
+\begin{center}
+{\Large \textbf{DECLARATION}}
+\end{center}
+\vspace{10pt}
+\noindent
+We, \textbf{Srujan V, AL Abhishek, Shreyas M and B Anand}, final-year students of Bachelor of Engineering
+in \textbf{Information Science and Engineering}, \textbf{Don Bosco Institute of Technology}, hereby declare that the project work
+entitled \textbf{``TransitSwap: A Transparent, Accessibility-Aware Multimodal Transit Route
+Planner''} submitted to \textbf{<University Name>} during the academic year 2025--26 is a record
+of an original work done by us under the guidance of \textbf{Swathi B Patil}, \textbf{Assistant Professor},
+Department of \textbf{Information Science and Engineering}, \textbf{Don Bosco Institute of Technology}. This project work is submitted in
+partial fulfilment of the requirements for the award of the degree of Bachelor of Engineering in
+\textbf{Information Science and Engineering}. The results embodied in this project have not been submitted to any other
+University or Institute for the award of any degree.
+
+\vspace{30pt}
+\noindent
+\begin{tabular}{@{}lll@{}}
+\textbf{Name} & \textbf{USN} & \textbf{Signature} \\[8pt]
+Srujan V & <USN> & \underline{\hspace{4cm}} \\[6pt]
+AL Abhishek & <USN> & \underline{\hspace{4cm}} \\[6pt]
+Shreyas M & <USN> & \underline{\hspace{4cm}} \\[6pt]
+B Anand & <USN> & \underline{\hspace{4cm}} \\
+\end{tabular}
+
+\clearpage
+
+% ============================================================
+% ACKNOWLEDGEMENT
+% ============================================================
+\thispagestyle{empty}
+\begin{center}
+{\Large \textbf{ACKNOWLEDGEMENT}}
+\end{center}
+\vspace{10pt}
+\noindent
+The satisfaction and euphoria that accompany the successful completion of any task would be
+incomplete without the mention of the people who made it possible, whose constant guidance and
+encouragement crowned this effort with success.
+
+\vspace{8pt}\noindent
+We are grateful to our institution, \textbf{Don Bosco Institute of Technology}, for its ideals and inspiration, and for
+providing us with the facilities that made this project possible.
+
+\vspace{8pt}\noindent
+We sincerely thank \textbf{<Principal Name>}, Principal, \textbf{Don Bosco Institute of Technology}, for facilitating
+academic excellence and providing a congenial environment to work in.
+
+\vspace{8pt}\noindent
+We wish to extend our profound thanks to \textbf{<HOD Name>}, Professor \& Head, Department of
+\textbf{Information Science and Engineering}, for granting consent to carry out this project.
+
+\vspace{8pt}\noindent
+We express our sincere thanks to our guide, \textbf{Swathi B Patil}, \textbf{Assistant Professor}, Department
+of \textbf{Information Science and Engineering}, for the able guidance and valuable advice at every stage, which helped in
+the successful completion of this project.
+
+\vspace{8pt}\noindent
+I would like to thank all the teaching and non-teaching staff for their valuable advice and
+support, and we express our sincere thanks to our parents and friends for their continued
+encouragement.
+
+\vspace{30pt}
+\noindent Srujan V, AL Abhishek, Shreyas M, B Anand
+
+\clearpage
+
+% ============================================================
+% ABSTRACT
+% ============================================================
+\thispagestyle{empty}
+\begin{center}
+{\Large \textbf{ABSTRACT}}
+\end{center}
+\vspace{10pt}
+\noindent
+Mainstream navigation applications optimise a route almost entirely for travel time and expose
+little else to the commuter, and none of the major consumer tools let a rider express a genuine
+hard constraint such as ``this route must be step-free end to end'' -- accessibility, if offered at
+all, is only ever a soft preference that a faster option can silently override. \textbf{TransitSwap}
+is a prototype multimodal journey planner built to close that gap. It ranks every candidate journey
+on nine normalised features -- time, cost, walking distance, reliability, accessibility, crowding,
+weather, missed-connection risk and transfer count -- using a linear scorer whose weights are
+learned per user from recorded pairwise route choices via a pairwise logistic regression, with
+profile-specific presets for seven mobility profiles (standard, wheelchair, senior, pregnant,
+stroller, luggage, reduced mobility). Accessibility is enforced as a genuine \emph{hard} filter per
+profile, not merely a weighted score, and every recommendation is accompanied by a plain-language
+explanation whose every claim is checked against the real candidate set before being shown, rather
+than asserted. The system is implemented end to end on a React~19~/~TypeScript frontend and an
+Express~/~TypeScript~/~MongoDB backend: a bounded round-based graph search generates candidate
+journeys over a seeded Bengaluru transit network; real road geometry is obtained from OSRM and
+real place search from Nominatim; weather, crowd and historical-delay signals feed a rule-based
+reliability score and a data-driven missed-connection-risk Monte~Carlo simulation; and a
+50-endpoint REST API is exercised by 29 backend and 35 frontend automated tests, all passing.
+The resulting system was evaluated on a 22-scenario benchmark against five baselines, and an
+ablation study confirms every non-time feature has real, measurable influence on the final ranking.
+This report documents the complete design, implementation, and evaluation of TransitSwap --
+including its honestly reported limitations, since the transit network itself is a synthetic,
+hand-authored dataset and no production-scale user study was conducted -- as a final-year major
+project.
+
+\clearpage
+
+% ============================================================
+% TOC / LOF / LOT
+% ============================================================
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% ============================================================
+% CHAPTER 1 — INTRODUCTION
+% ============================================================
+\chapter{Introduction}
+
+\section{Briefing About the Project}
+
+Public transport in a large Indian city is rarely a single mode. A real journey typically combines
+a short walk, a metro ride, possibly a bus leg, and sometimes a last-mile auto-rickshaw -- and the
+right combination for one commuter is frequently the wrong one for another. A wheelchair user
+cannot take a route through a station with a broken lift and uncovered stairs. A commuter travelling
+with a stroller or heavy luggage experiences a crowded platform very differently from an
+unencumbered rider. A senior citizen's tolerance for a long walk or a tight interchange is not the
+same as a student's. Mainstream navigation tools largely ignore this: they compute the fastest or
+shortest route and, at best, offer accessibility as an afterthought.
+
+TransitSwap is a prototype multimodal journey planner designed around the opposite premise: that a
+transparent, multi-criteria ranking -- with accessibility enforced as a real constraint, not a
+suggestion, and every recommendation explained in plain language -- is more useful to a commuter
+than a single time-optimal answer, \emph{provided} the ranking genuinely produces different
+decisions for different people and every claim the system makes is checked against real data
+before being shown. The project implements this premise completely: real road-snapped walking and
+auto-rickshaw geometry (via OSRM), a real round-based graph search over a seeded Bengaluru transit
+network for metro and bus candidates, a genuine per-user learned ranking model (a pairwise logistic
+regression trained on the user's own recorded route choices), a hard accessibility-constraint
+engine covering seven distinct mobility profiles, and a reliability layer that is honest about what
+it does and does not know -- refusing to report a confidence level, for example, when too little
+historical data exists to compute one legitimately.
+
+\section{Existing System}
+
+The dominant consumer routing applications in use today -- Google Maps, Citymapper, and similar
+tools -- are built around a single-criterion or lightly-weighted multi-criterion shortest-path
+engine, almost always optimised primarily for travel time.
+
+\subsection{Use of Static Image-Based Systems}
+Several research and campus-level transit tools still rely on static, pre-computed timetable
+lookups rather than a live graph search, which cannot adapt to a live network state, a closed
+station, or a user-specific constraint at query time.
+
+\subsection{Use of Hardware-Based Systems}
+Some accessibility-focused transit aids depend on dedicated hardware -- beacons, RFID tags at
+station entrances, or proprietary sensor networks -- to determine real-time accessibility status.
+This raises deployment cost and ties the system to a specific transit authority's hardware
+investment, which most mid-sized city networks do not have.
+
+\subsection{Vocabulary and Training Data}
+Existing accessible-routing research prototypes are frequently trained or tuned on a narrow,
+single-city dataset and do not generalise their constraint logic across multiple rider profiles;
+a system designed for wheelchair users alone, for instance, typically has no equivalent logic for
+a pregnant commuter or a rider travelling with a stroller.
+
+\subsection{Real-Time Processing}
+Most existing multi-criteria research prototypes are evaluated offline, against a fixed scenario
+set, and are not wired into a live, queryable API that a real frontend application can call under
+interactive latency constraints.
+
+\section{Limitations of Existing System}
+
+\begin{itemize}[leftmargin=*]
+  \item Accessibility, where offered, is a soft preference that a faster or cheaper route can
+    silently override -- there is no hard guarantee that a wheelchair-profile route is actually
+    step-free throughout.
+  \item Crowd level and walking distance, even where estimated, rarely carry enough ranking weight
+    to change the final recommendation, so a commuter with a real physical constraint still sees
+    the same top route as everyone else.
+  \item No plain-language explanation is given for why one route was preferred over another, so the
+    ranking is effectively a black box to the end user.
+  \item Personalisation, where present, is usually all-or-nothing: once a system has learned a
+    user's general preferences, a profile selected for that specific trip (e.g. ``travelling with a
+    stroller today'') can be silently ignored.
+  \item Reliability and delay estimates are frequently presented with a false sense of precision --
+    a stated confidence level is shown even when the underlying historical sample is too small to
+    support it honestly.
+\end{itemize}
+
+\section{Proposed System}
+
+TransitSwap addresses each of the limitations above directly.
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{A genuine hard accessibility filter.} Seven mobility profiles each carry their own
+    rule set over real per-station accessibility attributes (lift, ramp, step-free entrance, stair
+    count); a route that fails a profile's hard constraint is removed from the candidate set
+    entirely, not merely down-ranked.
+  \item \textbf{A learned, per-user multi-criteria ranker.} Each candidate route is scored as a
+    weighted linear sum over nine normalised features; the weights start from a profile-specific
+    preset and are refined per user via a pairwise logistic regression trained on the user's own
+    recorded choices, with a floor that guarantees a profile's safety-relevant weighting (crowd,
+    walking, accessibility) is never diluted below its own preset value, even once personalisation
+    has taken over.
+  \item \textbf{An honesty-gated explanation layer.} Every recommendation carries plain-language
+    tags (``fastest option'', ``lowest estimated fare'', ``minimizes walking distance'') -- each one
+    individually checked against the real candidate set before being shown, so a claim is never
+    displayed unless it is actually true for that route.
+  \item \textbf{Statistically grounded, honestly gated reliability.} A data-driven prediction
+    interval and a Monte~Carlo missed-connection-risk simulation are both computed from real
+    historical observation data where it exists, and both explicitly refuse to report a confidence
+    level when too little data exists to support one.
+  \item \textbf{Real, live external data.} Road-snapped walking and driving geometry comes from a
+    live OSRM instance; place search and reverse geocoding come from Nominatim; current weather
+    comes from OpenWeatherMap where configured. None of this is invented or mocked.
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{figures/fig-4.0-architecture.png}
+  \caption{Proposed system -- layered architecture overview}
+\end{figure}
+
+\section{Objectives}
+
+\begin{enumerate}[leftmargin=*]
+  \item To design and implement a bounded round-based graph search that generates genuinely
+    non-dominated multimodal route candidates (walk, metro, bus, auto-rickshaw) over a seeded
+    transit network, replacing an earlier, more limited fixed-pattern candidate generator.
+  \item To implement a hard accessibility-constraint engine covering seven distinct mobility
+    profiles, each with its own rule set over real per-station accessibility attributes.
+  \item To implement a multi-criteria ranking model -- a weighted linear sum over nine normalised
+    route features -- whose weights are learnable per user via a pairwise logistic regression
+    trained on the user's own recorded route choices.
+  \item To implement a reliability layer (a rule-based reliability score, a data-driven prediction
+    interval, and a Monte~Carlo missed-connection-risk simulation) that is explicit about which of
+    its outputs are genuinely data-driven and which are rule-of-thumb fallbacks.
+  \item To implement a plain-language explanation layer whose every claim is individually verified
+    against the real candidate set before being shown to the user.
+  \item To build a complete, production-shaped full-stack application (React/TypeScript frontend,
+    Express/TypeScript/MongoDB backend, a 50-endpoint REST API) and to verify its correctness with
+    an extensive automated test suite rather than manual spot-checking alone.
+  \item To evaluate the system honestly against baseline routing strategies and to report its real
+    limitations -- including the synthetic nature of its transit dataset -- rather than overstating
+    its readiness for production deployment.
+\end{enumerate}
+
+\section{Motivation}
+
+The motivation for this project is twofold. First, accessibility in consumer transit routing is
+still treated, in practice, as a secondary feature bolted onto a time-optimal engine, rather than a
+first-class constraint -- and the consequence falls disproportionately on commuters who already
+face the most friction in using public transport: wheelchair users, pregnant commuters, parents
+travelling with small children, and senior citizens. A system that genuinely enforces accessibility
+as a hard constraint, and is transparent about why it recommends what it recommends, is a
+meaningfully better experience for exactly the commuters who need it most. Second, the project is
+motivated by a stricter engineering standard than is typical of student projects: every claim the
+system makes to a user -- a confidence interval, a crowd estimate, a ``fastest route'' badge -- is
+checked against real, computed data before being shown, and every number reported in this project's
+own evaluation traces back to a command that reproduces it, rather than being hand-estimated. This
+standard shaped nearly every design decision described in the chapters that follow.
+
+% ============================================================
+% CHAPTER 2 — LITERATURE SURVEY
+% ============================================================
+\chapter{Literature Survey}
+
+\section{System Study}
+
+Before designing TransitSwap, the problem space was studied along three independent threads that
+together define the design space for a modern multi-criteria transit router: (1) the algorithmic
+literature on multi-criteria and time-table-based transit routing, which defines what an
+efficient, correct candidate-generation engine looks like; (2) the learning-to-rank literature,
+which defines how a ranking function can be learned from observed user preference rather than
+hand-tuned; and (3) the literature on crowd-sourced geographic data and open routing infrastructure,
+which defines what realistic, deployable data sources a student project can responsibly build on
+without requiring a commercial data licence. Each of these threads directly shaped a concrete design
+decision in TransitSwap, documented alongside the relevant citation below.
+
+\section{Review of Literature}
+
+\begin{enumerate}[leftmargin=*]
+
+\item \textbf{Delling, D., Pajor, T., and Werneck, R. F. (2015). ``Round-Based Public Transit
+Routing.'' \textit{INFORMS Journal on Computing}, 27(2).}\\
+This paper introduces RAPTOR (Round-based Public Transit Optimized Router), the standard algorithm
+for computing Pareto-optimal journeys (arrival time, number of transfers) over a full time-table at
+city scale, processing one ``round'' per additional transfer rather than running a conventional
+Dijkstra-style search. \textbf{Relevance:} TransitSwap's own candidate-generation engine (Chapter~4)
+converges on the same underlying idea RAPTOR formalises -- a bounded round-based graph search over a
+stop graph that returns a \emph{set} of Pareto-optimal candidates rather than a single shortest
+path -- though TransitSwap does not implement full RAPTOR, since it has no real time-table to scan,
+only a seeded, headway-approximate network.
+
+\item \textbf{Dibbelt, J., Pajor, T., Strasser, B., and Wagner, D. (2018). ``Connection Scan
+Algorithm.'' \textit{ACM Journal of Experimental Algorithmics}, 23.}\\
+The Connection Scan Algorithm (CSA) computes earliest-arrival journeys by scanning a sorted list of
+individual vehicle connections in a single linear pass, and remains one of the two standard
+reference approaches (alongside RAPTOR) for time-table routing at scale. \textbf{Relevance:}
+reviewed as the direct algorithmic alternative to the round-based approach TransitSwap's design
+draws from; it is specifically named, rather than silently omitted, in this project's own honest
+account of what its candidate generator does and does not implement (Chapter~8).
+
+\item \textbf{Burges, C., Shaked, T., Renshaw, E., et al. (2005). ``Learning to Rank using
+Gradient Descent.'' \textit{Proceedings of the 22nd International Conference on Machine
+Learning (ICML)}.}\\
+This paper introduces RankNet, the foundational pairwise learning-to-rank formulation: given a pair
+of items and an observed preference between them, learn a scoring function such that the preferred
+item scores higher. \textbf{Relevance:} TransitSwap's personalisation model (Section~5.4) is a
+direct, lighter-weight instance of this idea -- a linear pairwise logistic regression trained on the
+delta between a chosen and a rejected route's feature vectors -- chosen deliberately over a deeper
+model because the per-user training-sample volume a route planner can realistically collect (tens,
+not millions, of labelled pairs) cannot support anything larger without over-fitting.
+
+\item \textbf{Bast, H., Delling, D., Goldberg, A., et al. (2016). ``Route Planning in
+Transportation Networks.'' In \textit{Algorithm Engineering}, Lecture Notes in Computer
+Science, Springer.}\\
+A comprehensive survey of speed-up techniques and multi-criteria extensions for shortest-path and
+transit routing, covering contraction hierarchies, multi-level Dijkstra, and the trade-offs between
+query-time latency and preprocessing cost. \textbf{Relevance:} informed the decision to bound
+TransitSwap's own graph search (a small \(k\) candidates per query, over a deliberately compact
+seeded network) rather than attempt a full preprocessing pipeline that would be disproportionate to
+the project's dataset scale.
+
+\item \textbf{Luxen, D., and Vetter, C. (2011). ``Real-time Routing with OpenStreetMap Data.''
+\textit{Proceedings of the 19th ACM SIGSPATIAL International Conference on Advances in
+Geographic Information Systems (GIS)}.}\\
+This paper introduces OSRM (Open Source Routing Machine), the contraction-hierarchy-based routing
+engine that computes real road-network shortest paths from OpenStreetMap data at interactive
+latency. \textbf{Relevance:} OSRM is used directly, live, as TransitSwap's walking and
+auto-rickshaw routing provider (Section~5.3) -- every walking and auto segment's geometry, distance
+and duration in this project is real OSRM output, not a straight-line approximation, with a
+documented straight-line fallback used only on a live OSRM failure.
+
+\item \textbf{Haklay, M., and Weber, P. (2008). ``OpenStreetMap: User-Generated Street Maps.''
+\textit{IEEE Pervasive Computing}, 7(4).}\\
+An early, influential study of OpenStreetMap as a crowd-sourced geographic dataset, examining its
+coverage, accuracy and the sustainability of volunteer-maintained map data relative to commercial
+alternatives. \textbf{Relevance:} underpins the project's choice to build entirely on
+OpenStreetMap-derived infrastructure (OSRM for routing, Nominatim for geocoding, and OSM-rendered
+basemap tiles for the map UI) -- a choice that keeps the whole system free to run and reproduce,
+at the cost of coverage and accuracy limitations the project states honestly rather than conceals.
+
+\item \textbf{Koren, Y., Bell, R., and Volinsky, C. (2009). ``Matrix Factorization Techniques
+for Recommender Systems.'' \textit{IEEE Computer}, 42(8).}\\
+A widely cited survey of latent-factor and matrix-factorisation approaches to personalised
+recommendation, including the cold-start problem -- how a recommender should behave for a user with
+no recorded history yet. \textbf{Relevance:} directly informed TransitSwap's own cold-start design
+(Section~5.4): a brand-new user is served a sensible profile-specific preset rather than an
+undefined or randomly initialised model, and the system only switches to a fully personalised
+learned model once a minimum number of real recorded choices exists.
+
+\item \textbf{Guo, Z., and Wilson, N. H. M. (2011). ``Assessing the Cost of Transfer
+Inconvenience in Public Transport Systems: A Case Study of the London Underground.''
+\textit{Transportation Research Part A}, 45(2).}\\
+A transportation-economics study quantifying how much a transfer's perceived cost exceeds its
+measured time cost -- riders consistently rate an interchange as more burdensome than the minutes it
+actually costs them, and this effect varies meaningfully by passenger type. \textbf{Relevance:}
+motivates TransitSwap's explicit \texttt{transfers} feature as a distinct ranking dimension (not
+folded into \texttt{time}) and its heavier transfer weighting for the senior, pregnant, luggage and
+reduced-mobility profiles specifically, where transfer burden is disproportionately high.
+
+\end{enumerate}
+
+\section{Summary}
+
+The literature reviewed establishes three things the project's own design directly reflects. First,
+the standard algorithmic approaches to multi-criteria transit routing (RAPTOR, CSA) are built around
+returning a \emph{set} of Pareto-optimal journeys rather than a single shortest path -- exactly the
+property TransitSwap's own round-based graph search (Chapter~4) is built to provide, since a
+multi-criteria ranker has nothing meaningful to rank over a degenerate, single-candidate set.
+Second, the learning-to-rank literature supports a pairwise, linear approach specifically under the
+low-data regime a real per-user route planner actually operates in, rather than a deeper model that
+would overfit. Third, building entirely on open, crowd-sourced infrastructure (OpenStreetMap, OSRM,
+Nominatim) is both a well-studied and a practically sound choice for a project of this scale,
+provided -- as this project does throughout -- its coverage and accuracy limitations are stated
+honestly rather than implied away.
+
+% ============================================================
+% CHAPTER 3 — SYSTEM REQUIREMENTS AND SPECIFICATION
+% ============================================================
+\chapter{System Requirements and Specification}
+
+\section{Hardware Requirements}
+
+\begin{table}[H]
+\centering
+\caption{Minimum development/runtime hardware requirements}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Component} & \textbf{Requirement} \\
+\midrule
+Processor & Dual-core 2.0\,GHz or higher (Intel/AMD/Apple Silicon) \\
+RAM & 8\,GB minimum (16\,GB recommended for running frontend, backend and \\
+    & an in-memory MongoDB instance simultaneously during development) \\
+Storage & 2\,GB free disk space (source, dependencies, build artefacts) \\
+Network & Broadband internet connection (required for live OSRM, Nominatim, \\
+        & OpenWeatherMap, and MongoDB Atlas calls) \\
+Display & 1280$\times$720 or higher, for the map-based user interface \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+TransitSwap has no dependency on specialised hardware -- no GPU, no sensor, no proprietary
+transit-authority hardware integration -- a deliberate design choice so the system can be deployed
+on any standard consumer or cloud-hosted machine.
+
+\section{Software Requirements}
+
+\begin{table}[H]
+\centering
+\caption{Software stack}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Layer} & \textbf{Technology} & \textbf{Version} \\
+\midrule
+Frontend framework & React & 19.0 \\
+Frontend build tool & Vite & 8.0 \\
+Frontend language & TypeScript & 5.7 \\
+Styling & Tailwind CSS & 4.0 \\
+Mapping & Leaflet / react-leaflet & 1.9 / 5.0 \\
+Backend runtime & Node.js & 20.x \\
+Backend framework & Express & 4.19 \\
+Backend language & TypeScript & 5.5 \\
+Database & MongoDB (via Mongoose) & 8.4 (driver) \\
+Authentication & JSON Web Tokens (jsonwebtoken) & 9.0 \\
+Password hashing & bcryptjs & 2.4 \\
+HTTP client & Axios & 1.19 \\
+Routing engine (external) & OSRM (Open Source Routing Machine) & live public instance \\
+Geocoding (external) & Nominatim (OpenStreetMap) & live public instance \\
+Weather (external, optional) & OpenWeatherMap API & -- \\
+Testing (backend) & Node's built-in test runner + Supertest & -- \\
+Testing (frontend) & Vitest + Testing Library & 4.1 \\
+End-to-end testing & Playwright & 1.63 \\
+Version control & Git / GitHub & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Functional Requirements}
+
+\begin{enumerate}[leftmargin=*]
+  \item The system shall accept an origin and destination (by text search or map interaction) and
+    return a set of ranked multimodal route candidates.
+  \item The system shall allow the user to select one of seven accessibility profiles, and shall
+    exclude any candidate route that fails that profile's hard accessibility constraint.
+  \item The system shall rank the remaining candidates using a multi-criteria weighted score, and
+    shall learn per-user weights from the user's own recorded route choices once sufficient history
+    exists.
+  \item The system shall attach a plain-language explanation to each recommended route, with every
+    explanation claim individually verified against that route's actual computed data.
+  \item The system shall report a data-driven arrival-time confidence interval and a missed
+    connection risk, and shall explicitly indicate when either is a rule-of-thumb fallback rather
+    than a genuinely data-driven estimate.
+  \item The system shall allow a registered user to save a journey, a reusable route, and a named
+    destination, and to view their journey history and dashboard statistics.
+  \item The system shall allow any user to submit a live crowd-level report or an accessibility
+    issue report for a station, and shall allow an administrator to review and act on accessibility
+    reports and station records.
+  \item The system shall display the selected route on an interactive map with real road-following
+    geometry for walking and auto-rickshaw legs, and real station/stop-sequence geometry for metro
+    and bus legs.
+  \item The system shall degrade gracefully when the database is not configured, continuing to
+    serve route generation and accessibility information from seeded demo data rather than failing
+    outright.
+\end{enumerate}
+
+% ============================================================
+% CHAPTER 4 — SYSTEM DESIGN
+% ============================================================
+\chapter{System Design}
+
+\section{System Architecture}
+
+TransitSwap follows a conventional layered architecture: a React frontend communicates over a REST
+API with an Express backend, whose logic is organised strictly as
+\texttt{routes~$\rightarrow$~controllers (thin)~$\rightarrow$~services (all domain logic)~$\rightarrow$~models~/~data}.
+Every API response uses a single \texttt{\{success, data, message\}} envelope, and every
+database-touching service checks the live MongoDB connection state before querying, falling back to
+seeded demo data rather than failing when no database is configured (Figure~\ref{fig:arch}).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{figures/fig-4.0-architecture.png}
+  \caption{System architecture}
+  \label{fig:arch}
+\end{figure}
+
+\section{Input Module}
+
+The input module is responsible for collecting a journey request from the user: an origin and
+destination (resolved either via a text search against the geocoding service, a direct map click, or
+the browser's own geolocation API), an optional departure date/time, an accessibility profile
+selection, and an optional set of explicit travel preferences (preferred mode, walking tolerance,
+budget preference, priority). This is implemented in the frontend's \texttt{PlanTripPage} and the
+reusable \texttt{LocationSearch} and \texttt{MapView} components.
+
+\section{Processing Module}
+
+The processing module is the backend's \texttt{multimodalController} and \texttt{multimodalService}:
+it validates the incoming request, resolves inactive/deactivated stations, runs candidate generation
+(Section~4.7), applies the accessibility hard filter, enriches each surviving candidate with
+weather, crowd and reliability context, computes a ranking score for each candidate, and attaches an
+explanation to the top-ranked routes before returning the ranked set to the frontend.
+
+\section{Feature Extraction}
+
+Each candidate route is converted into a nine-dimensional normalised feature vector -- time, cost,
+walking distance, reliability, accessibility, crowd, weather, missed-connection risk, and transfer
+count -- via relative min-max normalisation across the candidate set returned for that query. This
+feature vector is the single shared representation consumed by both the rule-based scoring path and
+the learned pairwise logistic regression model, implemented in
+\texttt{backend/src/services/ml/featureExtractor.ts}.
+
+\section{Classification Module}
+
+The ``classification'' step in TransitSwap is a ranking, not a discrete classification: each
+candidate's feature vector is scored as a weighted linear sum, with weights drawn from a
+profile-specific preset and refined, per user, by a pairwise logistic regression trained on that
+user's own recorded choices (\texttt{mlPreferenceService.ts}). The highest-scoring candidate is
+surfaced as the primary recommendation; the full ranked set is also returned so the user can inspect
+and select an alternative.
+
+\section{Output Module}
+
+The output module renders the ranked route set as an interactive map (real road-following geometry,
+a layered ``casing'' line style, and mode-specific markers), a ranked list of route cards with
+fare/duration/walking-distance summaries, a step-by-step segment timeline, and the explanation,
+reliability and accessibility panels described in Chapter~5. This is implemented in
+\texttt{MultimodalResults.tsx}, \texttt{MapView.tsx}, and \texttt{SegmentTimeline.tsx}.
+
+\section{Dataflow Diagram}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.98\textwidth]{figures/fig-4.4-dfd.png}
+  \caption{Data flow diagram (Level 0 / Level 1, combined)}
+\end{figure}
+
+\section{Use Case Diagram}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{figures/fig-4.1-use-case.png}
+  \caption{Use case diagram}
+\end{figure}
+
+\section{Class Diagram}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig-4.2-class.png}
+  \caption{Class diagram (core persistence entities)}
+\end{figure}
+
+\section{Sequence Diagram}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig-4.3-sequence.png}
+  \caption{Sequence diagram: planning a multimodal route}
+\end{figure}
+
+% ============================================================
+% CHAPTER 5 — IMPLEMENTATION
+% ============================================================
+\chapter{Implementation}
+
+\section{Briefing Implementation}
+
+TransitSwap was implemented as a complete, production-shaped full-stack application rather than a
+single-script prototype: a React/TypeScript single-page frontend, an Express/TypeScript backend
+exposing a 50-endpoint REST API, and MongoDB for optional persistence. The implementation was built
+and verified incrementally, phase by phase, with an automated test suite kept green throughout
+rather than written retroactively at the end.
+
+\section{System Implementation Phases}
+
+The project was implemented across a sequence of phases, each with its own verification pass:
+establishing the baseline frontend scaffold and core routing UI; building the maps-and-routing
+foundation on real OSRM/Nominatim data; replacing a fixed four-pattern candidate generator with a
+bounded round-based graph search; implementing the accessibility rule engine and its seven
+profile-specific hard-constraint rule sets; implementing the weather, crowd and reliability
+intelligence layers; implementing the pairwise-logistic-regression personalisation model and fixing
+a validity bug that had made its original training labels single-class; building the honest
+evaluation harness and sensitivity-analysis tooling used in Chapter~7; hardening performance and
+security (response caching, \texttt{helmet}, authenticated evaluation endpoints); completing
+user-experience gaps (saved destinations, admin accessibility-report review, explanation
+honesty-gating); preparing and executing a live three-part deployment (MongoDB Atlas, Render,
+Vercel); and, most recently, fixing a confirmed personalisation bug in which a user's selected
+accessibility profile could be silently discarded once enough route-choice history existed to
+activate the learned model.
+
+\section{Environmental Support}
+
+Local development runs the frontend via Vite's development server and the backend via
+\texttt{ts-node-dev} against either a configured MongoDB Atlas cluster or an ephemeral in-memory
+MongoDB instance (\texttt{mongodb-memory-server}) used for both automated tests and local
+demonstration without any external database dependency. The deployed system runs the frontend as a
+static build on Vercel, the backend as a Node web service on Render, and uses a MongoDB Atlas free
+tier cluster for persistence.
+
+\section{Core Implementation Module}
+
+The core of the system is the multimodal routing and ranking pipeline
+(\texttt{backend/src/services/multimodalService.ts},
+\texttt{accessibilityService.ts}, \texttt{ml/mlPreferenceService.ts},
+\texttt{transitDnaService.ts}). Candidate generation combines a small set of fixed journey patterns
+with a bounded round-based graph search over the seeded station/stop graph, deduplicates and reduces
+the result to its Pareto frontier over (duration, fare, walking distance, transfers), and validates
+every candidate's structural and geometric continuity before it is considered further. Accessibility
+filtering then removes any candidate that fails the selected profile's hard constraint. Surviving
+candidates are enriched with live weather, crowd and reliability data, scored, and explained.
+
+\section{Real-Time Route Intelligence}
+
+Beyond static routing, TransitSwap layers in several real-time and statistically grounded signals:
+current weather conditions (OpenWeatherMap, with a clearly labelled demo fallback when unconfigured);
+live and recent crowd-level reports blended with a seeded baseline; a data-driven arrival-time
+prediction interval computed from real historical duration-prediction errors, with a hard minimum
+sample-size gate below which the system reports a rule-of-thumb band and an explicit
+\texttt{isDataDriven: false} flag rather than an unearned confidence level; and a 1{,}000-trial
+empirical-resampling Monte~Carlo simulation over real historical per-transfer delay samples for
+missed-connection risk, rather than an assumed parametric distribution.
+
+\section{Pseudo Code}
+
+\begin{lstlisting}[language=, caption={Candidate generation and ranking (simplified)}]
+function generateRoutes(origin, destination, profile):
+    candidates <- fixedPatternCandidates(origin, destination)
+              + graphSearchCandidates(origin, destination, maxRounds=4)
+    candidates <- validateStructuralContinuity(candidates)
+    candidates <- removeDuplicates(candidates)
+    candidates <- paretoFrontier(candidates, on=[duration, fare, walk, transfers])
+    return candidates
+
+function filterAndRank(candidates, profile, userId, preferences):
+    accessible <- [ r for r in candidates
+                     if not hardConstraintViolated(r, profile) ]
+    for r in accessible:
+        r.weather      <- getWeatherImpact(r)
+        r.crowd        <- getCrowdSummary(r)
+        r.reliability  <- getReliabilityScore(r)
+        r.confidence   <- getConfidenceInterval(r)   // null if data-driven
+                                                      // threshold not met
+        r.missedRisk   <- monteCarloMissedConnectionRisk(r, trials=1000)
+
+    weights <- getProfileWeights(profile)
+    if hasPersonalizedModel(userId):
+        learned <- loadLearnedWeights(userId)
+        weights <- floorProfileWeights(learned, weights)   // profile sensitivity
+                                                            // can never be diluted
+    for r in accessible:
+        r.score <- weightedSum(normalize(r.features), weights)
+
+    ranked <- sortDescending(accessible, by=r.score)
+    for r in ranked:
+        r.explanation <- buildExplanation(r, ranked, profile)  // every claim
+                                                                // re-checked here
+    return ranked
+\end{lstlisting}
+
+% ============================================================
+% CHAPTER 6 — TESTING
+% ============================================================
+\chapter{Testing}
+
+\section{Overview of Testing}
+
+TransitSwap was tested with an extensive automated suite covering the backend domain logic, the
+backend's full REST API surface, and the frontend's critical user-facing logic, rather than relying
+on manual verification alone. At the time of this report, \textbf{29 backend test files} and
+\textbf{35 frontend tests} pass in full, and the suite is re-run after every change to the codebase.
+
+\section{Testing Performed}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Unit testing} of individual service functions -- accessibility rule evaluation,
+    feature normalisation, weight-floor renormalisation, candidate deduplication, Pareto-frontier
+    filtering.
+  \item \textbf{Integration testing} of full API endpoints via Supertest against a real (in-memory)
+    MongoDB instance -- authentication, route generation, accessibility filtering, crowd and weather
+    endpoints, the admin surface, and the research-evaluation endpoint.
+  \item \textbf{End-to-end testing} of the complete browser user journey (register, plan a trip,
+    save a journey, submit feedback) via Playwright against a real frontend and backend.
+  \item \textbf{Regression testing}, re-running the full suite after every feature change described
+    in this report, including the most recent accessibility-personalisation fix.
+  \item \textbf{Manual exploratory testing} directly in the browser for every accessibility profile,
+    used specifically to surface the personalisation bug corrected in the final implementation
+    phase.
+\end{itemize}
+
+\section{Objective}
+
+The objective of the testing phase was not only to confirm that each function returns a plausible
+result, but specifically to confirm that the system's \emph{honesty} properties hold: that an
+accessibility-blocked route is actually excluded (not merely down-ranked), that a confidence
+interval is never shown without sufficient supporting data, and that an explanation tag is never
+displayed unless its underlying claim is verified true for that specific route.
+
+\section{Methodology}
+
+Backend tests are plain Node scripts executed via \texttt{backend/scripts/run-tests.js}, each
+asserting a sequence of concrete expectations and printing a pass/fail summary; a database-dependent
+test honestly reports itself as \emph{skipped} (not passed) when no MongoDB connection is available,
+rather than silently succeeding. Frontend tests use Vitest with React Testing Library. End-to-end
+tests spin up a real backend against a freshly created in-memory MongoDB instance and a real Vite
+dev server, so the full request path is exercised exactly as a real user would experience it.
+
+\section{Environment}
+
+Tests run locally against Node.js 20, with MongoDB provided either by a configured
+\texttt{MONGODB\_URI} or, for fully offline and continuous-integration runs, an ephemeral
+\texttt{mongodb-memory-server} instance created fresh for each run.
+
+\section{Result}
+
+All 29 backend test files and all 35 frontend tests pass, and the same checks run automatically on
+every push to GitHub (continuous integration). The backend runner counts a database-dependent test that
+skipped for lack of a database as a failure in continuous-integration mode, so a passing run means every
+database assertion actually executed. Newer regression tests cover the time-of-day matching of crowd data,
+the wheelchair step-free rule, and the exclusion reasons returned when no accessible route exists. The
+user interface was also scanned with the axe-core accessibility checker against WCAG 2.1 levels A and AA on
+every main screen, with no remaining violations.
+
+\begin{table}[H]
+\centering
+\caption{Testing performed}
+\begin{tabular}{@{}p{4cm}p{10cm}@{}}
+\toprule
+\textbf{Test Type} & \textbf{Description} \\
+\midrule
+Unit Testing & Accessibility rule evaluation, feature normalisation, weight-floor logic, \\
+             & candidate deduplication and Pareto filtering \\
+Integration Testing & Full REST API surface (50 endpoints) exercised via Supertest against a \\
+                     & real MongoDB instance \\
+End-to-End Testing & Complete browser user journey via Playwright (register $\to$ plan $\to$ \\
+                    & save $\to$ feedback) \\
+Regression Testing & Full suite re-run after every feature change \\
+Manual Exploratory Testing & Every accessibility profile tested live in-browser; surfaced the \\
+                            & personalisation weight-dilution bug fixed in this project \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Sample Test Cases}
+
+\begin{table}[H]
+\centering
+\caption{Sample test cases}
+\begin{tabular}{@{}p{1cm}p{5.6cm}p{4.2cm}p{2.6cm}@{}}
+\toprule
+\textbf{ID} & \textbf{Test Case} & \textbf{Expected Result} & \textbf{Result} \\
+\midrule
+TC01 & Request a route for a wheelchair profile through a station with a broken lift and uncovered
+  stairs & Route is excluded from the result set entirely & Pass \\
+TC02 & Submit login with no authentication token & API returns HTTP 401 & Pass \\
+TC03 & Request confidence interval with fewer than 5 historical observations & Response reports
+  \texttt{isDataDriven: false}, \texttt{confidenceLevelPercent: 0} & Pass \\
+TC04 & Select ``stroller'' profile with a route through a known HIGH-crowd station & Response
+  includes an explicit HIGH-crowd warning for that profile & Pass \\
+TC05 & Personalised user (\(\geq\)5 recorded choices) selects ``pregnant'' profile & Crowd/walking
+  weighting is never diluted below the pregnant preset's own value & Pass \\
+TC06 & Admin marks a station's lift as broken & Wheelchair-profile route generation immediately
+  excludes that station & Pass \\
+TC07 & Generate a route with no \texttt{MONGODB\_URI} configured & Route generation still succeeds
+  from seeded demo data; auth/saved-journey endpoints return HTTP 503 & Pass \\
+TC08 & Reverse-geocode a clicked map coordinate & Returns a real resolved place name and address
+  via Nominatim & Pass \\
+TC09 & Run the 22-scenario evaluation harness twice with the offline test provider & Produces
+  byte-identical results (deterministic) & Pass \\
+TC10 & Request route generation with origin equal to destination & Returns an empty result set
+  rather than a degenerate zero-length route & Pass \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+% CHAPTER 7 — RESULTS
+% ============================================================
+\chapter{Results}
+
+This chapter presents the running application. Screenshots are intentionally left as placeholders
+below and should be inserted directly from the live application (local development server or the
+deployed instance) before final submission.
+
+\screenshotplaceholder{Landing page}{full-width hero section with the headline search widget}
+\screenshotplaceholder{User dashboard}{personalised TransitDNA weights, journey stats, and research-benchmark card}
+\screenshotplaceholder{Plan Trip -- accessibility profile selection}{the seven mobility-profile buttons and active-preferences summary}
+\screenshotplaceholder{Plan Trip -- map and nearby transit}{interactive Leaflet map with a plotted multimodal route and nearby-station cards}
+\screenshotplaceholder{Ranked route candidates with ``Why Recommended'' explanation}{the selected route's explanation tags and the full ranked candidate list}
+\screenshotplaceholder{Step-by-step journey timeline}{per-segment walk/bus/metro breakdown with bus route number and boarding-time estimate}
+\screenshotplaceholder{Accessibility check and crowd panel}{a route's accessibility warnings (including the HIGH-crowd warning) and station crowd levels}
+\screenshotplaceholder{Admin dashboard -- accessibility report review}{pending community accessibility reports and station management}
+\screenshotplaceholder{Research / evaluation page}{the 22-scenario benchmark, ablation study, and sensitivity-sweep results}
+
+\bigskip
+\noindent In addition to the application screenshots above, the project's own research paper
+(produced alongside this report) includes nine further figures generated directly from real
+computed data -- pipeline latency by stage, geographic coverage of the seeded network, a real
+candidate trade-off scatter for one corridor, the ablation study's decision-change rate per
+feature, prediction-interval calibration, a learning curve for the personalisation model, a
+sensitivity-analysis tornado chart for the routing cost-model constants, and an example explanation
+card -- every one of them traceable to the exact script that produced it.
+
+% ============================================================
+% CHAPTER 8 — CONCLUSION
+% ============================================================
+\chapter{Conclusion}
+
+TransitSwap demonstrates that a multi-criteria, accessibility-first approach to transit routing is
+both implementable and meaningfully different in practice from a conventional shortest-time planner
+-- not only in principle, but as measured: an ablation study across a 22-scenario benchmark confirms
+that every one of six non-time ranking features has a real, measurable effect on the system's final
+recommendation, and the system's accessibility engine was verified, live, to immediately change its
+output the moment a station's lift status changed. Over the course of this project, a genuine,
+user-reported personalisation bug was found and fixed -- a logged-in user's selected accessibility
+profile could be silently discarded once enough route-choice history existed for the system's
+learned ranking model to activate -- underscoring that a system's stated design intent and its
+actual runtime behaviour are not the same thing, and that honest, end-to-end verification (not
+assumption) is necessary to close that gap.
+
+The project was also built, throughout, to a standard of transparency beyond simply ``working'':
+every reliability and confidence figure the system reports is explicitly labelled as either
+genuinely data-driven or a stated rule-of-thumb fallback; every explanation tag shown to a user is
+individually checked against the real candidate set before being displayed; and every number
+reported in this project's own research-paper evaluation is reproducible from a named script rather
+than hand-estimated. The system's real limitations are stated plainly rather than concealed: its
+transit network is a synthetic, hand-authored dataset covering a minority of the sampled
+metropolitan area; no production-scale user study has been conducted; and several evaluation
+figures are necessarily computed on synthetic data because no real-world usage history yet exists.
+Future work -- integrating a real GTFS feed, running a genuine user study, and extending calibration
+coverage as real usage data accumulates -- is a natural and achievable continuation of the system as
+it stands today.
+
+% ============================================================
+% REFERENCES
+% ============================================================
+\chapter*{References}
+\addcontentsline{toc}{chapter}{References}
+\begin{enumerate}[leftmargin=*]
+\item Delling, D., Pajor, T., and Werneck, R. F. (2015). Round-Based Public Transit Routing.
+  \textit{INFORMS Journal on Computing}, 27(2), 301--316.
+\item Dibbelt, J., Pajor, T., Strasser, B., and Wagner, D. (2018). Connection Scan Algorithm.
+  \textit{ACM Journal of Experimental Algorithmics}, 23, 1.7.
+\item Burges, C., Shaked, T., Renshaw, E., Lazier, A., Deeds, M., Hamilton, N., and Hullender, G.
+  (2005). Learning to Rank using Gradient Descent. \textit{Proceedings of the 22nd International
+  Conference on Machine Learning (ICML)}, 89--96.
+\item Bast, H., Delling, D., Goldberg, A., Müller-Hannemann, M., Pajor, T., Sanders, P., Wagner,
+  D., and Werneck, R. F. (2016). Route Planning in Transportation Networks. In \textit{Algorithm
+  Engineering}, Lecture Notes in Computer Science, vol.\ 9220, Springer.
+\item Luxen, D., and Vetter, C. (2011). Real-time Routing with OpenStreetMap Data.
+  \textit{Proceedings of the 19th ACM SIGSPATIAL International Conference on Advances in
+  Geographic Information Systems}, 513--516.
+\item Haklay, M., and Weber, P. (2008). OpenStreetMap: User-Generated Street Maps. \textit{IEEE
+  Pervasive Computing}, 7(4), 12--18.
+\item Koren, Y., Bell, R., and Volinsky, C. (2009). Matrix Factorization Techniques for
+  Recommender Systems. \textit{IEEE Computer}, 42(8), 30--37.
+\item Guo, Z., and Wilson, N. H. M. (2011). Assessing the Cost of Transfer Inconvenience in Public
+  Transport Systems: A Case Study of the London Underground. \textit{Transportation Research
+  Part A}, 45(2), 91--104.
+\item OpenStreetMap contributors. OpenStreetMap -- \url{https://www.openstreetmap.org}.
+\item Nominatim -- OpenStreetMap geocoding service. \url{https://nominatim.org}.
+\item Open Source Routing Machine (OSRM). \url{http://project-osrm.org}.
+\item React documentation. \url{https://react.dev}.
+\item Express.js documentation. \url{https://expressjs.com}.
+\item MongoDB / Mongoose documentation. \url{https://www.mongodb.com}, \url{https://mongoosejs.com}.
+\item Leaflet -- a JavaScript library for interactive maps. \url{https://leafletjs.com}.
+\end{enumerate}
+
+\end{document}
