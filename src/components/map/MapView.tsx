@@ -228,7 +228,7 @@ function LocateControl() {
 
   if (!myLocation) return null
   return (
-    <Marker position={[myLocation.lat, myLocation.lng]} icon={MY_LOCATION_ICON}>
+    <Marker position={[myLocation.lat, myLocation.lng]} icon={MY_LOCATION_ICON} title="Your current location" alt="Your current location">
       <Popup>Your current location</Popup>
     </Marker>
   )
@@ -284,7 +284,7 @@ function ClickForAddress({
   if (!clicked) return null
 
   return (
-    <Marker ref={markerRef} position={[clicked.lat, clicked.lng]} icon={CLICKED_PIN_ICON}>
+    <Marker ref={markerRef} position={[clicked.lat, clicked.lng]} icon={CLICKED_PIN_ICON} title="Selected location" alt="Selected location">
       <Popup minWidth={200}>
         {clicked.status === "loading" && <span className="text-sm text-navy-500">Looking up this place…</span>}
         {clicked.status === "error" && <span className="text-sm text-navy-500">Couldn't resolve an address here.</span>}
@@ -456,15 +456,17 @@ export default function MapView({
           key={`${stop.name}-${i}`}
           position={[stop.lat, stop.lng]}
           icon={makeStationPin(stationPinColors[stop.mode])}
+          title={`${stop.name} (${stop.mode})`}
+          alt={`${stop.name} (${stop.mode})`}
         />
       ))}
 
       {/* Origin / destination markers — drawn last so they sit above every line */}
       {origin && (
-        <Marker position={[origin.latitude, origin.longitude]} icon={ORIGIN_ICON} />
+        <Marker position={[origin.latitude, origin.longitude]} icon={ORIGIN_ICON} title={`Origin: ${origin.name}`} alt={`Origin: ${origin.name}`} />
       )}
       {destination && (
-        <Marker position={[destination.latitude, destination.longitude]} icon={DEST_ICON} />
+        <Marker position={[destination.latitude, destination.longitude]} icon={DEST_ICON} title={`Destination: ${destination.name}`} alt={`Destination: ${destination.name}`} />
       )}
 
       {/* Active-navigation live position — drawn last of all, above the
@@ -472,7 +474,7 @@ export default function MapView({
           location. */}
       {livePosition && (
         <>
-          <Marker position={[livePosition.latitude, livePosition.longitude]} icon={MY_LOCATION_ICON} />
+          <Marker position={[livePosition.latitude, livePosition.longitude]} icon={MY_LOCATION_ICON} title="Your live location" alt="Your live location" />
           <FollowMe position={livePosition} />
         </>
       )}

@@ -93,7 +93,8 @@ A1 contains these fixes:
 | 1. Restore and stabilise | ✅ done 12 Nov | Lost UI + 8 audit fixes restored and checked live; test runner can no longer pass on a skip or dead database; GitHub CI green (first time since Phase 10) |
 | 2. Accessibility correctness | ✅ done 13 Nov | B3–B7 fixed. Backend 29/29 test files pass in strict mode, frontend 30/30 tests, both typechecks clean. Checked live: the Hoodi → MG Road wheelchair trip (previously a 404 caused by the crowd-hours bug) now returns a route, shows the data warning once, and lists the 2 excluded routes with reasons |
 | 3. Research page completeness | ✅ done 13 Nov | New on-demand "Route Ranking Benchmark" card shows agreement with all 5 baselines, the 6-feature ablation and p50/p95/mean latency (checked live: renders after ~20 s); stale "Phase 16"/"Phase 30" labels replaced; 5 new component tests (frontend 35/35) |
-| 4–6 | pending | — |
+| 4. Accessibility audit | ✅ done 13 Nov | axe-core (WCAG 2.1 A/AA) run on every main screen in the live app: landing, login, register, dashboard, plan (idle + results), navigation, history (with feedback form), saved routes, profile, research now report 0 violations. Fixed: contrast tokens, unnamed password/star/marker controls, unlabeled date/time/profile inputs, missing `main` landmark, route-label colours, crowd-report card layout. Admin console not scanned. Not covered by an automated scan: screen-reader and manual keyboard walkthroughs |
+| 5–6 | pending | — |
 
 Note for Phase 5: the crowd-hours fix changes the "deployed" crowd numbers in the paper; regenerate them with `generate-accessibility-paper-data.ts`.
 

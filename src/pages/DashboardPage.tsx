@@ -305,6 +305,7 @@ export default function DashboardPage() {
             <input
               type="text"
               readOnly
+              aria-label="Origin"
               value="Origin: Current Location"
               className="w-full pl-9 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 text-sm focus:outline-none"
             />
@@ -314,6 +315,7 @@ export default function DashboardPage() {
             <input
               type="text"
               readOnly
+              aria-label="Destination"
               value="Destination: Enter target location in Plan Trip"
               className="w-full pl-9 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white/70 text-sm focus:outline-none"
             />

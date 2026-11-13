@@ -398,11 +398,13 @@ export default function HistoryPage() {
                           <p className="text-[11px] text-navy-600">Rating is required. Comment and issue tags are optional.</p>
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        <div role="group" aria-label="Journey rating" className="flex items-center gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button
                               key={star}
                               type="button"
+                              aria-label={`${star} out of 5 stars`}
+                              aria-pressed={star === currentRating}
                               onClick={() => setRatingMap((prev) => ({ ...prev, [journey._id]: star }))}
                               className="p-1 text-amber-500 hover:scale-110 transition-transform"
                             >

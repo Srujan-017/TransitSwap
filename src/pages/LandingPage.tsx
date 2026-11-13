@@ -386,7 +386,7 @@ export default function LandingPage() {
       {/* Tech stack banner */}
       <section className="bg-navy-900 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-navy-400 text-sm font-medium uppercase tracking-widest mb-6">Built with</p>
+          <p className="text-navy-300 text-sm font-medium uppercase tracking-widest mb-6">Built with</p>
           <div className="flex flex-wrap justify-center gap-3">
             {["React + TypeScript", "Node.js + Express", "MongoDB Atlas", "JWT Auth", "Google Maps Platform", "OpenWeatherMap"].map((t) => (
               <span key={t} className="px-4 py-2 bg-white/5 rounded-full text-navy-300 text-sm font-medium">

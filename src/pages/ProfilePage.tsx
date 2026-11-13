@@ -216,8 +216,9 @@ export default function ProfilePage() {
             </h2>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-navy-700">Full Name</label>
+                <label htmlFor="profile-name" className="text-sm font-medium text-navy-700">Full Name</label>
                 <input
+                  id="profile-name"
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -225,8 +226,9 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-navy-700">Email Address</label>
+                <label htmlFor="profile-email" className="text-sm font-medium text-navy-700">Email Address</label>
                 <input
+                  id="profile-email"
                   type="email"
                   value={form.email}
                   readOnly
@@ -259,7 +261,7 @@ export default function ProfilePage() {
                   <span className={`text-sm font-semibold font-display ${form.accessibilityProfile === p.id ? "text-white" : "text-navy-800"}`}>
                     {p.label}
                   </span>
-                  <span className={`text-xs ${form.accessibilityProfile === p.id ? "text-white/80" : "text-navy-500"}`}>{p.desc}</span>
+                  <span className={`text-xs ${form.accessibilityProfile === p.id ? "text-white" : "text-navy-500"}`}>{p.desc}</span>
                 </button>
               ))}
             </div>
@@ -302,7 +304,7 @@ export default function ProfilePage() {
                       }`}
                     >
                       <span className="font-semibold">{w.label}</span>
-                      <span className={`text-xs mt-0.5 ${form.walkingTolerance === w.id ? "text-white/80" : "text-navy-400"}`}>{w.desc}</span>
+                      <span className={`text-xs mt-0.5 ${form.walkingTolerance === w.id ? "text-white" : "text-navy-400"}`}>{w.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -322,7 +324,7 @@ export default function ProfilePage() {
                       }`}
                     >
                       <span className="font-semibold">{b.icon} {b.label}</span>
-                      <span className={`text-xs mt-0.5 ${form.budgetPreference === b.id ? "text-white/80" : "text-navy-400"}`}>{b.desc}</span>
+                      <span className={`text-xs mt-0.5 ${form.budgetPreference === b.id ? "text-white" : "text-navy-400"}`}>{b.desc}</span>
                     </button>
                   ))}
                 </div>

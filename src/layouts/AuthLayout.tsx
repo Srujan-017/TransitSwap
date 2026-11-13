@@ -68,9 +68,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <span className="font-display font-bold text-navy-900 text-lg">TransitSwap</span>
           </Link>
         </div>
-        <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <main className="flex-1 flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-md">{children}</div>
-        </div>
+        </main>
       </div>
     </div>
   )

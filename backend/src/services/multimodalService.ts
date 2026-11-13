@@ -698,10 +698,11 @@ function buildRoute(segments: RouteSegment[], label: RouteLabel): MultimodalRout
   const modeSummary = segments.map((s) => `${modeEmojis[s.mode]} ${modeLabels[s.mode]}`).join(" → ")
 
   const labelMap: Record<RouteLabel, { display: string; color: string }> = {
-    FASTEST: { display: "Fastest", color: "#0ea5e9" },
-    CHEAPEST: { display: "Lowest Cost", color: "#16a34a" },
+    // Darkened (completion-phase 4) so the white label text meets WCAG AA contrast (4.5:1).
+    FASTEST: { display: "Fastest", color: "#0369a1" },
+    CHEAPEST: { display: "Lowest Cost", color: "#15803d" },
     MIN_WALKING: { display: "Least Walking", color: "#9333ea" },
-    BALANCED: { display: "Balanced", color: "#ea580c" },
+    BALANCED: { display: "Balanced", color: "#c2410c" },
   }
 
   return {

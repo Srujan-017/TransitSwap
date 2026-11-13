@@ -445,10 +445,10 @@ export default function MultimodalResults({
             <Database className="w-4 h-4 text-navy-500" /> Submit User Feedback / Crowd Report for {reportStation.from.name}
           </div>
           {reportStationId ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-navy-500">How crowded is it?</p>
-                <div className="grid grid-cols-3 gap-1.5">
+                <p id="crowd-report-label" className="text-xs font-semibold text-navy-500">How crowded is it?</p>
+                <div role="group" aria-labelledby="crowd-report-label" className="grid grid-cols-3 gap-1.5">
                   {CROWD_OPTIONS.map((opt) => {
                     const Icon = opt.icon
                     const selected = crowdLevel === opt.value
@@ -456,6 +456,7 @@ export default function MultimodalResults({
                       <button
                         key={opt.value}
                         type="button"
+                        aria-pressed={selected}
                         onClick={() => setCrowdLevel(opt.value)}
                         className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-center transition-all ${
                           selected ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]" : "bg-navy-50 text-navy-600 hover:bg-navy-100"
@@ -469,11 +470,15 @@ export default function MultimodalResults({
                 </div>
                 <Button size="sm" variant="outline" fullWidth onClick={() => void submitCrowdReport()}>Report</Button>
               </div>
-              <div className="flex gap-2">
+              <div className="space-y-2">
+                <label htmlFor="accessibility-issue" className="block text-xs font-semibold text-navy-500">
+                  Report an accessibility issue
+                </label>
                 <select
+                  id="accessibility-issue"
                   value={accessibilityIssue}
                   onChange={(event) => setAccessibilityIssue(event.target.value)}
-                  className="flex-1 rounded-xl border border-navy-200 bg-navy-50 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-navy-200 bg-navy-50 px-3 py-2 text-sm"
                 >
                   <option value="lift_unavailable">Lift unavailable</option>
                   <option value="ramp_blocked">Ramp blocked</option>
@@ -481,8 +486,8 @@ export default function MultimodalResults({
                   <option value="stairs_issue">Stairs issue</option>
                   <option value="other">Other issue</option>
                 </select>
-                <Button size="sm" variant="outline" icon={<ShieldAlert className="w-3.5 h-3.5" />} onClick={() => void submitAccessibilityReport()}>
-                  Submit
+                <Button size="sm" variant="outline" fullWidth icon={<ShieldAlert className="w-3.5 h-3.5" />} onClick={() => void submitAccessibilityReport()}>
+                  Report issue
                 </Button>
               </div>
             </div>

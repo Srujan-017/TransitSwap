@@ -374,7 +374,7 @@ export default function PlanTripPage() {
           }`}
         >
           <Layers className="w-4 h-4" />
-          Multimodal <span className="text-xs opacity-70 font-normal">Metro · Bus · Auto</span>
+          Multimodal <span className="text-xs font-normal">Metro · Bus · Auto</span>
         </button>
         <button
           type="button"
@@ -385,7 +385,7 @@ export default function PlanTripPage() {
               : "text-navy-500 hover:text-navy-800"
           }`}
         >
-          🗺️ Road Routing <span className="text-xs opacity-70 font-normal">Drive · Walk · Cycle</span>
+          🗺️ Road Routing <span className="text-xs font-normal">Drive · Walk · Cycle</span>
         </button>
       </div>
 
@@ -451,8 +451,9 @@ export default function PlanTripPage() {
               {/* Date / Time */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-navy-500 uppercase tracking-wider">Date</label>
+                  <label htmlFor="trip-date" className="text-xs font-semibold text-navy-500 uppercase tracking-wider">Date</label>
                   <input
+                    id="trip-date"
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
@@ -460,8 +461,9 @@ export default function PlanTripPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-navy-500 uppercase tracking-wider">Time</label>
+                  <label htmlFor="trip-time" className="text-xs font-semibold text-navy-500 uppercase tracking-wider">Time</label>
                   <input
+                    id="trip-time"
                     type="time"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
