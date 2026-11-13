@@ -4,6 +4,8 @@ import { AppError } from "../middleware/errorHandler"
 import { createTtlCache } from "../utils/ttlCache"
 
 const NOMINATIM_BASE = "https://nominatim.openstreetmap.org"
+// left,top,right,bottom (lon/lat) around Bengaluru and its metro/bus corridors.
+const BENGALURU_VIEWBOX = "77.35,13.25,77.90,12.70"
 const USER_AGENT = "TransitSwap/2.0 (final-year-engineering-project)"
 
 // Phase 11 (P9) — every keystroke past the frontend's debounce previously
@@ -91,6 +93,11 @@ export const geocodingService = {
           format: "json",
           limit: 5,
           addressdetails: 1,
+          // Prefer Bengaluru: results inside this box rank first (bounded=0 keeps
+          // places elsewhere in India available, just lower down).
+          countrycodes: "in",
+          viewbox: BENGALURU_VIEWBOX,
+          bounded: 0,
         },
         headers: {
           "User-Agent": USER_AGENT,

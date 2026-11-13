@@ -2,7 +2,7 @@ import { useState, useEffect, type CSSProperties } from "react"
 import { Link } from "react-router-dom"
 import {
   MapPin, Navigation, TrendingUp, Zap, ArrowRight,
-  Bus, Footprints, FlaskConical, Dna, BarChart3, CheckCircle2, ShieldCheck,
+  Bus, Footprints, FlaskConical, Dna, CheckCircle2, ShieldCheck,
   Star, Bookmark, Leaf, User as UserIcon, History as HistoryIcon,
 } from "lucide-react"
 import { useAuthContext } from "../context/AuthContext"
@@ -12,7 +12,6 @@ import {
   type SavedDestinationRecord,
   type SavedRouteRecord,
 } from "../services/tripService"
-import { intelligenceService, type EvaluationMetrics } from "../services/intelligenceService"
 import Card from "../components/ui/Card"
 import Badge from "../components/ui/Badge"
 import Button from "../components/ui/Button"
@@ -35,9 +34,6 @@ export default function DashboardPage() {
   const [journeys, setJourneys] = useState<JourneyRecord[]>([])
   const [journeysLoading, setJourneysLoading] = useState(true)
   const [journeysError, setJourneysError] = useState("")
-  const [evaluation, setEvaluation] = useState<EvaluationMetrics | null>(null)
-  const [evalLoading, setEvalLoading] = useState(false)
-  const [evalError, setEvalError] = useState("")
 
   // Problem 16 — Saved destinations & saved routes summaries for the dashboard.
   const [destinations, setDestinations] = useState<SavedDestinationRecord[]>([])
@@ -88,26 +84,6 @@ export default function DashboardPage() {
       cancelled = true
     }
   }, [])
-
-  // Phase 11 (P1/P7) — this used to auto-fire on every dashboard mount,
-  // running the full 22-scenario evaluation benchmark (route generation +
-  // enrichment + Monte Carlo per scenario) every time the page loaded
-  // (PROJECT_MASTER_PLAN.md §26 P1/P7). It's now loaded on demand via the
-  // "Load Research Metrics" button below — the backend also caches the
-  // result for 5 minutes (evaluationService.getEvaluation()), so a repeat
-  // click within that window is effectively free.
-  async function loadEvaluationMetrics() {
-    setEvalLoading(true)
-    setEvalError("")
-    try {
-      const data = await intelligenceService.getEvaluationMetrics()
-      setEvaluation(data)
-    } catch (err) {
-      setEvalError(err instanceof Error ? err.message : "Could not load research evaluation metrics.")
-    } finally {
-      setEvalLoading(false)
-    }
-  }
 
   // Problem 16 — Saved destinations (reuses existing saved-destination API).
   useEffect(() => {
@@ -371,95 +347,6 @@ export default function DashboardPage() {
                 <p className="text-base font-bold text-amber-700">{Math.round(weights.accessibility * 100)}%</p>
               </div>
             </div>
-          </Card>
-
-          {/* Research Evaluation Metrics Card (simulated benchmark) */}
-          <Card>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-indigo-600" />
-                <h2 className="font-display font-bold text-navy-900">Research Benchmark Metrics</h2>
-              </div>
-              <Badge variant="info">Simulated Benchmark</Badge>
-            </div>
-            <p className="text-xs text-navy-500 mb-4">
-              Comparison of TransitSwap Multi-Criteria Engine vs Shortest-Time and Lowest-Cost Baselines across evaluated scenarios.
-            </p>
-
-            {!evaluation && (
-              <div className="text-center py-4">
-                {evalError && <p className="text-sm text-danger mb-3">{evalError}</p>}
-                <Button variant="outline" onClick={loadEvaluationMetrics} loading={evalLoading}>
-                  Load Research Metrics
-                </Button>
-                <p className="text-xs text-navy-400 mt-2">
-                  Runs the 22-scenario benchmark on demand — not automatically, since it's computationally heavy.
-                </p>
-              </div>
-            )}
-
-            {evaluation && (
-              <>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                <div className="p-3 bg-navy-50 rounded-xl">
-                  <p className="text-[11px] font-medium text-navy-500">Shortest-Time Agreement</p>
-                  <p className="text-lg font-bold text-navy-900">{evaluation.agreementRateWithShortestTimePercent}%</p>
-                </div>
-                <div className="p-3 bg-emerald-50 rounded-xl">
-                  <p className="text-[11px] font-medium text-emerald-800">TransitSwap Reliability</p>
-                  <p className="text-lg font-bold text-emerald-900">{evaluation.transitSwapAverageReliability}/100</p>
-                </div>
-                <div className="p-3 bg-amber-50 rounded-xl">
-                  <p className="text-[11px] font-medium text-amber-800">Shortest-Time Reliability</p>
-                  <p className="text-lg font-bold text-amber-900">{evaluation.baselineShortestTimeAverageReliability}/100</p>
-                </div>
-                <div className="p-3 bg-sky-50 rounded-xl">
-                  <p className="text-[11px] font-medium text-sky-800">CI 90% Empirical Coverage</p>
-                  <p className="text-xs font-bold text-sky-900 mt-1">
-                    {evaluation.confidenceIntervalCoveragePercent !== null
-                      ? `${evaluation.confidenceIntervalCoveragePercent}%`
-                      : "Not empirically validated — simulated prototype"}
-                  </p>
-                </div>
-              </div>
-
-              {evaluation.benchmarkDisclaimer && (
-                <div className="mb-4 p-3 bg-amber-50 rounded-xl text-[11px] text-amber-800">
-                  <strong>Disclaimer:</strong> {evaluation.benchmarkDisclaimer}
-                </div>
-              )}
-              <p className="mb-4 text-xs text-navy-500">
-                Baseline comparisons, the ablation study and latency are on the{" "}
-                <Link to="/research" className="font-medium text-brand-600 hover:underline">Research page</Link>.
-              </p>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left text-navy-700">
-                  <thead className="bg-navy-50 text-navy-500 uppercase font-semibold">
-                    <tr>
-                      <th className="p-2 rounded-l-lg">Origin → Destination</th>
-                      <th className="p-2">TransitSwap Selected</th>
-                      <th className="p-2">Shortest Baseline</th>
-                      <th className="p-2 rounded-r-lg">Reliability Difference</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-navy-100">
-                    {evaluation.scenarios.map((s, idx) => (
-                      <tr key={idx} className="hover:bg-navy-50/50">
-                        <td className="p-2 font-medium">{s.originName} → {s.destinationName}</td>
-                        <td className="p-2"><Badge variant="brand">{s.transitSwapChosenLabel}</Badge></td>
-                        <td className="p-2"><Badge variant="outline">{s.shortestTimeChosenLabel}</Badge></td>
-                        <td className="p-2 font-bold text-emerald-600">
-                          +{(s.reliabilityDifferenceVsShortestPercent ?? s.reliabilityImprovementPercent ?? 0)}% Score
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              </>
-            )}
           </Card>
 
           {/* Quick Destinations — demo hubs, distinct from the user's personal Saved Destinations below */}

@@ -338,8 +338,9 @@ export default function MapView({
   origin, destination, route, multimodalRoute, onSetOrigin, onSetDestination,
   livePosition, activeSegmentId,
 }: MapViewProps) {
-  const defaultCenter: L.LatLngExpression = [19.076, 72.877]
-  const defaultZoom = 11
+  // Bengaluru city centre (the demo network covers Bengaluru's metro and bus corridors).
+  const defaultCenter: L.LatLngExpression = [12.9716, 77.5946]
+  const defaultZoom = 12
 
   // Bounds: prefer multimodal segment bounding box, then single route, then markers
   const bounds = useMemo<L.LatLngBoundsExpression | null>(() => {
