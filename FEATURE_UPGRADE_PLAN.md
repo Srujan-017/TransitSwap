@@ -1,6 +1,6 @@
 # TransitSwap — Feature Upgrade Master Plan
 
-**Written:** 13 Nov 2026 · **Deadline:** about 19 Nov 2026 · **Status:** Phases 1–2 done; Phase 3 next
+**Written:** 13 Nov 2026 · **Deadline:** about 19 Nov 2026 · **Status:** Phases 1–3 done; Phase 4 next
 
 This plan covers everything you asked for on 13 Nov. It is split into 8 phases. Each phase:
 
@@ -67,13 +67,13 @@ These are your rules. Where you didn't specify something, I filled the gap with 
 **Bad weather (all profiles, Phase 5).** Bad weather means rain, a thunderstorm, or a feels-like temperature of 35 °C or more **(added: the definition)**. In bad weather, any walk longer than 300 m becomes an auto. For the standard profile, walking-heavy routes are ranked lower and get a warning.
 
 **How the "one best option" is chosen for an accessibility profile:**
-1. No rule broken.
-2. Preferred modes (auto and metro).
-3. Lowest crowd.
-4. Fewest changes.
-5. Least walking.
-6. Fastest.
-7. Cheapest.
+1. No rule broken (modes, walking caps, no HIGH-crowd metro, buses only where allowed, metro hours).
+2. A route another suitable route beats on time, fare, walking *and* crowd is dropped.
+3. Preferred modes: metro-based first, then a door-to-door auto, then anything with a bus (heavy luggage: a door-to-door auto ties with metro).
+4. Lowest crowd (LOW above MEDIUM) — only for pregnant, stroller and senior; for the others only HIGH matters, and HIGH is excluded anyway.
+5. Fewest metro/bus changes (autos at the ends are not counted as changes).
+6. Least walking.
+7. Lowest cost, where cost = fare + Rs 2 per minute (heavy luggage: quickest first).
 
 The page shows **one "Best for you" route** with a short *"Why this suits a wheelchair user"* list. Two more suitable options sit behind *"Show other suitable options"*. The routes that were ruled out stay available behind *"Why other routes weren't suggested"*. The red "Multimodal route unavailable" box goes away: because a door-to-door auto always exists, there is always an answer inside Bengaluru.
 
@@ -221,7 +221,7 @@ It is tight but fits. If time runs short, the parts of Phase 6 most safely cut a
 |---|---|---|
 | 1. Quick fixes | ✅ done 13 Nov | Dashboard benchmark card removed. Research page shows a pre-computed snapshot (`src/data/benchmarkSnapshot.json`, regenerate with `backend/scripts/generate-benchmark-snapshot.ts`; re-run after Phases 3–5). Map opens on Bengaluru (12.9716, 77.5946, zoom 12). Place search prefers Bengaluru (`viewbox`, `countrycodes=in`; results elsewhere in India still available but ranked lower). 37 frontend tests, geocoding API test, both type-checks pass |
 | 2. Crowd data | ✅ done 13 Nov | Complete synthetic hourly crowd profile for all 41 metro stations and 24 bus stops, weekday and weekend, 24 h (`backend/src/data/crowdData.ts`; four station types with documented load curves; the original 16 spot readings kept as anchors in `LEGACY_CROWD_DATA`). Bus crowd per route and hour. Crowd per metro/bus leg, judged where the rider boards and gets off at the time they will be there; route crowd = most crowded leg (was the average). Each leg shows "Crowd: LOW/MEDIUM/HIGH" on the route card. Walk/auto-only routes: LOW, not applicable. Also fixed: user reports could never push a quiet station above MEDIUM (blend cut-offs now 1.6/2.4). Paper stays pinned to commit `3f36ef6` (decision D2). 29/29 backend files strict, 39 frontend tests |
-| 3. Profile-aware routing | pending | — |
+| 3. Profile-aware routing | ✅ done 14 Nov | `profilePolicy.ts` (the rules, one place), `tripPlanner.ts` (planning pipeline moved out of the controller so the API and the test matrix run the same code). New candidates: door-to-door auto, auto/walk first and last mile at the 4 nearest stations each end, short walk-only. Accessibility profiles: pool → station/walking rules → profile rules (buses, walking caps, crowd, metro hours) → drop dominated routes → best per option, top 3, "Best for you" + reasons + tips. Every Bengaluru trip now has an answer (standard profile too: auto fallback). Matrix (7 profiles x 12 trips x 3 times = 252): before 153 problems (wheelchair had no answer in 20 of 36); after 0. Also fixed: reduced-mobility exempt from crowd rule, no walking cap for senior/pregnant/luggage, buses for wheelchair/pregnant/stroller. 30/30 backend files strict, 45 frontend tests |
 | 4. Buses | pending | — |
 | 5. Weather | pending | — |
 | 6. Live navigation | pending | — |

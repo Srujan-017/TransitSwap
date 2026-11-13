@@ -170,6 +170,16 @@ export interface LastMileOption {
   instruction: string
 }
 
+// Why a route was chosen for an accessibility profile (mirrors backend ProfileFit).
+export interface ProfileFit {
+  profile: string
+  rank: number // 1 = the best route for this rider
+  isBest: boolean
+  headline: string
+  reasons: string[]
+  tips: string[]
+}
+
 export interface MultimodalRoute {
   id: string
   label: RouteLabel
@@ -193,6 +203,8 @@ export interface MultimodalRoute {
   departureSuggestion?: DepartureSuggestion
   lastMileOptions?: LastMileOption[]
   whyRecommended?: string[]
+  // Set for accessibility profiles only.
+  profileFit?: ProfileFit
   transitDnaScore?: number
   // Problem 23 — honest personalization status: true only when a trained
   // per-user TransitDNA (Pairwise Logistic Regression) model was actually used
@@ -229,7 +241,7 @@ export interface NearbyTransitStation {
 
 // A candidate route the engine excluded for the rider's profile, with the typed
 // reason (mirrors backend ExcludedRouteSummary).
-export type ExclusionReasonType = "station" | "walking_distance" | "crowd"
+export type ExclusionReasonType = "station" | "walking_distance" | "crowd" | "mode" | "service_hours"
 
 export interface ExcludedRoute {
   summary: string

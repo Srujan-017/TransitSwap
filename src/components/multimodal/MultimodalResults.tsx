@@ -238,8 +238,33 @@ export default function MultimodalResults({
         )}
       </div>
 
+      {/* Accessibility profiles: why this route suits the rider (decided by the profile's own rules) */}
+      {selected.profileFit && (
+        <section aria-label="Why this route suits you" className="rounded-3xl border border-teal-200 bg-teal-50 p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-bold text-teal-900">
+            <Sparkles className="w-4 h-4 text-teal-700" aria-hidden="true" />
+            {selected.profileFit.headline}
+          </div>
+          <ul className="space-y-1">
+            {selected.profileFit.reasons.map((reason) => (
+              <li key={reason} className="text-xs font-medium text-teal-900 flex items-start gap-1.5">
+                <span aria-hidden="true">✓</span>
+                <span>{reason}</span>
+              </li>
+            ))}
+          </ul>
+          {selected.profileFit.tips.length > 0 && (
+            <ul className="space-y-1 border-t border-teal-200 pt-2">
+              {selected.profileFit.tips.map((tip) => (
+                <li key={tip} className="text-[11px] text-teal-800">Tip: {tip}</li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       {/* Why Recommended Explainable Box */}
-      {selected.whyRecommended && selected.whyRecommended.length > 0 && (
+      {!selected.profileFit && selected.whyRecommended && selected.whyRecommended.length > 0 && (
         <div className="bg-gradient-to-r from-brand-50 via-sky-50 to-indigo-50 rounded-3xl p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-bold text-brand-900">
             <Sparkles className="w-4 h-4 text-brand-600" />
@@ -255,8 +280,25 @@ export default function MultimodalResults({
         </div>
       )}
 
+      {/* Accessibility profiles: the best route up front, the other suitable options tucked away */}
+      {routes.length > 1 && routes[0].profileFit && (
+        <div className="space-y-3">
+          <RouteCard route={routes[0]} selected={selectedIndex === 0} onSelect={() => onSelectRoute(0)} index={0} />
+          <details className="rounded-3xl bg-navy-50/60 px-5 py-3" open={selectedIndex > 0 ? true : undefined}>
+            <summary className="cursor-pointer text-sm font-medium text-navy-700">
+              Show other suitable options ({routes.length - 1})
+            </summary>
+            <div className="mt-3 space-y-3">
+              {routes.slice(1).map((route, i) => (
+                <RouteCard key={route.id} route={route} selected={i + 1 === selectedIndex} onSelect={() => onSelectRoute(i + 1)} index={i + 1} />
+              ))}
+            </div>
+          </details>
+        </div>
+      )}
+
       {/* Available Routes List */}
-      {routes.length > 1 && (
+      {routes.length > 1 && !routes[0].profileFit && (
         <div>
           <p className="text-xs font-semibold text-navy-500 uppercase tracking-wider mb-2 px-1">Candidate Journeys Ranked by Preference</p>
           <div className="space-y-3">

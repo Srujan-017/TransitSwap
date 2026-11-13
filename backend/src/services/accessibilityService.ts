@@ -519,8 +519,14 @@ export const accessibilityService = {
    * Evaluates the accessibility of an entire route for the given profile.
    * Checks EVERY transit station/segment, calculates score, applies hard constraints.
    */
-  async evaluateRoute(route: MultimodalRoute, profile: AccessibilityProfile | "fastest" | "cheapest" | "comfort"): Promise<AccessibilityEvaluation> {
-    const records = await this.listStations()
+  async evaluateRoute(
+    route: MultimodalRoute,
+    profile: AccessibilityProfile | "fastest" | "cheapest" | "comfort",
+    // Pass the station records in when evaluating many routes in a row, so the (database-backed)
+    // list is loaded once per search instead of once per candidate route.
+    preloadedRecords?: AccessibilityRecord[],
+  ): Promise<AccessibilityEvaluation> {
+    const records = preloadedRecords ?? (await this.listStations())
     const stations = extractTransitStations(route, records)
 
     let firstBlockReason: string | null = null
@@ -591,7 +597,8 @@ export const accessibilityService = {
    * page showed an unrelated "no combination connects them" explanation.
    */
   async partitionRoutes<T extends MultimodalRoute>(routes: T[], profile: AccessibilityProfile | "fastest" | "cheapest" | "comfort") {
-    const evaluated = await Promise.all(routes.map(async (route) => ({ route, evaluation: await this.evaluateRoute(route, profile) })))
+    const records = await this.listStations()
+    const evaluated = await Promise.all(routes.map(async (route) => ({ route, evaluation: await this.evaluateRoute(route, profile, records) })))
     return {
       feasible: evaluated
         .filter(({ evaluation }) => !evaluation.blocked)

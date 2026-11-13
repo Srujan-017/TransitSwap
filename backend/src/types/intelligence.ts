@@ -3,6 +3,21 @@ import type { MultimodalRoute, RouteSegment } from "./multimodal"
 
 export type AccessibilityStatus = "accessible" | "partially_accessible" | "not_accessible" | "unknown"
 export type CrowdLevel = "LOW" | "MEDIUM" | "HIGH"
+// Why a candidate route was ruled out for a rider's profile.
+//   station: a station on it fails the profile's access rule; walking_distance: too much walking;
+//   crowd: a crowded leg; mode: a mode not suitable for the profile (e.g. a bus for a wheelchair user);
+//   service_hours: the metro is not running at that time.
+export type ExclusionReasonType = "station" | "walking_distance" | "crowd" | "mode" | "service_hours"
+
+// The result of choosing a route for an accessibility profile: why this route, in plain language.
+export interface ProfileFit {
+  profile: string
+  rank: number // 1 = the best route for this rider
+  isBest: boolean
+  headline: string // "Best for a wheelchair user" / "Also suitable (option 2)"
+  reasons: string[]
+  tips: string[]
+}
 export type DataSource = "LIVE_USER_REPORT" | "RECENT_USER_REPORT" | "HISTORICAL_DATA" | "DEMO_DATA" | "UNAVAILABLE" | "NOT_APPLICABLE"
 export type WeatherImpactLevel = "low" | "medium" | "high" | "unavailable"
 
@@ -77,7 +92,7 @@ export interface AccessibilityEvaluation {
   // Distinguishes WHY a route was blocked, for the frontend to pick the right
   // icon/copy without parsing rejectionReason text. Optional — existing
   // station-based rejections predate this field and simply omit it.
-  blockedReasonType?: "station" | "walking_distance" | "crowd"
+  blockedReasonType?: ExclusionReasonType
   // "no_data" — Phase 4 fix (B5): every transit station on this route has no
   // accessibility record at all (distinct from "mixed", which means multiple
   // real sources are blended; "no_data" means there is no real source).
@@ -197,6 +212,8 @@ export interface EnrichedRoute extends MultimodalRoute {
   departureSuggestion?: DepartureSuggestion
   lastMileOptions?: LastMileOption[]
   whyRecommended?: string[]
+  // Set for accessibility profiles: why this route suits the rider, and whether it is the best one.
+  profileFit?: ProfileFit
   transitDnaScore?: number
   // Problem 23 — honest personalization status: true only when a trained
   // per-user TransitDNA (Pairwise Logistic Regression) model was actually used

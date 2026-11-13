@@ -52,7 +52,7 @@ const OUTSIDE_NETWORK = {
   destination: { latitude: 19.0896, longitude: 72.8656 },
 }
 
-const REASON_TYPES = ["station", "walking_distance", "crowd"]
+const REASON_TYPES = ["station", "walking_distance", "crowd", "mode", "service_hours"]
 
 async function search(token: string, pair: typeof ALL_EXCLUDED, profile: string) {
   return request(app)
@@ -85,12 +85,18 @@ async function run() {
     const wheelchair = await registerTestUser({ accessibilityProfile: "wheelchair" })
     const standard = await registerTestUser({ accessibilityProfile: "standard" })
 
-    console.log("1️⃣ B3 — every route excluded: the 404 explains each exclusion...")
+    console.log("1️⃣ B3 — the metro routes are all unusable: the rider still gets an answer, and the reasons...")
+    // Before the feature-upgrade this trip was a 404 ("no accessible route") — every metro/walk route
+    // broke a rule. Autos for the first and last mile (and a door-to-door auto) now always give an answer.
     const none = await search(wheelchair.token, ALL_EXCLUDED, "wheelchair")
-    assert(none.status === 404, `404 when no route is usable (got ${none.status})`)
-    assert(/No accessible multimodal route/.test(none.body.message ?? ""), "the message is unchanged")
-    const excluded = none.body.data?.excludedRoutes as Array<Record<string, unknown>> | undefined
-    assert(Array.isArray(excluded) && excluded.length >= 2, `excludedRoutes lists every ruled-out candidate (got ${excluded?.length})`)
+    assert(none.status === 200, `200: a wheelchair rider is never left without an answer inside Bengaluru (got ${none.status})`)
+    const answer = (none.body.data ?? []) as Array<MultimodalRoute & { profileFit?: { isBest: boolean; rank: number } }>
+    assert(answer.length >= 1 && answer[0].profileFit?.isBest === true && answer[0].profileFit?.rank === 1, "the first route is the best one, with a profileFit explanation")
+    assert(answer[0].labelDisplay === "Best for you", "the best route is labelled 'Best for you'")
+    assert(answer.every((r) => !r.segments.some((seg) => seg.mode === "bus")), "no wheelchair route contains a bus")
+    assert(answer.every((r) => r.segments.filter((seg) => seg.mode === "walking").every((seg) => seg.distanceMeters <= 150)), "no wheelchair walking leg is over 150 m")
+    const excluded = none.body.excludedRoutes as Array<Record<string, unknown>> | undefined
+    assert(Array.isArray(excluded) && excluded.length >= 2, `excludedRoutes lists the ruled-out candidates (got ${excluded?.length})`)
     assert(
       (excluded ?? []).every(
         (e) =>
@@ -104,10 +110,10 @@ async function run() {
     assert((excluded ?? []).some((e) => e.reasonType === "station"), "at least one is a station exclusion")
     assert((excluded ?? []).some((e) => e.reasonType === "walking_distance"), "at least one is a walking-distance exclusion")
     assert(
-      (excluded ?? []).filter((e) => e.reasonType === "walking_distance").every((e) => /exceeding the 1200m limit/.test(e.reason as string)),
-      "walking exclusions state the 1200 m limit",
+      (excluded ?? []).filter((e) => e.reasonType === "walking_distance").every((e) => /limit/.test(e.reason as string)),
+      "walking exclusions state the limit",
     )
-    console.log("   ✅ reasons returned with the 404\n")
+    console.log("   ✅ answer plus reasons\n")
 
     console.log("2️⃣ B3 — some routes excluded: the 200 lists them alongside the recommendations...")
     const some = await search(wheelchair.token, SOME_EXCLUDED, "wheelchair")

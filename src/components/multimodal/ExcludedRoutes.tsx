@@ -1,4 +1,4 @@
-import { Building2, Footprints, Users } from "lucide-react"
+import { Building2, Bus, Clock, Footprints, Users } from "lucide-react"
 import type { ExcludedRoute, ExclusionReasonType } from "../../types/multimodal"
 
 interface Props {
@@ -16,6 +16,8 @@ const REASON_META: Record<ExclusionReasonType, { label: string; Icon: typeof Use
   station: { label: "Station not accessible", Icon: Building2, chip: "bg-red-50 text-red-700" },
   walking_distance: { label: "Too much walking or rolling", Icon: Footprints, chip: "bg-amber-50 text-amber-700" },
   crowd: { label: "Too crowded", Icon: Users, chip: "bg-violet-50 text-violet-700" },
+  mode: { label: "Not suitable for you", Icon: Bus, chip: "bg-sky-50 text-sky-800" },
+  service_hours: { label: "Not running then", Icon: Clock, chip: "bg-slate-100 text-slate-700" },
 }
 
 function ExcludedList({ routes }: { routes: ExcludedRoute[] }) {

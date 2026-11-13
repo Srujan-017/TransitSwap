@@ -11,6 +11,7 @@ import {
 } from "../data/transitData"
 import { routingService } from "./routingService"
 import { accessibilityService } from "./accessibilityService"
+import { isPolicyProfile } from "./profilePolicy"
 import { createTtlCache } from "../utils/ttlCache"
 import { parseLocalDateTime, formatClockTime } from "../utils/dateTime"
 import type { NormalizedRoute, TransportMode } from "../types/routing"
@@ -1356,6 +1357,106 @@ function assignLabels(candidates: RouteSegment[][]): { segments: RouteSegment[];
   return result
 }
 
+// ── Feature-upgrade phase 3 — autos for the first and last mile ──────────────
+//
+// The patterns above only ever WALK to a metro station (up to 2 km) and can use an auto only at the
+// end of a trip from a handful of "auto hub" stations. For a wheelchair user, a senior or a rider
+// with a stroller that leaves almost nothing usable: the walk alone breaks their limits. These
+// candidates are generated for accessibility profiles (and as a last resort for anyone, so a trip
+// inside Bengaluru always has an answer):
+//   - a door-to-door auto;
+//   - a short walk-only trip;
+//   - {walk | auto} -> metro -> {walk | auto}, for the nearest few stations at each end — walking is
+//     offered for short legs, an auto for longer ones, and both in the overlap.
+// Which of them a rider is actually offered is decided by the profile rules (profilePolicy.ts), not here.
+
+// Bengaluru and its metro/bus corridors (the demonstration network's service area).
+const SERVICE_AREA = { minLat: 12.7, maxLat: 13.25, minLng: 77.35, maxLng: 77.9 }
+const ACCESS_STATIONS_PER_END = 4
+const ACCESS_STATION_RADIUS_M = 8000
+const WALK_VARIANT_MAX_M = 400
+const AUTO_VARIANT_MIN_M = 150
+// Short on purpose: a rider who cannot walk even 200 m (wheelchair cap 150 m) still needs an answer.
+const DOOR_TO_DOOR_AUTO_MIN_M = 100
+const WALK_ONLY_MAX_M = 1000
+
+function inServiceArea(location: SegmentLocation): boolean {
+  return (
+    location.latitude >= SERVICE_AREA.minLat && location.latitude <= SERVICE_AREA.maxLat &&
+    location.longitude >= SERVICE_AREA.minLng && location.longitude <= SERVICE_AREA.maxLng
+  )
+}
+
+function nearestMetros(location: SegmentLocation, count: number, maxM: number, excludeIds: ReadonlySet<string>) {
+  return METRO_STATIONS
+    .filter((station) => !excludeIds.has(station.id))
+    .map((station) => ({ station, distM: haversine(location.latitude, location.longitude, station.latitude, station.longitude) }))
+    .filter((entry) => entry.distM <= maxM)
+    .sort((a, b) => a.distM - b.distM)
+    .slice(0, count)
+}
+
+// The ways to cover one first/last-mile stretch: nothing (already there), a walk, an auto, or both options.
+async function accessLegOptions(ctx: RoadContext, from: SegmentLocation, to: SegmentLocation): Promise<RouteSegment[][]> {
+  const distance = haversine(from.latitude, from.longitude, to.latitude, to.longitude)
+  if (distance < MIN_WALK_SEGMENT_M) return [[]]
+  const options: Promise<RouteSegment[]>[] = []
+  if (distance <= WALK_VARIANT_MAX_M) {
+    options.push(walkSegment(ctx, from.name, from.latitude, from.longitude, to.name, to.latitude, to.longitude).then((seg) => [seg]))
+  }
+  if (distance >= AUTO_VARIANT_MIN_M) {
+    options.push(autoSegment(ctx, from.name, from.latitude, from.longitude, to.name, to.latitude, to.longitude).then((seg) => [seg]))
+  }
+  return Promise.all(options)
+}
+
+async function generateAccessCandidates(
+  ctx: RoadContext,
+  origin: SegmentLocation,
+  destination: SegmentLocation,
+): Promise<RouteSegment[][]> {
+  if (!inServiceArea(origin) || !inServiceArea(destination)) return []
+  const candidates: RouteSegment[][] = []
+  const direct = haversine(origin.latitude, origin.longitude, destination.latitude, destination.longitude)
+
+  if (direct >= DOOR_TO_DOOR_AUTO_MIN_M) {
+    candidates.push([await autoSegment(ctx, origin.name, origin.latitude, origin.longitude, destination.name, destination.latitude, destination.longitude)])
+  }
+  if (direct <= WALK_ONLY_MAX_M) {
+    candidates.push([await walkSegment(ctx, origin.name, origin.latitude, origin.longitude, destination.name, destination.latitude, destination.longitude)])
+  }
+
+  const nearO = nearestMetros(origin, ACCESS_STATIONS_PER_END, ACCESS_STATION_RADIUS_M, ctx.excludeIds)
+  const nearD = nearestMetros(destination, ACCESS_STATIONS_PER_END, ACCESS_STATION_RADIUS_M, ctx.excludeIds)
+  const pairs: Array<{ o: (typeof nearO)[number]; d: (typeof nearD)[number] }> = []
+  for (const o of nearO) for (const d of nearD) if (o.station.id !== d.station.id) pairs.push({ o, d })
+
+  const built = await Promise.all(pairs.map(async ({ o, d }) => {
+    const path = stationsOnPath(o.station.id, d.station.id)
+    if (!path || !validateMetroPath(path)) return [] as RouteSegment[][]
+    const metro = metroSegment(o.station.id, d.station.id, path)
+    if (!metro) return [] as RouteSegment[][]
+    const [firstMile, lastMile] = await Promise.all([
+      accessLegOptions(ctx, origin, { name: o.station.name, latitude: o.station.latitude, longitude: o.station.longitude }),
+      accessLegOptions(ctx, { name: d.station.name, latitude: d.station.latitude, longitude: d.station.longitude }, destination),
+    ])
+    const routes: RouteSegment[][] = []
+    for (const first of firstMile) for (const last of lastMile) routes.push([...first, metro, ...last])
+    return routes
+  }))
+  for (const routes of built) candidates.push(...routes)
+  return candidates
+}
+
+export interface GenerateRoutesOptions {
+  /**
+   * Return every valid candidate, unfiltered and unlabelled, for the profile-aware selection in
+   * tripPlanner.ts. Without it the candidates are Pareto-filtered on time/fare/walking/transfers,
+   * which would discard a usable route whenever an unusable one beats it on those four measures.
+   */
+  pool?: boolean
+}
+
 function normalizeRequestLocation(location: MultimodalRequest["origin"], fallbackName: string): SegmentLocation {
   return {
     name: location.name?.trim() || fallbackName,
@@ -1377,7 +1478,7 @@ export interface NearbyTransitResult {
 }
 
 export const multimodalService = {
-  async generateRoutes(request: MultimodalRequest): Promise<MultimodalRoute[]> {
+  async generateRoutes(request: MultimodalRequest, options: GenerateRoutesOptions = {}): Promise<MultimodalRoute[]> {
     const origin = normalizeRequestLocation(request.origin, "Origin")
     const destination = normalizeRequestLocation(request.destination, "Destination")
 
@@ -1404,7 +1505,11 @@ export const multimodalService = {
       ]),
       searchGraphCandidates(ctx, origin, destination),
     ])
-    const generated: Array<RouteSegment[] | null> = [...patternResults, ...graphResults]
+    // Autos for the first/last mile and a door-to-door auto: for accessibility profiles up front,
+    // for everyone else only if nothing else is found (below).
+    const needsAccessCandidates = isPolicyProfile(request.profile)
+    const accessResults = needsAccessCandidates ? await generateAccessCandidates(ctx, origin, destination) : []
+    const generated: Array<RouteSegment[] | null> = [...patternResults, ...graphResults, ...accessResults]
 
     // Phase 4 fix (B12) — drop degenerate near-zero walking segments (e.g. an
     // access walk of 0m when the origin IS the station) before validation,
@@ -1415,7 +1520,21 @@ export const multimodalService = {
     const validCandidates = cleaned.filter((segments): segments is RouteSegment[] => (
       validateCandidate(segments, origin, destination)
     ))
-    const uniqueCandidates = removeDuplicateCandidates(validCandidates)
+    let uniqueCandidates = removeDuplicateCandidates(validCandidates)
+    const departureDate = parseLocalDateTime(request.departureTime)
+
+    if (options.pool) {
+      return uniqueCandidates.map((segments) => attachBoardingEstimates(buildRoute(segments, "BALANCED"), departureDate))
+    }
+
+    // Nothing found for a standard rider: a trip inside Bengaluru can still be made by auto.
+    if (uniqueCandidates.length === 0 && !needsAccessCandidates) {
+      const fallback = (await generateAccessCandidates(ctx, origin, destination))
+        .map((segments) => omitNegligibleWalks(segments))
+        .filter((segments): segments is RouteSegment[] => validateCandidate(segments, origin, destination))
+      // Only the simplest answers: a door-to-door auto, or a short walk.
+      uniqueCandidates = removeDuplicateCandidates(fallback.filter((segments) => segments.length === 1))
+    }
 
     // Phase 6 — strip any candidate that is strictly worse than another on
     // every one of (duration, fare, walking, transfers), from either
@@ -1430,10 +1549,15 @@ export const multimodalService = {
       paretoOptimalCandidates.map((segments) => roadSnapCandidateGeometry(ctx, segments)),
     )
 
-    const departureDate = parseLocalDateTime(request.departureTime)
     return assignLabels(geometrySnappedCandidates).map(({ segments, label }) =>
       attachBoardingEstimates(buildRoute(segments, label), departureDate),
     )
+  },
+
+  /** Road-snaps metro/bus geometry for routes chosen from a pool (generateRoutes with `pool`). */
+  async snapRouteGeometry<T extends MultimodalRoute>(route: T): Promise<T> {
+    const segments = await roadSnapCandidateGeometry(createRoadContext(), route.segments)
+    return { ...route, segments }
   },
 
   getNearbyTransit(latitude: number, longitude: number): { metro: NearbyTransitResult | null; bus: NearbyTransitResult | null } {
