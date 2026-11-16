@@ -4,8 +4,12 @@
 // with an offline road model so it is fast and repeatable. Each result is checked against the
 // travel rules for that profile by a checker written independently of the policy code.
 //
-// Run:  cd backend && npx ts-node --transpile-only scripts/profile-matrix.ts [out.json]
+// Run:  cd backend && npx ts-node --transpile-only scripts/profile-matrix.ts [out.json] [--weather rain|heavy_rain|heat|clear]
+// With a bad-weather option every profile (standard included) must also have no walk over 300 m.
 // Exit code 1 if any served route breaks a rule or any trip is left without an answer.
+
+// Offline and repeatable: fixed clear weather, no weather-service call.
+process.env.WEATHER_SOURCE = process.env.WEATHER_SOURCE || "clear"
 
 import fs from "fs"
 import { setMultimodalRoadLegProviderForTesting, type RoadLegProvider } from "../src/services/multimodalService"
@@ -64,22 +68,27 @@ const RULES: Record<string, Limits> = {
   reduced_mobility: { maxWalkTotal: 400, maxWalkLeg: 300, bus: "lowCrowd", highMetro: false },
 }
 
+const weatherArg = process.argv.indexOf("--weather")
+const WEATHER = (weatherArg >= 0 ? process.argv[weatherArg + 1] : undefined) as "clear" | "rain" | "heavy_rain" | "heat" | undefined
+const BAD_WEATHER = WEATHER === "rain" || WEATHER === "heavy_rain" || WEATHER === "heat"
+
 export function checkRoute(route: MultimodalRoute & { crowd?: { legs?: Array<{ segmentId: string; mode: string; level?: string }> } }, profile: string): string[] {
-  const rule = RULES[profile]
+  const rule = RULES[profile] ?? (BAD_WEATHER ? { maxWalkTotal: Infinity, maxWalkLeg: Infinity, bus: "any" as const, highMetro: true } : undefined)
   if (!rule) return []
   const problems: string[] = []
   const legs = route.crowd?.legs ?? []
   const walks = route.segments.filter((s) => s.mode === "walking")
   const total = walks.reduce((n, s) => n + s.distanceMeters, 0)
   const longest = walks.reduce((n, s) => Math.max(n, s.distanceMeters), 0)
-  if (longest > rule.maxWalkLeg) problems.push(`walking leg ${Math.round(longest)} m > ${rule.maxWalkLeg} m`)
+  const legLimit = BAD_WEATHER ? Math.min(rule.maxWalkLeg, 300) : rule.maxWalkLeg
+  if (longest > legLimit) problems.push(`walking leg ${Math.round(longest)} m > ${legLimit} m`)
   if (total > rule.maxWalkTotal) problems.push(`walking ${Math.round(total)} m > ${rule.maxWalkTotal} m`)
   for (const seg of route.segments) {
     if (seg.mode === "bus") {
       if (rule.bus === "never") problems.push("contains a bus")
       else if (rule.bus === "lowCrowd" && legs.find((l) => l.segmentId === seg.id)?.level !== "LOW") problems.push("bus that is not LOW crowd")
     }
-    if (seg.mode === "metro" && legs.find((l) => l.segmentId === seg.id)?.level === "HIGH") problems.push("HIGH-crowd metro leg")
+    if (!rule.highMetro && seg.mode === "metro" && legs.find((l) => l.segmentId === seg.id)?.level === "HIGH") problems.push("HIGH-crowd metro leg")
   }
   return problems
 }
@@ -113,12 +122,20 @@ async function main() {
       for (const time of TIMES) {
         const cell: Cell = { profile, trip: trip.id, time: time.id, outcome: "served", routes: 0, excluded: 0, violations: [] }
         try {
-          const plan = await planTrip({ origin: trip.from, destination: trip.to, profile, departureTime: time.at })
+          const plan = await planTrip({ origin: trip.from, destination: trip.to, profile, departureTime: time.at, weather: WEATHER })
           cell.routes = plan.rankedRoutes.length
           cell.excluded = plan.excludedRoutes.length
           const best = plan.rankedRoutes[0] as unknown as MultimodalRoute
           cell.best = summarise(best as never)
           cell.violations = checkRoute(best as never, profile)
+          if (BAD_WEATHER) {
+            // The weather rule holds for every route shown, not only the best one.
+            for (const other of plan.rankedRoutes.slice(1)) {
+              const longest = (other as unknown as MultimodalRoute).segments.filter((x) => x.mode === "walking").reduce((n, x) => Math.max(n, x.distanceMeters), 0)
+              if (longest > 300) cell.violations.push(`another option has a ${Math.round(longest)} m walk`)
+            }
+            if (!plan.weather.bad) cell.violations.push("weather was not recognised as bad")
+          }
         } catch (err) {
           if (err instanceof AppError) {
             cell.outcome = "no_route"
@@ -145,7 +162,7 @@ async function main() {
     bad += none + broken
     console.log(`${profile.padEnd(18)} ${String(served).padStart(3)}/${rows.length}   ${String(none).padStart(5)}      ${String(broken).padStart(5)}`)
   }
-  const out = process.argv[2]
+  const out = process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : undefined
   if (out) fs.writeFileSync(out, JSON.stringify(cells, null, 2), "utf8")
   console.log(`\n${cells.length} cases; ${bad} problems (trips with no answer + best routes that break a rule).`)
   process.exit(process.argv.includes("--baseline") ? 0 : bad > 0 ? 1 : 0)

@@ -64,6 +64,24 @@ describe("PlanTripPage", () => {
     expect(wheelchairButton.className).toContain("bg-brand-500")
   })
 
+  it("offers the demo weather options, defaulting to live weather", async () => {
+    const user = userEvent.setup()
+    renderPlanTripPage()
+
+    const group = screen.getByRole("group", { name: /Weather/ })
+    const live = screen.getByRole("button", { name: "Live weather" })
+    expect(live).toHaveAttribute("aria-pressed", "true")
+    for (const label of ["Clear", "Rain", "Heavy rain", "Heat"]) {
+      expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "false")
+    }
+    expect(group).toHaveTextContent("Uses the real weather")
+
+    await user.click(screen.getByRole("button", { name: "Rain" }))
+    expect(screen.getByRole("button", { name: "Rain" })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("button", { name: "Live weather" })).toHaveAttribute("aria-pressed", "false")
+    expect(group).toHaveTextContent("walks over 300 m become autos")
+  })
+
   it("shows the documented validation message instead of searching when no origin/destination is set", async () => {
     const user = userEvent.setup()
     renderPlanTripPage()

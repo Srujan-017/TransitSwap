@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express"
-import { weatherService, calculateWeatherImpact } from "../services/weatherService"
+import { weatherService, calculateWeatherImpact, assessWeather } from "../services/weatherService"
 import { sendSuccess } from "../utils/response"
 
 export async function getCurrentWeather(req: Request, res: Response, next: NextFunction) {
@@ -9,7 +9,8 @@ export async function getCurrentWeather(req: Request, res: Response, next: NextF
     const weather = await weatherService.getCurrent(latitude, longitude)
     sendSuccess(res, {
       weather,
-      impact: calculateWeatherImpact(weather, 0),
+      impact: calculateWeatherImpact(weather ?? undefined, 0),
+      assessment: assessWeather(weather),
     })
   } catch (err) {
     next(err)

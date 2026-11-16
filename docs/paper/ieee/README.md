@@ -37,7 +37,7 @@ python scripts/make_figures.py                                             # nee
 
 No network or database is needed: the experiments use the backend's demo mode, an offline road-leg model, a seeded OD sample and a pinned clock, so every number comes out identical on each run except the timings.
 
-**Important — the paper is pinned to the code at commit `3f36ef6`.** After that commit the application gained a complete hourly crowd model (every station, every hour), per-leg crowd, profile-aware routing with door-to-door autos, a larger bus network and weather rules (see `FEATURE_UPGRADE_PLAN.md`). The experiment scripts call the production services, so running them on a later commit gives different numbers from the ones in the paper. To reproduce the paper exactly:
+**Important — the paper is pinned to the code at commit `3f36ef6`.** (Since then the scripts set `WEATHER_SOURCE=clear`, i.e. fixed clear weather with no network call, instead of the old coordinate-based demo weather.) After that commit the application gained a complete hourly crowd model (every station, every hour), per-leg crowd, profile-aware routing with door-to-door autos, a larger bus network and weather rules (see `FEATURE_UPGRADE_PLAN.md`). The experiment scripts call the production services, so running them on a later commit gives different numbers from the ones in the paper. To reproduce the paper exactly:
 
 ```
 git checkout 3f36ef6

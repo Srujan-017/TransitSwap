@@ -174,6 +174,25 @@ export interface LastMileOption {
   instruction: string
 }
 
+// What the rider is told about the weather (mirrors backend WeatherReport).
+export type WeatherMode = "live" | "clear" | "rain" | "heavy_rain" | "heat"
+
+export interface WeatherReport {
+  available: boolean
+  condition?: string
+  temperatureC?: number
+  feelsLikeC?: number
+  rainMm?: number
+  source?: "Open-Meteo" | "OpenWeatherMap" | "Demo (selected by you)" | "Demo Weather Data"
+  isDemo?: boolean
+  forecastFor?: string // "2026-11-16T18:00" when this is the forecast for the chosen departure hour
+  bad: boolean
+  kind: "rain" | "heavy_rain" | "thunderstorm" | "heat" | null
+  headline: string
+  rule: string
+  note?: string
+}
+
 // Why a route was chosen for an accessibility profile (mirrors backend ProfileFit).
 export interface ProfileFit {
   profile: string

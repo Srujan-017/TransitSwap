@@ -27,6 +27,7 @@ import type { GeoLocation, RouteResult, RouteStatus, TransportMode } from "../ty
 import type { ExcludedRoute, MultimodalRoute } from "../types/multimodal"
 import { excludedRoutesFromError } from "../utils/excludedRoutes"
 import type { AccessibilityProfile } from "../types"
+import type { WeatherMode, WeatherReport } from "../types/multimodal"
 
 // Lazy-load MapView so Leaflet doesn't bloat the initial bundle
 const MapView = lazy(() => import("../components/map/MapView"))
@@ -38,6 +39,14 @@ type RoutingMode = "road" | "multimodal"
 // to plain `string`, which setProfile(p.id) couldn't accept (tsc TS2345);
 // `npm run build` never caught it because `vite build` doesn't type-check.
 type RoutingProfile = AccessibilityProfile | "fastest" | "cheapest" | "comfort"
+
+const WEATHER_OPTIONS: Array<{ id: WeatherMode; label: string }> = [
+  { id: "live", label: "Live weather" },
+  { id: "clear", label: "Clear" },
+  { id: "rain", label: "Rain" },
+  { id: "heavy_rain", label: "Heavy rain" },
+  { id: "heat", label: "Heat" },
+]
 
 const PROFILES: Array<{ id: RoutingProfile; icon: string; label: string; description: string }> = [
   { id: "standard",         icon: "🚶", label: "Standard",         description: "Optimizes for normal travel time, fare and schedule balance." },
@@ -131,6 +140,9 @@ export default function PlanTripPage() {
   const [multimodalStatus, setMultimodalStatus]           = useState<RouteStatus>("idle")
   const [multimodalError, setMultimodalError]             = useState("")
   const [busAlternativeNote, setBusAlternativeNote]       = useState("")
+  // Demo weather chosen by the rider ("live" = the real weather/forecast), and what the planner reported.
+  const [weatherMode, setWeatherMode]                     = useState<WeatherMode>("live")
+  const [weatherReport, setWeatherReport]                 = useState<WeatherReport | undefined>(undefined)
   // Candidate routes ruled out for the selected profile, with typed reasons (B3).
   const [excludedRoutes, setExcludedRoutes]               = useState<ExcludedRoute[]>([])
   const [activeNavRoute, setActiveNavRoute]               = useState<MultimodalRoute | null>(null)
@@ -249,8 +261,9 @@ export default function PlanTripPage() {
         // Problem 13 — combine date + time into one local datetime; undefined
         // (not "now") when the user hasn't picked a time yet.
         const departureTime = buildLocalDepartureDateTime(date, time)
-        const result = await multimodalService.getRoutes(origin!, destination!, profile, departureTime)
+        const result = await multimodalService.getRoutes(origin!, destination!, profile, departureTime, weatherMode)
         setMultimodalRoutes(result.routes)
+        setWeatherReport(result.weather)
         setBusAlternativeNote(result.busAlternativeNote ?? "")
         setExcludedRoutes(result.excludedRoutes ?? [])
         setMultimodalStatus("success")
@@ -471,6 +484,35 @@ export default function PlanTripPage() {
                   />
                 </div>
               </div>
+
+              {/* Demo weather — shows how routes change in rain or heat even on a sunny day */}
+              {routingMode === "multimodal" && (
+                <div className="space-y-2" role="group" aria-labelledby="weather-label">
+                  <p id="weather-label" className="text-xs font-semibold text-navy-500 uppercase tracking-wider">
+                    Weather <span className="ml-1 normal-case tracking-normal font-medium text-navy-400">(demo options for showing the rules)</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {WEATHER_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        aria-pressed={weatherMode === option.id}
+                        onClick={() => setWeatherMode(option.id)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                          weatherMode === option.id ? "bg-brand-600 text-white" : "bg-navy-50 text-navy-700 hover:bg-navy-100"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-navy-500">
+                    {weatherMode === "live"
+                      ? "Uses the real weather — the forecast for your departure hour if you pick a time."
+                      : "Demo weather: in rain or heat, walks over 300 m become autos."}
+                  </p>
+                </div>
+              )}
 
               {/* Accessibility profile */}
               <div className="space-y-2.5">
@@ -700,6 +742,7 @@ export default function PlanTripPage() {
               origin={origin}
               destination={destination}
               busAlternativeNote={busAlternativeNote}
+              weatherReport={weatherReport}
               onStartNavigation={setActiveNavRoute}
               onSaveJourney={handleSaveJourney}
               saveStatus={saveStatus}

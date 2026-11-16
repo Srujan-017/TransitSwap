@@ -16,6 +16,9 @@
 // Run with: npx ts-node --transpile-only scripts/generate-accessibility-paper-data.ts
 // Output:   docs/paper/ieee/data/accessibility-paper-data.json
 
+// Offline and repeatable: fixed clear weather, no weather-service call.
+process.env.WEATHER_SOURCE = process.env.WEATHER_SOURCE || "clear"
+
 import fs from "fs"
 import path from "path"
 import {

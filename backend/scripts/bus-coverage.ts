@@ -5,6 +5,9 @@
 //
 // Run: cd backend && npx ts-node --transpile-only scripts/bus-coverage.ts [--examples] [--profile senior]
 
+// Offline and repeatable: fixed clear weather, no weather-service call.
+process.env.WEATHER_SOURCE = process.env.WEATHER_SOURCE || "clear"
+
 import { setMultimodalRoadLegProviderForTesting, type RoadLegProvider } from "../src/services/multimodalService"
 import { planTrip } from "../src/services/tripPlanner"
 import { BUS_STOPS, METRO_STATIONS } from "../src/data/transitData"

@@ -13,6 +13,7 @@ import { routingService } from "./routingService"
 import { accessibilityService } from "./accessibilityService"
 import { isPolicyProfile, PROFILE_POLICIES } from "./profilePolicy"
 import { BUS_SPEED_MPS, BUS_DISTANCE_FACTOR, headwayAt, nextBuses } from "./busTimetable"
+import { BAD_WEATHER_MAX_WALK_M } from "./weatherService"
 import { createTtlCache } from "../utils/ttlCache"
 import { parseLocalDateTime, formatClockTime } from "../utils/dateTime"
 import type { NormalizedRoute, TransportMode } from "../types/routing"
@@ -1549,6 +1550,12 @@ export interface GenerateRoutesOptions {
    * which would discard a usable route whenever an unusable one beats it on those four measures.
    */
   pool?: boolean
+  /**
+   * Bad weather (rain, thunderstorm, extreme heat): autos are offered for the first and last mile to every
+   * profile, and any candidate with a single walk over BAD_WEATHER_MAX_WALK_M is dropped (kept only if no
+   * candidate is left without one, so a trip is never left without an answer).
+   */
+  badWeather?: boolean
 }
 
 function normalizeRequestLocation(location: MultimodalRequest["origin"], fallbackName: string): SegmentLocation {
@@ -1601,8 +1608,8 @@ export const multimodalService = {
     ])
     // Autos for the first/last mile and a door-to-door auto: for accessibility profiles up front,
     // for everyone else only if nothing else is found (below).
-    const needsAccessCandidates = isPolicyProfile(request.profile)
-    const busAllowed = isPolicyProfile(request.profile) && PROFILE_POLICIES[request.profile].bus !== "never"
+    const needsAccessCandidates = isPolicyProfile(request.profile) || Boolean(options.badWeather)
+    const busAllowed = isPolicyProfile(request.profile) ? PROFILE_POLICIES[request.profile].bus !== "never" : true
     const accessResults = needsAccessCandidates ? await generateAccessCandidates(ctx, origin, destination, busAllowed) : []
     const generated: Array<RouteSegment[] | null> = [...patternResults, ...graphResults, ...accessResults]
 
@@ -1623,6 +1630,13 @@ export const multimodalService = {
     // the real clock).
     if (departureDate) {
       uniqueCandidates = uniqueCandidates.filter((segments) => busServiceAvailable(segments, departureDate))
+    }
+
+    if (options.badWeather && !options.pool) {
+      const noLongWalk = (segments: RouteSegment[]) =>
+        segments.every((segment) => segment.mode !== "walking" || segment.distanceMeters <= BAD_WEATHER_MAX_WALK_M)
+      const dry = uniqueCandidates.filter(noLongWalk)
+      if (dry.length > 0) uniqueCandidates = dry
     }
 
     if (options.pool) {

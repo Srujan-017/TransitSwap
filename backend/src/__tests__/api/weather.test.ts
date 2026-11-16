@@ -1,11 +1,14 @@
 import request from "supertest"
 import { app, registerTestUser, authHeader, ensureDbConnected } from "../helpers/testApp"
+import { setMultimodalRoadLegProviderForTesting } from "../../services/multimodalService"
 
 /**
  * Phase 10 — API integration tests for /api/weather/* (2 of 50 endpoints):
  * GET / and GET /current (both resolve to the same controller). Always
- * returns 200 — weatherService falls back to a clearly-labelled demo value
- * with no API key configured, by design (see weatherService.ts).
+ * returns 200. The test runner sets WEATHER_SOURCE=clear (fixed clear weather, no network).
+ *
+ * Feature-upgrade phase 5 adds: the weather assessment in the response, and the `weather` field of
+ * POST /api/routes/multimodal (validated; "rain" must come back as bad weather with no walk over 300 m).
  */
 
 let passed = 0
@@ -53,6 +56,32 @@ async function run() {
   console.log("5️⃣ Testing GET /api/weather validation failure (out-of-range longitude)...")
   const res5 = await request(app).get("/api/weather").set(...authHeader(user.token)).query({ latitude: 12.9698, longitude: 999 })
   if (assert(res5.status === 400, `Expected 400, got ${res5.status}`)) console.log("   ✅ 400 on invalid longitude.\n")
+
+  console.log("6️⃣ GET /api/weather reports the conditions and whether they are bad for walking...")
+  const w = res1.body?.data
+  assert(w?.weather?.condition === "Clear sky" && w?.weather?.isDemoData === true, "fixed clear weather under the test runner")
+  assert(w?.assessment?.bad === false && w?.impact?.available === true, "assessment says not bad, impact is available")
+  console.log("   ✅ weather payload\n")
+
+  console.log("7️⃣ POST /api/routes/multimodal validates and uses the weather field...")
+  setMultimodalRoadLegProviderForTesting({ async getRoute() { throw new Error("offline test provider") } })
+  try {
+    const trip = { origin: { latitude: 12.9419, longitude: 77.509 }, destination: { latitude: 12.9767, longitude: 77.5713 }, profile: "standard", departureTime: "2026-11-16T14:30" }
+    const bad = await request(app).post("/api/routes/multimodal").set(...authHeader(user.token)).send({ ...trip, weather: "snow" })
+    assert(bad.status === 400, `an unknown weather mode is a 400 (got ${bad.status})`)
+    const clear = await request(app).post("/api/routes/multimodal").set(...authHeader(user.token)).send({ ...trip, weather: "clear" })
+    assert(clear.status === 200 && clear.body.weather?.bad === false && clear.body.weather?.isDemo === true, "clear: 200, not bad, marked as a demo")
+    const rain = await request(app).post("/api/routes/multimodal").set(...authHeader(user.token)).send({ ...trip, weather: "rain" })
+    assert(rain.status === 200 && rain.body.weather?.bad === true && rain.body.weather?.kind === "rain", "rain: 200 and reported as bad weather")
+    assert(/300 m/.test(rain.body.weather?.rule ?? ""), "the rule is stated in the response")
+    const longest = Math.max(0, ...(rain.body.data as Array<{ segments: Array<{ mode: string; distanceMeters: number }> }>).flatMap((r) => r.segments.filter((x) => x.mode === "walking").map((x) => x.distanceMeters)))
+    assert(longest <= 300, `no route has a walk over 300 m in rain (longest ${Math.round(longest)} m)`)
+    const live = await request(app).post("/api/routes/multimodal").set(...authHeader(user.token)).send(trip)
+    assert(live.status === 200 && live.body.weather?.available === true && live.body.weather?.bad === false, "no weather field: the (fixed clear) default weather is used")
+    console.log("   ✅ multimodal weather field\n")
+  } finally {
+    setMultimodalRoadLegProviderForTesting(null)
+  }
 
   console.log("═══════════════════════════════════════════════════════")
   console.log(failed === 0 ? `🎉 ALL ${passed} /api/weather/* TESTS PASSED!` : `⚠️  ${passed} PASSED, ${failed} FAILED`)

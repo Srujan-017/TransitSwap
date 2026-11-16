@@ -12,7 +12,7 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
   try {
     const body = req.body as MultimodalRequest
     const authUserId = (req as unknown as { user?: { userId: string } }).user?.userId
-    const { rankedRoutes, statusMessage, excludedRoutes, busAlternativeNote } = await planTrip(body, { userId: authUserId })
+    const { rankedRoutes, statusMessage, excludedRoutes, busAlternativeNote, weather } = await planTrip(body, { userId: authUserId })
 
     // Not sendSuccess() here — busAlternativeNote is a new, optional,
     // top-level field alongside the unchanged `data` array, so every
@@ -21,6 +21,8 @@ export async function calculateMultimodalRoute(req: Request, res: Response, next
     res.status(200).json({
       success: true,
       data: rankedRoutes,
+      // What the weather is, whether it is bad for walking, and what the planner did about it.
+      weather,
       message: `TransitSwap ML Intelligence Engine: Pairwise Logistic Regression ranker active (${statusMessage}). Evaluated with weather, accessibility, reliability & Monte Carlo simulation.`,
       ...(busAlternativeNote ? { busAlternativeNote } : {}),
       // Candidate routes that were ruled out for this profile, each with its typed

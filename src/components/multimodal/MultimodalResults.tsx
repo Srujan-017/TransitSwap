@@ -6,9 +6,10 @@ import {
 } from "lucide-react"
 import RouteCard from "./RouteCard"
 import SegmentTimeline from "./SegmentTimeline"
+import WeatherBanner from "./WeatherBanner"
 import Button from "../ui/Button"
 import Badge from "../ui/Badge"
-import type { MultimodalRoute, RouteSegment, CrowdLevel } from "../../types/multimodal"
+import type { MultimodalRoute, RouteSegment, CrowdLevel, WeatherReport } from "../../types/multimodal"
 import type { GeoLocation } from "../../types/map"
 import { formatDuration, formatDistance } from "../../utils/formatters"
 import { intelligenceService } from "../../services/intelligenceService"
@@ -30,6 +31,8 @@ interface Props {
   // bus-involving route won the ranking — explains an absence that would
   // otherwise look like a missing feature. See multimodalController.ts.
   busAlternativeNote?: string
+  // The weather the routes were planned for, and what was done about bad weather.
+  weatherReport?: WeatherReport
   // Voice-guided turn-by-turn navigation (ActiveNavigationView.tsx) — a pure
   // mode switch, synchronous, no loading state needed.
   onStartNavigation?: (route: MultimodalRoute) => void
@@ -70,6 +73,7 @@ export default function MultimodalResults({
   saveRouteStatus = "idle",
   saveRouteMessage = "",
   busAlternativeNote = "",
+  weatherReport,
   onStartNavigation,
 }: Props) {
   const [crowdLevel, setCrowdLevel] = useState<CrowdLevel>("MEDIUM")
@@ -150,6 +154,8 @@ export default function MultimodalResults({
 
   return (
     <div className="space-y-4">
+      <WeatherBanner weather={weatherReport} />
+
       {/* Route Journey Summary Header */}
       <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-3">
         <div className="flex items-center gap-2 bg-amber-50 rounded-2xl px-3 py-2">

@@ -80,4 +80,6 @@ export interface MultimodalRequest {
   destination: { name?: string; latitude: number; longitude: number }
   profile?: AccessibilityProfile | "fastest" | "cheapest" | "comfort"
   departureTime?: string // e.g. "08:30" – used for confidence interval & smart departure calculation
+  // Demo weather chosen by the rider ("live" or absent = the real forecast/current weather).
+  weather?: "live" | "clear" | "rain" | "heavy_rain" | "heat"
 }

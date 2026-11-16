@@ -3,6 +3,7 @@ import { body, query } from "express-validator"
 import { calculateMultimodalRoute, getNearbyTransit } from "../controllers/multimodalController"
 import { requireAuth } from "../middleware/auth"
 import { validate } from "../middleware/validate"
+import { WEATHER_MODES } from "../services/weatherService"
 
 const router = Router()
 
@@ -24,6 +25,10 @@ const multimodalValidation = [
     .isString()
     .isLength({ max: 40 })
     .withMessage("Profile must be a string"),
+  body("weather")
+    .optional()
+    .isIn([...WEATHER_MODES])
+    .withMessage(`weather must be one of: ${WEATHER_MODES.join(", ")}`),
 ]
 
 // Problem 11 — Nearby Transit validation

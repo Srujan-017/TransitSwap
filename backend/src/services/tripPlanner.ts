@@ -3,7 +3,7 @@ import { User } from "../models/User"
 import { accessibilityService } from "./accessibilityService"
 import { crowdService } from "./crowdService"
 import { multimodalService } from "./multimodalService"
-import { calculateWeatherImpact, weatherService } from "./weatherService"
+import { assessWeather, BAD_WEATHER_MAX_WALK_M, calculateWeatherImpact, weatherService, type WeatherAssessment } from "./weatherService"
 import { reliabilityService } from "./reliabilityService"
 import { transitDnaService } from "./transitDnaService"
 import { mlPreferenceService } from "./ml/mlPreferenceService"
@@ -16,7 +16,7 @@ import {
   type ProfilePolicy,
 } from "./profilePolicy"
 import type { MultimodalRequest, MultimodalRoute } from "../types/multimodal"
-import type { AccessibilityEvaluation, EnrichedRoute, ExcludedRouteSummary, RouteCrowdSummary } from "../types/intelligence"
+import type { AccessibilityEvaluation, EnrichedRoute, ExcludedRouteSummary, RouteCrowdSummary, WeatherData } from "../types/intelligence"
 
 export const NO_ACCESSIBLE_ROUTE_MESSAGE =
   "No accessible multimodal route found for the selected profile in the current demo dataset."
@@ -70,8 +70,8 @@ interface ProfileSelection {
  * profile rules (modes, walking caps, crowd, metro hours), and keeps the best option for each
  * distinct way of travelling — at most three, best first.
  */
-async function selectForProfile(body: MultimodalRequest, policy: ProfilePolicy, travelTime: Date): Promise<ProfileSelection> {
-  const pool = await multimodalService.generateRoutes(body, { pool: true })
+async function selectForProfile(body: MultimodalRequest, policy: ProfilePolicy, travelTime: Date, badWeather: boolean): Promise<ProfileSelection> {
+  const pool = await multimodalService.generateRoutes(body, { pool: true, badWeather })
   if (pool.length === 0) {
     throw new AppError("No multimodal route found. The selected locations may be outside the demo transit service area.", 404)
   }
@@ -145,7 +145,45 @@ function decorateForProfile(routes: EnrichedRoute[], policy: ProfilePolicy, suit
   })
 }
 
+// What the rider is told about the weather: the conditions, whether they are bad for walking, and what was done.
+export interface WeatherReport {
+  available: boolean
+  condition?: string
+  temperatureC?: number
+  feelsLikeC?: number
+  rainMm?: number
+  source?: WeatherData["source"]
+  isDemo?: boolean
+  forecastFor?: string
+  bad: boolean
+  kind: WeatherAssessment["kind"]
+  headline: string
+  rule: string
+  // Set when bad weather could not be avoided: every option still has a long walk.
+  note?: string
+}
+
+export function summariseWeather(weather: WeatherData | null, assessment: WeatherAssessment, longWalkRemains: boolean): WeatherReport {
+  if (!weather) return { available: false, bad: false, kind: null, headline: "Weather unavailable right now — routes were planned without it.", rule: "" }
+  return {
+    available: true,
+    condition: weather.condition,
+    temperatureC: weather.temperatureC,
+    feelsLikeC: weather.feelsLikeC,
+    rainMm: weather.rainMm,
+    source: weather.source,
+    isDemo: weather.isDemoData,
+    ...(weather.forecastFor ? { forecastFor: weather.forecastFor } : {}),
+    bad: assessment.bad,
+    kind: assessment.kind,
+    headline: assessment.headline,
+    rule: assessment.rule,
+    ...(longWalkRemains ? { note: `No route avoids every walk over ${BAD_WEATHER_MAX_WALK_M} m for this trip — the shortest walks are shown first.` } : {}),
+  }
+}
+
 export interface TripPlan {
+  weather: WeatherReport
   rankedRoutes: EnrichedRoute[]
   statusMessage: string
   isPersonalized: boolean
@@ -162,10 +200,13 @@ export interface TripPlan {
 export async function planTrip(body: MultimodalRequest, options: { userId?: string } = {}): Promise<TripPlan> {
   {
     const profile = body.profile ?? "standard"
-    const weather = await weatherService.getCurrent(body.destination.latitude, body.destination.longitude)
     // The time the rider will actually be at the stations — the chosen departure
     // time, or now — against which historical crowd data is matched (B4).
-    const travelTime = parseLocalDateTime(body.departureTime) ?? new Date()
+    const chosenTime = parseLocalDateTime(body.departureTime)
+    const travelTime = chosenTime ?? new Date()
+    // Weather where the trip starts, at the chosen departure hour (forecast) or now (current conditions).
+    const weather = await weatherService.getCurrent(body.origin.latitude, body.origin.longitude, { when: chosenTime ?? undefined, mode: body.weather })
+    const weatherAssessment = assessWeather(weather)
 
     // Accessibility profiles: candidates are chosen by the profile's own rules (profilePolicy.ts) and
     // come back already ordered, best first. Everyone else keeps the original flow.
@@ -176,13 +217,13 @@ export async function planTrip(body: MultimodalRequest, options: { userId?: stri
     let suitableCount = 0
 
     if (policy) {
-      const selection = await selectForProfile(body, policy, travelTime)
+      const selection = await selectForProfile(body, policy, travelTime, weatherAssessment.bad)
       accessibilityFiltered = selection.routes
       excludedRoutes = selection.excludedRoutes
       suitableCount = selection.suitableCount
       for (const [id, crowd] of selection.crowd) precomputedCrowd.set(id, crowd)
     } else {
-      const routes = await multimodalService.generateRoutes(body)
+      const routes = await multimodalService.generateRoutes(body, { badWeather: weatherAssessment.bad })
       if (routes.length === 0) {
         throw new AppError(
           "No multimodal route found. The selected locations may be outside the demo transit service area.",
@@ -229,7 +270,7 @@ export async function planTrip(body: MultimodalRequest, options: { userId?: stri
         const enrichedRoute: EnrichedRoute = {
           ...route,
           weatherImpact: calculateWeatherImpact(
-            weather,
+            weather ?? undefined,
             route.totalWalkingMeters,
             allWalkingMeters.filter((_, otherIndex) => otherIndex !== index),
           ),
@@ -356,6 +397,12 @@ export async function planTrip(body: MultimodalRequest, options: { userId?: stri
       }
     }
 
-    return { rankedRoutes, statusMessage, isPersonalized, excludedRoutes, busAlternativeNote: busAlternativeNote.trim() }
+    const longWalkRemains =
+      weatherAssessment.bad &&
+      rankedRoutes.some((route) => route.segments.some((s) => s.mode === "walking" && s.distanceMeters > BAD_WEATHER_MAX_WALK_M))
+    return {
+      weather: summariseWeather(weather, weatherAssessment, longWalkRemains),
+      rankedRoutes, statusMessage, isPersonalized, excludedRoutes, busAlternativeNote: busAlternativeNote.trim(),
+    }
   }
 }

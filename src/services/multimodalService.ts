@@ -1,6 +1,6 @@
 import api from "./api"
 import type { GeoLocation } from "../types/map"
-import type { ExcludedRoute, MultimodalRoute, NearbyTransitResponse } from "../types/multimodal"
+import type { ExcludedRoute, MultimodalRoute, NearbyTransitResponse, WeatherMode, WeatherReport } from "../types/multimodal"
 
 export const multimodalService = {
   async getRoutes(
@@ -8,12 +8,14 @@ export const multimodalService = {
     destination: GeoLocation,
     profile?: string,
     departureTime?: string,
-  ): Promise<{ routes: MultimodalRoute[]; busAlternativeNote?: string; excludedRoutes?: ExcludedRoute[] }> {
+    weather?: WeatherMode,
+  ): Promise<{ routes: MultimodalRoute[]; busAlternativeNote?: string; excludedRoutes?: ExcludedRoute[]; weather?: WeatherReport }> {
     const { data } = await api.post<{
       success: boolean
       data: MultimodalRoute[]
       busAlternativeNote?: string
       excludedRoutes?: ExcludedRoute[]
+      weather?: WeatherReport
     }>(
       "/routes/multimodal",
       {
@@ -21,10 +23,12 @@ export const multimodalService = {
         destination: { name: destination.name, latitude: destination.latitude, longitude: destination.longitude },
         profile,
         departureTime,
+        // Only the demo conditions are sent; "live" (the default) is what the server does anyway.
+        ...(weather && weather !== "live" ? { weather } : {}),
       },
       { timeout: 15000 },
     )
-    return { routes: data.data, busAlternativeNote: data.busAlternativeNote, excludedRoutes: data.excludedRoutes }
+    return { routes: data.data, busAlternativeNote: data.busAlternativeNote, excludedRoutes: data.excludedRoutes, weather: data.weather }
   },
 
   // Problem 11 — Nearby Transit

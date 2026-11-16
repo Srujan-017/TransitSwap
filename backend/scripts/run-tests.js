@@ -57,6 +57,7 @@ const ALL_ENTRIES = [
   "src/__tests__/crowdAccessibilityBlock.test.ts",
   "src/__tests__/profilePolicy.test.ts",
   "src/__tests__/busNetwork.test.ts",
+  "src/__tests__/weatherRules.test.ts",
   "src/__tests__/ml.test.ts",
   "src/__tests__/recommendationExplanation.test.ts",
   "src/__tests__/reliability.test.ts",
@@ -166,7 +167,8 @@ function runEntry(entry) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [tsNodeScript, "--transpile-only", entry], {
       cwd: ROOT,
-      env: process.env,
+      // Fixed clear weather: tests must not call the weather service over the network.
+      env: { ...process.env, WEATHER_SOURCE: process.env.WEATHER_SOURCE || "clear" },
       stdio: ["ignore", "pipe", "pipe"],
     })
     const chunks = []

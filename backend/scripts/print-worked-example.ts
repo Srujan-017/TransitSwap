@@ -7,6 +7,9 @@
 //
 // Run with: npx ts-node --transpile-only scripts/print-worked-example.ts
 
+// Offline and repeatable: fixed clear weather, no weather-service call.
+process.env.WEATHER_SOURCE = process.env.WEATHER_SOURCE || "clear"
+
 import { multimodalService, setMultimodalRoadLegProviderForTesting, type RoadLegProvider } from "../src/services/multimodalService"
 import { accessibilityService } from "../src/services/accessibilityService"
 import { crowdService } from "../src/services/crowdService"

@@ -30,7 +30,7 @@ async function runPipelineTest() {
   // 3. Weather & Crowd Context
   console.log("\n[3] Fetching Weather & Crowd Context...")
   const weather = await weatherService.getCurrent(destination.latitude, destination.longitude)
-  console.log(`✓ Weather: ${weather.temperatureC}°C, ${weather.condition} (Demo/Live: ${weather.isDemoData ? "Demo" : "Live"})`)
+  console.log(weather ? `✓ Weather: ${weather.temperatureC}°C, ${weather.condition} (${weather.source})` : "✓ Weather unavailable")
 
   const crowd = await crowdService.routeSummary(rawRoutes[0])
   console.log(`✓ Crowd Summary: Level=${crowd.level ?? "LOW"}, Source=${crowd.source}`)

@@ -29,8 +29,13 @@ export interface WeatherData {
   windKph: number
   humidity: number
   observedAt: string
-  source: "OpenWeatherMap" | "Demo Weather Data"
+  source: "Open-Meteo" | "OpenWeatherMap" | "Demo (selected by you)" | "Demo Weather Data"
   isDemoData: boolean
+  // WMO weather code (Open-Meteo / demo conditions).
+  weatherCode?: number
+  // Set when this is the forecast for the chosen departure hour ("2026-11-16T18:00", city local time)
+  // rather than the current conditions.
+  forecastFor?: string
 }
 
 export interface WeatherImpact {

@@ -8,6 +8,9 @@
 //   cd backend && npx ts-node --transpile-only scripts/generate-benchmark-snapshot.ts
 // Output: src/data/benchmarkSnapshot.json (repo root)
 
+// Offline and repeatable: fixed clear weather, no weather-service call.
+process.env.WEATHER_SOURCE = process.env.WEATHER_SOURCE || "clear"
+
 import fs from "fs"
 import path from "path"
 import { setMultimodalRoadLegProviderForTesting, type RoadLegProvider } from "../src/services/multimodalService"
