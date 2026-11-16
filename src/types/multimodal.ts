@@ -32,6 +32,24 @@ export interface TransitDetails {
   // Buses only: when the same bus reaches the stop where the rider gets off, and the headway at the time.
   estimatedArrivalTime?: string
   headwayMinutes?: number
+  // Where each stop on the leg is (same order as `stops`), for "N stops left" while riding.
+  stopPoints?: Array<{ name: string; latitude: number; longitude: number }>
+  // Metro only: where the rider changes to another line, e.g. at Majestic to the Green Line.
+  lineChanges?: Array<{ station: string; toLine: string }>
+  // The boarding / arrival times as ISO timestamps, for a live countdown.
+  boardingAtIso?: string
+  arrivalAtIso?: string
+}
+
+// One manoeuvre of a walking or auto leg: "Turn right onto 80 Feet Road".
+export interface TurnStep {
+  instruction: string
+  distanceMeters: number
+  durationSeconds: number
+  type: string
+  modifier?: string
+  street?: string
+  location: [number, number] // [longitude, latitude]
 }
 
 export interface RouteSegment {
@@ -45,6 +63,8 @@ export interface RouteSegment {
   instruction: string
   geometry: { type: "LineString"; coordinates: [number, number][] }
   transitDetails?: TransitDetails
+  // Turn-by-turn steps for walking and auto legs, when the road router supplied them.
+  steps?: TurnStep[]
 }
 
 export type RouteLabel = "FASTEST" | "CHEAPEST" | "MIN_WALKING" | "BALANCED"
@@ -217,6 +237,8 @@ export interface MultimodalRoute {
   modes: MultimodalMode[]
   summary: string
   isDemoData: true
+  // When the journey starts (ISO); set only when a departure time was chosen.
+  departureAt?: string
   weatherImpact?: WeatherImpact
   accessibility?: AccessibilityEvaluation
   crowd?: RouteCrowdSummary

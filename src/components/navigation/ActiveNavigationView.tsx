@@ -1,17 +1,41 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react"
-import { X, ChevronRight, Volume2, VolumeX, FlaskConical, Compass, MapPin, PartyPopper, Navigation2 } from "lucide-react"
+import { Suspense, lazy, useCallback, useState, type ReactNode } from "react"
+import {
+  ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, CornerDownLeft, CornerDownRight, CornerUpLeft, CornerUpRight, Flag, FlaskConical,
+  Footprints, Loader2, LocateFixed, Pause, PartyPopper, Play, RotateCw, TrainFront, Undo2, Volume2, VolumeX, X, ChevronRight, Zap,
+} from "lucide-react"
 import Button from "../ui/Button"
-import { useActiveNavigation } from "../../hooks/useActiveNavigation"
+import { useNavigationSession, SIM_SPEEDS } from "../../hooks/useNavigationSession"
 import { useSpeechNarration } from "../../hooks/useSpeechNarration"
-import { buildStepInstruction, buildArrivalAnnouncement } from "../../utils/navigationInstructions"
+import { useWakeLock } from "../../hooks/useWakeLock"
+import { describeGuidance, type GuidanceIcon } from "../../navigation/guidance"
+import { formatClock } from "../../navigation/clock"
+import { buildStepInstruction } from "../../utils/navigationInstructions"
 import { formatDuration, formatDistance } from "../../utils/formatters"
 import type { MultimodalRoute, MultimodalMode } from "../../types/multimodal"
 import type { GeoLocation } from "../../types/map"
+import type { LatLng } from "../../navigation/geo"
 
-const MapView = lazy(() => import("../map/MapView"))
+const LiveNavMap = lazy(() => import("./LiveNavMap"))
 
 const MODE_EMOJI: Record<MultimodalMode, string> = { walking: "🚶", metro: "🚇", bus: "🚌", auto: "🛺" }
-const MODE_COLOR: Record<MultimodalMode, string> = { walking: "#64748b", metro: "#2563eb", bus: "#16a34a", auto: "#ea580c" }
+
+const ICONS: Record<GuidanceIcon, ReactNode> = {
+  straight: <ArrowUp className="h-8 w-8" aria-hidden="true" />,
+  left: <CornerUpLeft className="h-8 w-8" aria-hidden="true" />,
+  right: <CornerUpRight className="h-8 w-8" aria-hidden="true" />,
+  "slight-left": <ArrowUpLeft className="h-8 w-8" aria-hidden="true" />,
+  "slight-right": <ArrowUpRight className="h-8 w-8" aria-hidden="true" />,
+  "sharp-left": <CornerDownLeft className="h-8 w-8" aria-hidden="true" />,
+  "sharp-right": <CornerDownRight className="h-8 w-8" aria-hidden="true" />,
+  uturn: <Undo2 className="h-8 w-8" aria-hidden="true" />,
+  roundabout: <RotateCw className="h-8 w-8" aria-hidden="true" />,
+  flag: <Flag className="h-8 w-8" aria-hidden="true" />,
+  bus: <Bus className="h-8 w-8" aria-hidden="true" />,
+  metro: <TrainFront className="h-8 w-8" aria-hidden="true" />,
+  auto: <Car className="h-8 w-8" aria-hidden="true" />,
+  walk: <Footprints className="h-8 w-8" aria-hidden="true" />,
+  check: <PartyPopper className="h-8 w-8" aria-hidden="true" />,
+}
 
 interface Props {
   route: MultimodalRoute
@@ -19,12 +43,28 @@ interface Props {
   destination: GeoLocation
   profile?: string
   onExit: () => void
+  /**
+   * Asks for a new route from where the rider is now (leaving at `at`). Resolves true once the page has switched
+   * to the new route, false if none could be found. Without it, leaving the route is not acted on.
+   */
+  onReroute?: (from: LatLng, at: Date) => Promise<boolean>
 }
 
-export default function ActiveNavigationView({ route, origin, destination, profile, onExit }: Props) {
-  const nav = useActiveNavigation(route)
+export default function ActiveNavigationView({ route, destination, profile, onExit, onReroute }: Props) {
   const narration = useSpeechNarration()
   const [muted, setMuted] = useState(false)
+  const [follow, setFollow] = useState(true)
+  const [announcement, setAnnouncement] = useState("")
+
+  const speak = useCallback((text: string) => {
+    narration.speak(text)
+    setAnnouncement(text)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [narration.speak])
+
+  const session = useNavigationSession({ route, profile, destinationName: destination.name, speak, onReroute })
+  const { state, fix, clock, source, simulation } = session
+  const wake = useWakeLock(true)
 
   const toggleMuted = () => {
     const next = !muted
@@ -32,218 +72,156 @@ export default function ActiveNavigationView({ route, origin, destination, profi
     narration.setMuted(next)
   }
 
-  useEffect(() => {
-    if (nav.isComplete) {
-      narration.speak(buildArrivalAnnouncement(route))
-      return
-    }
-    const text = buildStepInstruction(nav.currentSegment, {
-      profile,
-      isLast: nav.currentStepIndex === nav.totalSteps - 1,
-    })
-    narration.speak(text)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nav.currentStepIndex, nav.isComplete])
+  const guidance = describeGuidance(state, { destinationName: destination.name, rerouting: session.rerouting, profile })
+  const leg = state.leg
+  const nextLeg = leg ? session.legs[state.legIndex + 1] : undefined
+  const minutesLeft = Math.max(1, Math.round(state.remainingSeconds / 60))
+  const legTitle = leg ? buildStepInstruction(leg.segment, { profile }) : ""
 
-  const isLastStep = nav.currentStepIndex === nav.totalSteps - 1
-  const instructionText = nav.isComplete
-    ? buildArrivalAnnouncement(route)
-    : buildStepInstruction(nav.currentSegment, { profile, isLast: isLastStep })
-
-  // Honest "arrive in ~N min" estimate — summed from the real remaining
-  // segment durations the route already carries, not a fabricated number.
-  const minutesRemaining = useMemo(() => {
-    if (nav.isComplete) return 0
-    const remainingSeconds = route.segments
-      .slice(nav.currentStepIndex)
-      .reduce((sum, seg) => sum + seg.durationSeconds, 0)
-    return Math.max(1, Math.round(remainingSeconds / 60))
-  }, [route.segments, nav.currentStepIndex, nav.isComplete])
-
-  // Guard against a genuinely empty route.segments array (savedRouteService/
-  // journeyService already reject saving one, but a malformed/legacy saved
-  // route reaching this view would otherwise leave currentSegment undefined
-  // and crash here, before the isComplete branch below ever renders.
-  const segmentColor = nav.currentSegment ? MODE_COLOR[nav.currentSegment.mode] : MODE_COLOR.walking
-  const progressPercent = Math.round((nav.currentStepIndex / nav.totalSteps) * 100)
+  const statusText =
+    source === "simulation"
+      ? `Simulated journey (demo) · ${simulation.speed}× speed`
+      : fix
+        ? `Following your live location${fix.accuracy ? ` · accurate to about ${Math.round(fix.accuracy)} m` : ""}`
+        : session.gpsError
+          ? `${session.gpsError} Use Next step or Simulate journey.`
+          : session.gpsSupported
+            ? "Finding your location…"
+            : "GPS is not available here. Use Next step or Simulate journey."
 
   return (
-    <div className="fixed inset-0 z-[60] bg-navy-50 flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white shadow-[0_1px_0_rgba(15,23,42,0.06)]">
-        <button
-          type="button"
-          onClick={onExit}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-navy-50 text-navy-600 text-sm font-semibold hover:bg-navy-100 transition-colors"
-        >
-          <X className="w-4 h-4" /> Exit navigation
-        </button>
-        <span className="text-xs font-semibold text-navy-400 uppercase tracking-wider">
-          {nav.isComplete ? "Arrived" : `Step ${nav.currentStepIndex + 1} of ${nav.totalSteps}`}
-        </span>
-        <div className="w-[120px]" aria-hidden="true" />
-      </div>
+    <div className="fixed inset-0 z-[60] flex flex-col bg-navy-50" role="dialog" aria-label="Live navigation">
+      {/* What to do now */}
+      <section aria-label="Next instruction" className="bg-navy-900 px-4 py-3 text-white shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-white/10" data-testid="guidance-icon" data-icon={guidance.icon}>
+            {session.rerouting ? <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" /> : ICONS[guidance.icon]}
+          </div>
+          <div className="min-w-0 flex-1">
+            {guidance.distanceMeters !== null && (
+              <p className="font-display text-2xl font-bold leading-none" data-testid="guidance-distance">{formatDistance(guidance.distanceMeters)}</p>
+            )}
+            <p className="mt-1 text-base font-semibold leading-snug" data-testid="guidance-primary">{guidance.primary}</p>
+            {guidance.secondary && <p className="text-sm text-white/80" data-testid="guidance-secondary">{guidance.secondary}</p>}
+          </div>
+        </div>
+        {session.rerouteError && <p role="alert" className="mt-2 rounded-xl bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900">{session.rerouteError}</p>}
+      </section>
+
+      {/* Spoken prompts, for screen readers */}
+      <p role="status" className="sr-only">{announcement}</p>
 
       {/* Map */}
-      <div className="relative flex-1 min-h-[220px]">
-        <Suspense fallback={<div className="h-full flex items-center justify-center bg-navy-50 text-sm text-navy-400">Loading map…</div>}>
-          <MapView
-            origin={origin}
-            destination={destination}
-            route={null}
-            multimodalRoute={route}
-            livePosition={nav.position}
-            activeSegmentId={nav.isComplete ? null : nav.currentSegment.id}
-          />
+      <div className="relative min-h-[200px] flex-1">
+        <Suspense fallback={<div className="flex h-full items-center justify-center bg-navy-50 text-sm text-navy-500">Loading map…</div>}>
+          <LiveNavMap legs={session.legs} state={state} fix={fix} follow={follow} onUserMove={() => setFollow(false)} />
         </Suspense>
 
-        {/* Floating ETA pill, over the map */}
-        {!nav.isComplete && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 bg-white rounded-full shadow-[0_8px_24px_-6px_rgba(15,23,42,0.35)] pl-1.5 pr-4 py-1.5">
-            <span
-              className="w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-              style={{ backgroundColor: `${segmentColor}22` }}
-            >
-              {MODE_EMOJI[nav.currentSegment.mode]}
-            </span>
-            <div className="leading-tight">
-              <p className="text-[9px] font-semibold text-navy-400 uppercase tracking-wide">Arrive in</p>
-              <p className="font-display font-bold text-sm" style={{ color: segmentColor }}>~{minutesRemaining} min</p>
-            </div>
+        {source === "simulation" && (
+          <div className="absolute left-3 top-3 z-[1000] flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-900 shadow">
+            <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" /> DEMO · simulated journey
           </div>
+        )}
+
+        <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={toggleMuted}
+            aria-label={muted ? "Turn voice guidance on" : "Mute voice guidance"}
+            aria-pressed={muted}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-navy-700 shadow-md hover:bg-navy-50"
+          >
+            {muted ? <VolumeX className="h-5 w-5" aria-hidden="true" /> : <Volume2 className="h-5 w-5" aria-hidden="true" />}
+          </button>
+        </div>
+
+        {!follow && !state.done && (
+          <button
+            type="button"
+            onClick={() => setFollow(true)}
+            className="absolute bottom-6 left-3 z-[1000] flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-brand-700"
+          >
+            <LocateFixed className="h-4 w-4" aria-hidden="true" /> Re-centre
+          </button>
         )}
       </div>
 
-      {/* Instruction card */}
-      <div className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-white rounded-t-3xl shadow-[0_-4px_20px_rgba(15,23,42,0.1)] space-y-3">
-        {nav.isComplete ? (
-          <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-              <PartyPopper className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-display font-bold text-navy-900 text-lg">{instructionText}</p>
-            </div>
+      {/* Journey panel */}
+      <section aria-label="Journey progress" className="space-y-3 rounded-t-3xl bg-white px-4 pb-4 pt-4 shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.35)]">
+        {state.done ? (
+          <div className="space-y-3 text-center">
+            <p className="font-display text-xl font-bold text-navy-900">You have arrived at {destination.name}</p>
+            <Button onClick={onExit} fullWidth>Done</Button>
           </div>
         ) : (
           <>
-            {isLastStep && (
-              <p className="font-display font-bold text-navy-900 text-xl -mb-1">Your stop is next!</p>
-            )}
-
-            <div className="flex items-start gap-3">
-              {/* Big colored route badge — route number for transit, mode icon otherwise,
-                  colored with the same line color MapView draws the segment in. */}
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-white font-display font-bold text-lg shadow-[0_6px_14px_-4px_rgba(15,23,42,0.35)]"
-                style={{ backgroundColor: segmentColor }}
-              >
-                {nav.currentSegment.transitDetails?.routeNumber ?? (
-                  <span className="text-xl">{MODE_EMOJI[nav.currentSegment.mode]}</span>
-                )}
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="font-display text-2xl font-bold leading-none text-navy-900" data-testid="eta-arrival">{formatClock(state.arrivalAt)}</p>
+                <p className="mt-1 text-xs font-medium text-navy-500">arrival</p>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-display font-bold text-navy-900 text-lg leading-snug">{instructionText}</p>
-                <p className="text-xs text-navy-500 mt-1">
-                  {formatDistance(nav.currentSegment.distanceMeters)} · {formatDuration(Math.ceil(nav.currentSegment.durationSeconds / 60))}
-                  {nav.distanceToNextMeters !== null && ` · ${formatDistance(nav.distanceToNextMeters)} away (live)`}
-                </p>
+              <div className="text-right text-sm font-semibold text-navy-700">
+                <span data-testid="eta-duration">{formatDuration(minutesLeft)}</span> · <span data-testid="eta-distance">{formatDistance(Math.round(state.remainingMeters))}</span>
+                <p className="text-xs font-medium text-navy-500">{clock && source === "simulation" ? `simulated time ${formatClock(clock)}` : "left"}</p>
               </div>
             </div>
 
-            {/* Progress bar — colored fill up to the current step, matching
-                the segment's own line color. */}
-            <div className="h-1.5 rounded-full bg-navy-100 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.max(4, progressPercent)}%`, backgroundColor: segmentColor }}
-              />
-            </div>
-
-            {/* Next stop / boarding card — colored to match the segment, using
-                only real transitDetails fields already computed server-side. */}
-            {nav.currentSegment.transitDetails && (
-              <div className="rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5" style={{ backgroundColor: `${segmentColor}14` }}>
-                <Navigation2 className="w-4 h-4 flex-shrink-0" style={{ color: segmentColor }} />
+            {leg && (
+              <div className="flex items-start gap-2 rounded-2xl bg-navy-50 px-3 py-2">
+                <span className="text-lg" aria-hidden="true">{MODE_EMOJI[leg.mode]}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold" style={{ color: segmentColor }}>
-                    Next stop: {nav.currentSegment.to.name}
-                  </p>
-                  {nav.currentSegment.transitDetails.estimatedBoardingTime && (
-                    <p className="text-[11px] text-navy-500">Board by ~{nav.currentSegment.transitDetails.estimatedBoardingTime}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">Step {state.legIndex + 1} of {state.legCount}</p>
+                  <p className="text-sm font-medium text-navy-800">{legTitle}</p>
+                  {nextLeg && (
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-navy-500">
+                      <ChevronRight className="h-3 w-3" aria-hidden="true" /> Then {MODE_EMOJI[nextLeg.mode]} {nextLeg.segment.instruction}
+                    </p>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Upcoming boarding-time chips — real server-computed values,
-                the same countdown-card pattern as a departures board. */}
-            {nav.currentSegment.transitDetails?.upcomingBoardingTimes && nav.currentSegment.transitDetails.upcomingBoardingTimes.length > 0 && (
-              <div className="flex items-center gap-2">
-                {[nav.currentSegment.transitDetails.estimatedBoardingTime, ...nav.currentSegment.transitDetails.upcomingBoardingTimes]
-                  .filter((t): t is string => Boolean(t))
-                  .slice(0, 3)
-                  .map((time, i) => (
-                    <div
-                      key={time}
-                      className={`flex-1 text-center rounded-xl py-2 ${i === 0 ? "text-white" : "bg-navy-50 text-navy-700"}`}
-                      style={i === 0 ? { backgroundColor: segmentColor } : undefined}
-                    >
-                      <p className="font-display font-bold text-sm">{time}</p>
-                    </div>
-                  ))}
+            <p className="text-xs text-navy-600" data-testid="nav-status">{statusText}</p>
+
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={session.skip} icon={<ChevronRight className="h-4 w-4" />}>Next step</Button>
+              {simulation.running ? (
+                <Button variant="secondary" size="sm" onClick={simulation.stop} icon={<Pause className="h-4 w-4" />}>Stop simulation</Button>
+              ) : (
+                <Button variant="secondary" size="sm" onClick={simulation.start} icon={<Play className="h-4 w-4" />}>Simulate journey (demo)</Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={onExit} icon={<X className="h-4 w-4" />}>Exit navigation</Button>
+            </div>
+
+            {simulation.running && (
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-amber-50 px-3 py-2" role="group" aria-label="Simulation controls">
+                <span className="text-xs font-semibold text-amber-900">Speed</span>
+                {SIM_SPEEDS.map((speed) => (
+                  <button
+                    key={speed}
+                    type="button"
+                    aria-pressed={simulation.speed === speed}
+                    onClick={() => simulation.setSpeed(speed)}
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${simulation.speed === speed ? "bg-amber-600 text-white" : "bg-white text-amber-900 hover:bg-amber-100"}`}
+                  >
+                    {speed}×
+                  </button>
+                ))}
+                {onReroute && (
+                  <button type="button" onClick={simulation.offRoute} className="ml-auto flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100">
+                    <Zap className="h-3.5 w-3.5" aria-hidden="true" /> Go off route
+                  </button>
+                )}
               </div>
             )}
+
+            <p className="text-[11px] leading-snug text-navy-500">
+              Bus and metro positions are not tracked live — bus times come from the demo timetable. A website can only follow your
+              location while this screen is open{wake.supported ? (wake.held ? " (your screen is kept on)" : "") : " (your browser cannot keep the screen on)"}.
+            </p>
           </>
         )}
-
-        <div className="flex items-center gap-2 bg-amber-50 rounded-2xl px-3 py-2">
-          <FlaskConical className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-          <p className="text-[11px] text-amber-700 font-medium leading-snug">
-            Uses your real device location to track walking progress — bus/metro positions are not live-tracked (demo transit data).
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-full bg-navy-50 text-xs font-medium text-navy-500">
-            <Compass className="w-3.5 h-3.5 flex-shrink-0" />
-            {nav.isComplete ? (
-              // Tracking has stopped on arrival; "Location unavailable — use Next step" would be wrong here.
-              <span>You have arrived — tap Done to finish</span>
-            ) : nav.isTrackingLive ? (
-              <span className="flex items-center gap-1 text-emerald-600">
-                <MapPin className="w-3 h-3" /> Following your location
-              </span>
-            ) : nav.geoError ? (
-              <span>Location unavailable — use Next step to continue</span>
-            ) : nav.isGeoSupported ? (
-              <span>Finding your location…</span>
-            ) : (
-              <span>GPS not supported — use Next step to continue</span>
-            )}
-          </div>
-
-          {narration.isSupported && (
-            <button
-              type="button"
-              onClick={toggleMuted}
-              title={muted ? "Unmute narration" : "Mute narration"}
-              aria-label={muted ? "Unmute narration" : "Mute narration"}
-              className="p-2.5 rounded-full bg-navy-50 text-navy-500 hover:bg-navy-100 transition-colors flex-shrink-0"
-            >
-              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-          )}
-
-          {nav.isComplete ? (
-            <Button onClick={onExit} size="md">Done</Button>
-          ) : (
-            <Button onClick={nav.advance} size="md" icon={<ChevronRight className="w-4 h-4" />} iconPosition="right">
-              Next step
-            </Button>
-          )}
-        </div>
-      </div>
+      </section>
     </div>
   )
 }

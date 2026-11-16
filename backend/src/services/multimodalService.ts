@@ -24,6 +24,7 @@ import type {
   RouteLabel,
   MultimodalMode,
   SegmentLocation,
+  TurnStep,
 } from "../types/multimodal"
 
 // Phase 9 — these were previously bare module-level `const`s. Bundled into a
@@ -194,6 +195,29 @@ interface RoadLegEstimate {
   distanceMeters: number
   durationSeconds: number
   geometry: RouteSegment["geometry"]
+  // Turn-by-turn steps, when the road router supplied them (absent for the straight-line fallback).
+  steps?: TurnStep[]
+}
+
+// The router's steps, kept as navigation manoeuvres. Zero-length intermediate steps are dropped; the
+// final "arrive" step is kept so the screen knows where the leg ends.
+function toTurnSteps(route: NormalizedRoute): TurnStep[] | undefined {
+  const steps: TurnStep[] = []
+  for (const leg of route.legs ?? []) {
+    for (const step of leg.steps ?? []) {
+      if (!step.maneuver?.location) continue
+      steps.push({
+        instruction: step.instruction,
+        distanceMeters: step.distanceMeters,
+        durationSeconds: step.durationSeconds,
+        type: step.maneuver.type,
+        ...(step.maneuver.modifier ? { modifier: step.maneuver.modifier } : {}),
+        ...(step.name ? { street: step.name } : {}),
+        location: step.maneuver.location,
+      })
+    }
+  }
+  return steps.length > 0 ? steps : undefined
 }
 
 export interface RoadLegProvider {
@@ -313,10 +337,12 @@ async function roadLeg(
       })
       const route = routes.find((candidate) => isUsableRoadRoute(candidate, mode))
       if (!route) return null
+      const steps = toTurnSteps(route)
       const estimate: RoadLegEstimate = {
         distanceMeters: Math.round(route.distanceMeters),
         durationSeconds: Math.round(route.durationSeconds),
         geometry: route.geometry,
+        ...(steps ? { steps } : {}),
       }
       if (ctx.sharedCacheEnabled) sharedRoadLegCache.set(key, estimate)
       return estimate
@@ -462,7 +488,24 @@ async function walkSegment(
     estimatedFare: FARE_CONFIG.walking,
     instruction: `Walk ${dist < 1000 ? dist + " m" : (dist / 1000).toFixed(1) + " km"} to ${toName}`,
     geometry: leg.geometry,
+    ...(leg.steps ? { steps: leg.steps } : {}),
   }
+}
+
+// Where a metro journey changes line (a hop whose line differs from the previous hop's), named by the
+// station where the change happens.
+function metroLineChanges(stationPath: string[]): Array<{ station: string; toLine: string }> {
+  const changes: Array<{ station: string; toLine: string }> = []
+  let previousLine: string | undefined
+  for (let i = 0; i < stationPath.length - 1; i++) {
+    const line = metroLineForHop(stationPath[i], stationPath[i + 1])
+    if (!line) continue
+    if (previousLine !== undefined && line.id !== previousLine) {
+      changes.push({ station: getStation(stationPath[i])?.name ?? stationPath[i], toLine: shortLineName(line.name) })
+    }
+    previousLine = line.id
+  }
+  return changes
 }
 
 function metroSegment(fromId: string, toId: string, stationPath: string[]): RouteSegment | null {
@@ -501,7 +544,11 @@ function metroSegment(fromId: string, toId: string, stationPath: string[]): Rout
     estimatedFare: fare,
     instruction: `Take Metro from ${from.name} to ${to.name} (${stopCount} stop${stopCount === 1 ? "" : "s"})`,
     geometry: metroGeometry(stationPath),
-    transitDetails: { ...lineDetails, stopCount, stops: stopNames, waitMinutes: Math.round(waitSeconds / 60) },
+    transitDetails: {
+      ...lineDetails, stopCount, stops: stopNames, waitMinutes: Math.round(waitSeconds / 60),
+      stopPoints: stationPath.map((id) => ({ name: getStation(id)!.name, latitude: getStation(id)!.latitude, longitude: getStation(id)!.longitude })),
+      lineChanges: metroLineChanges(stationPath),
+    },
   }
 }
 
@@ -543,6 +590,7 @@ function busSegment(fromStop: (typeof BUS_STOPS)[0], toStop: (typeof BUS_STOPS)[
       towards,
       routeNumber: selected.route.number,
       routeId: selected.route.id,
+      stopPoints: selected.stopPath.map((id) => ({ name: getStop(id)!.name, latitude: getStop(id)!.latitude, longitude: getStop(id)!.longitude })),
     },
   }
 }
@@ -569,6 +617,7 @@ async function autoSegment(
     estimatedFare: fare,
     instruction: `Take Auto from ${fromName} to ${toName}`,
     geometry: leg.geometry,
+    ...(leg.steps ? { steps: leg.steps } : {}),
   }
 }
 
@@ -760,6 +809,7 @@ const UPCOMING_DEPARTURES_SHOWN = 2
 function attachBoardingEstimates(route: MultimodalRoute, departureDate: Date | null): MultimodalRoute {
   if (!departureDate) return route
 
+  route.departureAt = departureDate.toISOString()
   let cursorMs = departureDate.getTime()
   for (const segment of route.segments) {
     const details = segment.transitDetails
@@ -771,6 +821,8 @@ function attachBoardingEstimates(route: MultimodalRoute, departureDate: Date | n
         details.estimatedBoardingTime = formatClockTime(buses[0].board)
         details.upcomingBoardingTimes = buses.slice(1).map((bus) => formatClockTime(bus.board))
         details.estimatedArrivalTime = formatClockTime(buses[0].arrive)
+        details.boardingAtIso = buses[0].board.toISOString()
+        details.arrivalAtIso = buses[0].arrive.toISOString()
         const busRoute = BUS_ROUTES.find((r) => r.id === details.routeId)
         if (busRoute) details.headwayMinutes = headwayAt(busRoute, buses[0].board)
         cursorMs = buses[0].arrive.getTime()
@@ -781,6 +833,7 @@ function attachBoardingEstimates(route: MultimodalRoute, departureDate: Date | n
       const arriveAtStopMs = cursorMs
       const headwayMs = details.waitMinutes * 60_000
       details.estimatedBoardingTime = formatClockTime(new Date(arriveAtStopMs + headwayMs))
+      details.boardingAtIso = new Date(arriveAtStopMs + headwayMs).toISOString()
       // Starts at the SECOND departure — the first is estimatedBoardingTime above, so this is only the ones after it.
       details.upcomingBoardingTimes = Array.from({ length: UPCOMING_DEPARTURES_SHOWN }, (_, i) =>
         formatClockTime(new Date(arriveAtStopMs + (i + 2) * headwayMs)),

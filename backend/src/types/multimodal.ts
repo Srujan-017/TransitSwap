@@ -39,9 +39,29 @@ export interface TransitDetails {
   // Buses only, set with estimatedBoardingTime: when the same bus reaches the stop where the rider
   // gets off ("9:31 AM"), from the route's timetable.
   estimatedArrivalTime?: string
+  // Where each stop on this leg is (same order as `stops`), so a navigation screen can tell how many stops
+  // are left from the rider's position. Buses and metro.
+  stopPoints?: Array<{ name: string; latitude: number; longitude: number }>
+  // Metro only: where the rider changes to another line, e.g. at Majestic to the Green Line.
+  lineChanges?: Array<{ station: string; toLine: string }>
+  // The same boarding/arrival times as estimatedBoardingTime/estimatedArrivalTime, as ISO timestamps,
+  // so a live screen can count down to the bus. Set together with them.
+  boardingAtIso?: string
+  arrivalAtIso?: string
   // Buses only: minutes between buses at the time of travel (shorter in the weekday peaks). Set with
   // estimatedBoardingTime; waitMinutes is left as the conservative figure the route totals use.
   headwayMinutes?: number
+}
+
+// One manoeuvre of a walking or auto leg, from the road router: "Turn right onto 80 Feet Road".
+export interface TurnStep {
+  instruction: string
+  distanceMeters: number
+  durationSeconds: number
+  type: string // "depart" | "turn" | "new name" | "continue" | "roundabout" | "arrive" ...
+  modifier?: string // "left" | "right" | "slight left" | "sharp right" | "straight" | "uturn"
+  street?: string
+  location: [number, number] // [longitude, latitude] where the manoeuvre happens
 }
 
 export interface RouteSegment {
@@ -55,6 +75,8 @@ export interface RouteSegment {
   instruction: string
   geometry: { type: "LineString"; coordinates: [number, number][] }
   transitDetails?: TransitDetails
+  // Turn-by-turn steps for walking and auto legs, when the road router supplied them.
+  steps?: TurnStep[]
 }
 
 export type RouteLabel = "FASTEST" | "CHEAPEST" | "MIN_WALKING" | "BALANCED"
@@ -73,6 +95,8 @@ export interface MultimodalRoute {
   modes: MultimodalMode[]
   summary: string
   isDemoData: true
+  // When the journey starts (ISO), set only when the rider chose a departure time.
+  departureAt?: string
 }
 
 export interface MultimodalRequest {

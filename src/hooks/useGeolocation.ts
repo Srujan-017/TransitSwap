@@ -7,7 +7,7 @@ interface GeolocationState {
   isLoading: boolean
 }
 
-// Exported so useLiveTracking.ts (continuous watchPosition, used by active
+// Exported so useNavigationSession.ts (continuous watchPosition, used by live
 // navigation) can reuse the exact same error messages instead of duplicating
 // them — this one-shot hook's own behavior is unchanged.
 export const GEO_ERROR_MESSAGES: Record<number, string> = {

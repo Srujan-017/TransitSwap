@@ -1,8 +1,6 @@
-// useLiveTracking, useSpeechNarration, and ActiveNavigationView's
-// geolocation/speech-dependent behavior are browser APIs with no meaningful
-// jsdom equivalent, so they're verified manually in-browser instead (see
-// the plan's verification section). This file covers the one piece that's
-// genuinely a pure function: building the spoken/display text for a step.
+// Speech synthesis and the GPS have no jsdom equivalent, so the live navigation screen is tested with a
+// fake GPS (ActiveNavigationView.test.tsx) and its logic as pure functions (src/navigation/). This file
+// covers the text for one leg of the journey: the spoken/display instruction when a leg starts.
 
 import { describe, it, expect } from "vitest"
 import { buildStepInstruction, buildArrivalAnnouncement } from "./navigationInstructions"

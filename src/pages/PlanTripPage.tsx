@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react"
+import { useState, useEffect, useCallback, lazy, Suspense } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   ArrowRight, ArrowLeftRight, AlertTriangle, Navigation,
@@ -354,6 +354,32 @@ export default function PlanTripPage() {
   const selectedMultimodalRoute = multimodalRoutes[selectedMultimodalIndex] ?? null
   const activeError             = routingMode === "road" ? routeError : multimodalError
 
+  // The rider left the route during live navigation: plan again from where they are, leaving now (or at the
+  // simulated time), with the same profile and weather, and carry on with the best new route.
+  const handleReroute = useCallback(
+    async (from: { latitude: number; longitude: number }, at: Date): Promise<boolean> => {
+      if (!destination) return false
+      const pad = (n: number) => String(n).padStart(2, "0")
+      const departureTime = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}:00`
+      try {
+        const result = await multimodalService.getRoutes(
+          { name: "Your location", address: "Your location", latitude: from.latitude, longitude: from.longitude },
+          destination,
+          profile,
+          departureTime,
+          weatherMode,
+        )
+        const next = result.routes[0]
+        if (!next) return false
+        setActiveNavRoute(next)
+        return true
+      } catch {
+        return false
+      }
+    },
+    [destination, profile, weatherMode],
+  )
+
   if (activeNavRoute && origin && destination) {
     return (
       <ActiveNavigationView
@@ -362,6 +388,7 @@ export default function PlanTripPage() {
         destination={destination}
         profile={profile}
         onExit={() => setActiveNavRoute(null)}
+        onReroute={handleReroute}
       />
     )
   }

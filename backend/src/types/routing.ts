@@ -13,6 +13,12 @@ export interface RouteStep {
   distanceMeters: number
   durationSeconds: number
   mode: "walking" | "driving" | "cycling" | "transit"
+  // The manoeuvre that starts this step, from the road router (OSRM): its type ("turn", "depart",
+  // "arrive", "roundabout" ...), direction ("left", "slight right" ...) and where it happens
+  // ([longitude, latitude]). Used for turn-by-turn navigation.
+  maneuver?: { type: string; modifier?: string; location: [number, number] }
+  // Street the step travels along, when the router names it.
+  name?: string
 }
 
 export interface RouteLeg {
@@ -54,6 +60,7 @@ export interface RouteRequest {
 export interface OsrmManeuver {
   type: string
   modifier?: string
+  location?: [number, number]
 }
 
 export interface OsrmStep {

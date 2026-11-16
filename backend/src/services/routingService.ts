@@ -81,6 +81,10 @@ function normalizeOsrmRoute(route: OsrmRoute, mode: TransportMode): NormalizedRo
         distanceMeters: Math.round(step.distance),
         durationSeconds: Math.round(step.duration),
         mode,
+        ...(step.maneuver.location
+          ? { maneuver: { type: step.maneuver.type, modifier: step.maneuver.modifier, location: step.maneuver.location } }
+          : {}),
+        ...(step.name ? { name: step.name } : {}),
       })),
     })),
     provider: "osrm",
