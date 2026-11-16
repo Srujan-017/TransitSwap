@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { User, Mail, Lock, Eye, EyeOff, CheckCircle } from "lucide-react"
+import { User, Mail, Lock, Eye, EyeOff, CheckCircle, CircleAlert } from "lucide-react"
 import { useAuthContext } from "../context/AuthContext"
 import type { AccessibilityProfile } from "../types"
 import AuthLayout from "../layouts/AuthLayout"
@@ -90,7 +90,8 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 rounded-2xl px-4 py-3 text-sm text-danger font-medium">
+            <div role="alert" className="flex items-start gap-2 rounded-control bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+              <CircleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
               {error}
             </div>
           )}
@@ -143,7 +144,7 @@ export default function RegisterPage() {
                     />
                   ))}
                 </div>
-                <span className={`text-xs font-medium ${["", "text-danger", "text-warning", "text-success"][pwStrength]}`}>
+                <span aria-live="polite" className={`text-xs font-medium ${["", "text-danger", "text-warning", "text-success"][pwStrength]}`}>
                   {strengthLabel[pwStrength]}
                 </span>
               </div>
@@ -163,18 +164,19 @@ export default function RegisterPage() {
           />
 
           {/* Accessibility profile */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-navy-700">
+          <div role="group" aria-labelledby="register-profile-label" className="space-y-2">
+            <p id="register-profile-label" className="block text-sm font-medium text-navy-700">
               Accessibility profile
-            </label>
+            </p>
             <p className="text-xs text-navy-500">
               This helps TransitSwap filter routes that are safe and accessible for you.
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 min-[400px]:grid-cols-3">
               {PROFILES.map((p) => (
                 <button
                   key={p.id}
                   type="button"
+                  aria-pressed={form.accessibilityProfile === p.id}
                   onClick={() => setForm((f) => ({ ...f, accessibilityProfile: p.id as AccessibilityProfile }))}
                   className={`flex flex-col items-center gap-1 px-2 py-3 rounded-2xl text-xs font-semibold transition-all ${
                     form.accessibilityProfile === p.id

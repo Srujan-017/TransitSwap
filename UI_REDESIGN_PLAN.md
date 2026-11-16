@@ -1,6 +1,6 @@
 # TransitSwap — UI & Design Redesign: Master Plan
 
-**Status:** plan written 16 Nov 2026 · Phases 0–3 done; Phase 4 next · **Deadline:** 19 Nov 2026
+**Status:** plan written 16 Nov 2026 · Phases 0–4 done; Phase 5 next · **Deadline:** 19 Nov 2026
 **Rule above all others:** the redesign changes how the app *looks and feels*, never what it *does*. Every feature from the completion plan and the feature upgrade (profiles, buses, weather, crowd, live navigation, saving, history, feedback, research, admin) must work exactly as it does now after every single phase.
 
 ---
@@ -470,7 +470,7 @@ This is tight. To keep the deadline safe:
 | 1 Design system foundation | ✅ done | see git log | New tokens (Transit Blue, Go Green, bus/auto colours, 3 shadows, radii, motion); self-hosted fonts; 14 new shared components + 5 restyled; ~80 emoji → lucide icons; 41/41 contrast pairs (`npm run ui:contrast`); tests 144 (was 122, +22 for the kit); end-to-end passes; audit: 45 screens, none worse than baseline. Record: `docs/ui-redesign/PHASE_1_DESIGN_SYSTEM.md`. One regression found and fixed by the audit (Profile page sideways scroll at 375 px) |
 | 2 Real photography | ✅ done | see git log | 11 real photos (7 Unsplash, 4 Wikimedia Commons) approved by the owner; self-hosted WebP at 640/1280/1920 (3.9 MB total), `<Photo>` component, `/credits` page, tests that fail on an uncredited photo or any hotlinked image. No people-with-disabilities photos by choice. Also fixed: undefined `navy-950`/`brand-950` (hero overlay), 3 Landing contrast failures found by a new scrolled audit capture. Tests 160; audit 51 screens, none worse than baseline. Record: `docs/ui-redesign/PHASE_2_PHOTOS.md` |
 | 3 App shell | ✅ done | see git log | Compact phone top bar + 5-tab bottom bar (never shown together with the desktop links), account menu with Escape/focus return, skip link, footer, page fade-in, `PageHeader` in the kit. Tests 180 (+20); end-to-end passes; audit 51 screens none worse. Record: `docs/ui-redesign/PHASE_3_APP_SHELL.md` |
-| 4 Landing and auth | ⏳ | | |
+| 4 Landing and auth | ✅ done | see git log | Landing rebuilt: visible hero photo with a local text glow, 6 photo feature tiles describing what the app really does, profile rules in plain words, "1,680 checks / 0 violations", honest tech list (removed phase labels, mock cards, wrong Google Maps/OpenWeatherMap claim); split-screen sign-in/sign-up. Tests 206 (+26); end-to-end passes; audit 51 screens none worse. Record: `docs/ui-redesign/PHASE_4_LANDING_AND_AUTH.md` |
 | 5 Plan Trip A: layout and search | ⏳ | | |
 | 6 Plan Trip B: results and details | ⏳ | | |
 | 7 Live navigation | ⏳ | | |

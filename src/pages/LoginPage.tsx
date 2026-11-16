@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
-import { Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, CircleAlert } from "lucide-react"
 import { useAuthContext } from "../context/AuthContext"
 import AuthLayout from "../layouts/AuthLayout"
 import Button from "../components/ui/Button"
@@ -51,7 +51,8 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 rounded-2xl px-4 py-3 text-sm text-danger font-medium">
+            <div role="alert" className="flex items-start gap-2 rounded-control bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+              <CircleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
               {error}
             </div>
           )}
@@ -89,12 +90,19 @@ export default function LoginPage() {
         </form>
 
         {/* Demo hint */}
-        <div className="bg-brand-50 rounded-2xl px-4 py-3">
-          <p className="text-xs font-semibold text-brand-700 mb-1">Demo credentials</p>
-          <p className="text-xs text-brand-600">
-            Email: <code className="bg-brand-100 px-1 rounded">demo@transitswap.app</code>
-            &nbsp;· Password: <code className="bg-brand-100 px-1 rounded">Demo@1234</code>
+        <div className="rounded-panel bg-brand-50 px-4 py-3">
+          <p className="mb-1 text-xs font-semibold text-brand-700">Demo credentials</p>
+          <p className="text-xs text-brand-700">
+            Email: <code className="rounded bg-brand-100 px-1">demo@transitswap.app</code>
+            &nbsp;· Password: <code className="rounded bg-brand-100 px-1">Demo@1234</code>
           </p>
+          <button
+            type="button"
+            onClick={() => { setForm({ email: "demo@transitswap.app", password: "Demo@1234" }); setError("") }}
+            className="mt-2 inline-flex min-h-9 items-center text-xs font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+          >
+            Fill in the demo account
+          </button>
         </div>
 
         <p className="text-center text-sm text-navy-500">

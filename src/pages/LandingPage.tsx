@@ -1,439 +1,327 @@
-import { useState, type ReactNode } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import type { ReactNode } from "react"
+import { Link } from "react-router-dom"
 import {
-  Bus,
-  MapPin,
-  ArrowRight,
-  Shield,
-  Zap,
-  Users,
-  CloudRain,
   Accessibility,
+  ArrowRight,
+  Bus,
+  BusFront,
+  CarTaxiFront,
+  CloudRain,
+  ListChecks,
+  Navigation,
+  Search,
+  ShieldCheck,
   Star,
-  CheckCircle,
-  Dna,
+  Users,
 } from "lucide-react"
+import { useAuthContext } from "../context/AuthContext"
 import Button from "../components/ui/Button"
 import Photo from "../components/ui/Photo"
 import ProfileIcon from "../components/ui/ProfileIcon"
-import ModeIcon from "../components/ui/ModeIcon"
-import { FloatingArrivalCard } from "../components/landing/LandingIllustrations"
+import HeroSearch from "../components/landing/HeroSearch"
 import { useScrollReveal } from "../hooks/useScrollReveal"
+import type { PhotoId } from "../data/photoCredits"
 
-// The section backgrounds are real photographs, served from this site's own files through <Photo> (src/data/photoCredits.ts
-// holds each photographer's credit; the /credits page lists them). They sit under a colour wash and a headline that says
-// everything the picture shows, so they are decorative for screen readers.
+// Section pictures are real photographs served from this site's own files through <Photo>; src/data/photoCredits.ts holds
+// each photographer's credit and the /credits page lists them.
 
-const PROFILES = [
-  { id: "standard", label: "Standard" },
-  { id: "fastest", label: "Fastest" },
-  { id: "cheapest", label: "Cheapest" },
-  { id: "wheelchair", label: "Wheelchair" },
-  { id: "senior", label: "Senior" },
-]
-
-// A full-bleed, alternating color-block section with a headline + body on
-// one side and a floating "proof" card on the other — the structural
-// pattern found on transitapp.com's own marketing homepage (colored
-// sections, bold multi-line headlines, tilted floating UI-mockup cards),
-// applied here to TransitSwap's own real features rather than that site's.
-// Animates in once when it first scrolls into view (useScrollReveal).
-function RevealSection({
-  className = "",
-  children,
-}: {
-  className?: string
-  children: ReactNode
-}) {
+/** A section that fades in once, the first time it scrolls into view. */
+function RevealSection({ id, className = "", children }: { id?: string; className?: string; children: ReactNode }) {
   const { ref, isVisible } = useScrollReveal<HTMLElement>()
   return (
-    <section
-      ref={ref}
-      className={`${className} ${isVisible ? "animate-fade-slide-up" : "opacity-0"}`}
-    >
+    <section id={id} ref={ref} className={`${className} ${isVisible ? "animate-fade-slide-up" : "opacity-0"}`}>
       {children}
     </section>
   )
 }
 
-export default function LandingPage() {
-  const [origin, setOrigin] = useState("")
-  const [destination, setDestination] = useState("")
-  const [profile, setProfile] = useState("standard")
-  const navigate = useNavigate()
+const STEPS = [
+  { Icon: Search, title: "Say where, and who is travelling", text: "Enter where you are going and pick a travel profile: standard, wheelchair, senior, stroller and more." },
+  { Icon: ShieldCheck, title: "We apply the rules", text: "Weather, crowd, service hours and your profile's limits remove the routes that would not work for you." },
+  { Icon: ListChecks, title: "Take the best option", text: "You get a best option with the reasons, plus alternatives. Start live navigation or save it for later." },
+]
 
-  // Phase 12 fix — this used to discard origin/destination/profile entirely
-  // and just navigate to /register (PROJECT_MASTER_PLAN.md §9/§32: "search
-  // form collects 3 fields and discards them"). An unauthenticated visitor
-  // can't search routes directly (routing is behind auth), so this carries
-  // what they typed through sessionStorage instead — PlanTripPage reads it
-  // once after they register/log in and pre-fills the real search, rather
-  // than making them retype everything from scratch.
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (origin.trim() || destination.trim()) {
-      try {
-        sessionStorage.setItem(
-          "ts_landing_search",
-          JSON.stringify({ origin: origin.trim(), destination: destination.trim(), profile }),
-        )
-      } catch {
-        // Private-browsing contexts can throw on sessionStorage access —
-        // never block navigation over a convenience feature.
-      }
-    }
-    navigate("/register")
-  }
+interface Feature {
+  photo: PhotoId
+  Icon: typeof Accessibility
+  title: string
+  text: string
+}
+
+const FEATURES: Feature[] = [
+  {
+    photo: "tactile-platform",
+    Icon: Accessibility,
+    title: "Accessibility-first, by default",
+    text: "Each accessibility profile gets one best option with the reasons. Walking limits, bus rules and crowd limits are fixed rules, not scores that a quick route can outweigh.",
+  },
+  {
+    photo: "bmtc-bus",
+    Icon: BusFront,
+    title: "Buses with their numbers",
+    text: "Every bus leg shows its route number and direction, the next departures and when you arrive, from a demonstration timetable of BMTC-style routes.",
+  },
+  {
+    photo: "autos-vidhana-soudha",
+    Icon: CarTaxiFront,
+    title: "Autos for the first and last stretch",
+    text: "An auto bridges the gap to the station so you walk less. When the weather turns, a long walk becomes an auto.",
+  },
+  {
+    photo: "vidhana-soudha-rain",
+    Icon: CloudRain,
+    title: "Weather before you leave",
+    text: "Live weather from Open-Meteo, with the forecast for the hour you set off. In rain or heat there is no walk over 300 m.",
+  },
+  {
+    photo: "green-line-train",
+    Icon: Users,
+    title: "How busy it will be",
+    text: "An hour-by-hour crowd estimate for the stations and stops on your route, shown on every leg. It is demonstration data, and labelled as such.",
+  },
+  {
+    photo: "streets-of-bangalore",
+    Icon: Navigation,
+    title: "Live navigation",
+    text: "Follow your journey leg by leg with turn prompts and voice guidance, and get a new route if you leave the path. Try the demo journey without moving. Bus and metro positions are not tracked live.",
+  },
+]
+
+// What each accessibility profile means in practice: the rules the planner enforces, in plain words.
+const TRAVELLERS = [
+  { id: "wheelchair", name: "Wheelchair", rule: "Autos and metro only, with at most 150 m of walking in a stretch." },
+  { id: "senior", name: "Senior", rule: "Short walks, and a bus only when it is quiet." },
+  { id: "pregnant", name: "Pregnant", rule: "No buses, and only quiet metro trains." },
+  { id: "stroller", name: "Stroller", rule: "No buses, only quiet metro trains, short walks." },
+  { id: "luggage", name: "Heavy luggage", rule: "Autos first, short walks, a bus only when it is quiet." },
+  { id: "reduced_mobility", name: "Reduced mobility", rule: "Short walks, and buses only when they are quiet." },
+]
+
+const SECTION = "mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+
+export default function LandingPage() {
+  const { isAuthenticated } = useAuthContext()
 
   return (
-    <div className="bg-white min-h-screen overflow-x-hidden">
-      {/* Nav */}
-      <header className="bg-white/90 backdrop-blur-lg sticky top-0 z-50 shadow-[0_1px_0_rgba(15,23,42,0.06)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-navy-900 flex items-center justify-center">
-              <Bus className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-display font-bold text-navy-900 text-lg">TransitSwap</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/login" className="px-4 py-2 text-sm font-medium text-navy-600 hover:text-navy-900 transition-colors">
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              className="px-5 py-2 text-sm font-semibold bg-navy-900 text-white rounded-full hover:bg-navy-800 transition-colors"
-            >
-              Get Started
-            </Link>
+    <div className="min-h-screen overflow-x-hidden bg-white">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-navy-100 bg-white/90 backdrop-blur-lg">
+        <div className={`${SECTION} flex h-16 items-center justify-between`}>
+          <Link to="/" aria-label="TransitSwap home" className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-900">
+              <Bus className="h-4 w-4 text-white" aria-hidden="true" />
+            </span>
+            <span className="font-display text-lg font-bold text-navy-900">TransitSwap</span>
+          </Link>
+          <nav aria-label="Sections" className="hidden items-center gap-1 md:flex">
+            {[
+              ["#how-it-works", "How it works"],
+              ["#features", "Features"],
+              ["#travellers", "Every traveller"],
+            ].map(([href, label]) => (
+              <a key={href} href={href} className="rounded-full px-4 py-2 text-sm font-medium text-navy-600 transition-colors hover:bg-navy-100 hover:text-navy-900">
+                {label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            {isAuthenticated ? (
+              <Link to="/dashboard" className="inline-flex min-h-11 items-center whitespace-nowrap rounded-control bg-navy-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-navy-800 sm:px-5">
+                Open TransitSwap
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="inline-flex min-h-11 items-center whitespace-nowrap px-3 text-sm font-medium text-navy-600 transition-colors hover:text-navy-900 sm:px-4">
+                  Sign In
+                </Link>
+                <Link to="/register" className="inline-flex min-h-11 items-center whitespace-nowrap rounded-control bg-navy-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-navy-800 sm:px-5">
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Hero — a real metro-platform photograph (Unsplash, free license),
-          color-graded with the app's own navy/brand gradient overlay for
-          text contrast, instead of flat illustration. */}
-      <section className="relative overflow-hidden">
-        <Photo id="metro-sunset" decorative priority className="absolute inset-0 h-full w-full object-cover object-center" />
-        <div className="absolute inset-0 bg-gradient-to-b from-navy-950/90 via-navy-900/85 to-navy-950/95" />
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-900/40 via-transparent to-transparent" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-full px-4 py-1.5 text-brand-300 text-sm font-medium mb-6">
-              <Star className="w-3.5 h-3.5" />
-              Rule-Based Multimodal Urban Mobility Intelligence
+      <main>
+        {/* Hero: a real Bengaluru metro platform, under a dark wash so the headline stays readable. */}
+        <section className="relative overflow-hidden">
+          <Photo id="metro-sunset" decorative priority className="absolute inset-0 h-full w-full object-cover object-center" />
+          <div className="absolute inset-0 bg-gradient-to-b from-navy-950/70 via-navy-900/50 to-navy-950/85" />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-900/40 via-transparent to-transparent" />
+          {/* A soft dark glow behind the headline and subtitle only, so they stay readable while the photo shows elsewhere. */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_42%_at_50%_30%,rgba(6,11,22,0.62),transparent_72%)]" />
+          <div className={`${SECTION} relative pb-16 pt-16 sm:pt-20`}>
+            <div className="mx-auto mb-10 max-w-3xl text-center">
+              <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-sm font-medium text-brand-300 backdrop-blur-sm">
+                <Star className="h-3.5 w-3.5" aria-hidden="true" />
+                Rule-Based Multimodal Urban Mobility Intelligence
+              </p>
+              <h1 className="mb-6 font-display text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
+                Travel Smarter, <span className="text-brand-300">Not Just Faster</span>
+              </h1>
+              <p className="mx-auto max-w-2xl text-lg leading-relaxed text-white">
+                TransitSwap evaluates weather, accessibility, and crowd levels using transparent rule-based logic to help you find a
+                journey that actually works for you — not just the shortest one on paper.
+              </p>
             </div>
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-              Travel Smarter,{" "}
-              <span className="text-brand-400">Not Just Faster</span>
-            </h1>
-            <p className="text-navy-200 text-lg leading-relaxed max-w-2xl mx-auto">
-              TransitSwap evaluates weather, accessibility, and crowd levels using transparent rule-based logic
-              to help you find a journey that actually works for you — not just the shortest one on paper.
-            </p>
+            <div className="mx-auto max-w-2xl">
+              <HeroSearch isAuthenticated={isAuthenticated} />
+              <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-navy-200" aria-label="What it plans">
+                <li className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-brand-300" aria-hidden="true" /> Accessibility-first routing</li>
+                <li className="flex items-center gap-1.5"><Users className="h-4 w-4 text-brand-300" aria-hidden="true" /> Crowd intelligence</li>
+                <li className="flex items-center gap-1.5"><CloudRain className="h-4 w-4 text-brand-300" aria-hidden="true" /> Weather-aware</li>
+              </ul>
+            </div>
           </div>
+        </section>
 
-          {/* Search box */}
-          <div className="relative max-w-2xl mx-auto">
-            <FloatingArrivalCard className="hidden lg:block absolute -right-28 top-6 -rotate-6" />
-            <form
-              onSubmit={handleSearch}
-              className="relative bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_24px_48px_-16px_rgba(15,23,42,0.18)] overflow-hidden"
-            >
-              <div className="p-6 space-y-4">
-                <div className="space-y-2.5">
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-brand-500 border-2 border-white ring-2 ring-brand-500" />
-                    <input
-                      type="text"
-                      placeholder="From — current location or enter an address"
-                      value={origin}
-                      onChange={(e) => setOrigin(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 text-sm rounded-full bg-navy-50/70 text-navy-900 placeholder-navy-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500/30 transition-all"
-                    />
-                  </div>
-                  <div className="relative">
-                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400" />
-                    <input
-                      type="text"
-                      placeholder="To — where do you want to go?"
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 text-sm rounded-full bg-navy-50/70 text-navy-900 placeholder-navy-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand-500/30 transition-all"
-                    />
-                  </div>
-                </div>
+        {/* How it works */}
+        <RevealSection id="how-it-works" className="scroll-mt-20 py-16 sm:py-20">
+          <div className={`${SECTION} grid items-center gap-10 lg:grid-cols-2 lg:gap-16`}>
+            <div>
+              <h2 className="font-display text-3xl font-bold text-navy-900">How TransitSwap works</h2>
+              <p className="mt-2 text-lg text-navy-600">From where you are to the best journey, in three steps.</p>
+              <ol className="mt-8 space-y-6">
+                {STEPS.map((s, i) => (
+                  <li key={s.title} className="flex gap-4">
+                    <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-panel bg-brand-50 text-brand-700">
+                      <s.Icon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h3 className="font-display text-lg font-bold text-navy-900">
+                        <span className="sr-only">Step {i + 1}: </span>
+                        {s.title}
+                      </h3>
+                      <p className="mt-1 text-sm leading-relaxed text-navy-600">{s.text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <Photo id="cubbon-park-station" sizes="(min-width: 1024px) 560px, 100vw" className="aspect-[4/3] w-full rounded-sheet object-cover shadow-float" />
+          </div>
+        </RevealSection>
 
-                {/* Profile selector */}
-                <div>
-                  <p className="text-xs font-semibold text-navy-500 uppercase tracking-wider mb-2.5">
-                    Travel Profile
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {PROFILES.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setProfile(p.id)}
-                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                          profile === p.id
-                            ? "bg-brand-500 text-white shadow-card"
-                            : "bg-navy-50 text-navy-600 hover:bg-navy-100"
-                        }`}
-                      >
-                        <ProfileIcon id={p.id} className="w-4 h-4" />
-                        {p.label}
-                      </button>
-                    ))}
+        {/* Features */}
+        <RevealSection id="features" className="scroll-mt-20 bg-navy-50 py-16 sm:py-20">
+          <div className={SECTION}>
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <h2 className="font-display text-3xl font-bold text-navy-900">Built around the way Bengaluru moves</h2>
+              <p className="mt-2 text-lg text-navy-600">Metro, buses, autos and your own two feet, planned together.</p>
+            </div>
+            <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {FEATURES.map((f) => (
+                <li key={f.title} className="flex flex-col overflow-hidden rounded-panel border border-navy-100 bg-white shadow-card">
+                  <Photo id={f.photo} sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw" className="aspect-[16/10] w-full object-cover" />
+                  <div className="flex flex-1 flex-col p-5">
+                    <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-control bg-brand-50 text-brand-700">
+                      <f.Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                    </span>
+                    <h3 className="font-display text-lg font-bold text-navy-900">{f.title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-navy-600">{f.text}</p>
                   </div>
-                </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </RevealSection>
 
-                <Button type="submit" fullWidth size="lg" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
-                  Find Best Routes
+        {/* Every traveller */}
+        <RevealSection id="travellers" className="scroll-mt-20 bg-navy-900 py-16 sm:py-20">
+          <div className={SECTION}>
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <h2 className="font-display text-3xl font-bold text-white">One best option for every traveller</h2>
+              <p className="mt-2 text-lg text-navy-200">
+                Pick a profile and the planner follows its rules, every time. They are written down, and tested.
+              </p>
+            </div>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {TRAVELLERS.map((t) => (
+                <li key={t.id} className="rounded-panel border border-white/10 bg-white/5 p-5">
+                  <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-control bg-white/10 text-white">
+                    <ProfileIcon id={t.id} className="h-5 w-5" />
+                  </span>
+                  <h3 className="font-display text-lg font-bold text-white">{t.name}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-navy-200">{t.rule}</p>
+                </li>
+              ))}
+            </ul>
+            <div className="mx-auto mt-12 grid max-w-3xl gap-6 border-t border-white/10 pt-10 text-center sm:grid-cols-2">
+              <div>
+                <p className="font-display text-4xl font-bold tabular-nums text-white">1,680</p>
+                <p className="mt-1 text-sm text-navy-200">route checks: 7 profiles, 12 trips, 5 times of day, 4 kinds of weather</p>
+              </div>
+              <div>
+                <p className="font-display text-4xl font-bold tabular-nums text-white">0</p>
+                <p className="mt-1 text-sm text-navy-200">rule violations found in any of them</p>
+              </div>
+            </div>
+          </div>
+        </RevealSection>
+
+        {/* Call to action */}
+        <RevealSection className="relative overflow-hidden py-20 text-center">
+          <Photo id="train-dusk" decorative className="absolute inset-0 h-full w-full object-cover object-center" />
+          <div className="absolute inset-0 bg-navy-950/75" />
+          <div className={`${SECTION} relative`}>
+            <h2 className="mb-4 font-display text-3xl font-bold text-white">Ready to travel smarter?</h2>
+            <p className="mx-auto mb-8 max-w-md text-lg text-navy-200">
+              Create your account and start getting personalized journey recommendations today.
+            </p>
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
+              <Link to={isAuthenticated ? "/plan" : "/register"}>
+                <Button size="lg" icon={<ArrowRight className="h-4 w-4" />} iconPosition="right">
+                  {isAuthenticated ? "Plan a Journey" : "Create Free Account"}
                 </Button>
-              </div>
-
-              <div className="px-6 py-3 bg-navy-50/80 flex items-center justify-between text-xs text-navy-500">
-                <span className="flex items-center gap-1">
-                  <Shield className="w-3.5 h-3.5 text-brand-500" />
-                  Accessibility-first routing
-                </span>
-                <span className="flex items-center gap-1">
-                  <Zap className="w-3.5 h-3.5 text-brand-500" />
-                  Crowd intelligence
-                </span>
-                <span className="flex items-center gap-1">
-                  <CloudRain className="w-3.5 h-3.5 text-brand-500" />
-                  Weather-aware
-                </span>
-              </div>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      {/* Accessibility — full-bleed color block #1, a real accessibility-
-          marking photograph color-graded into the brand blue palette. */}
-      <RevealSection className="relative overflow-hidden py-20">
-        <Photo id="tactile-platform" decorative className="absolute inset-0 h-full w-full object-cover object-center" />
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/92 to-brand-800/92" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="inline-block text-xs font-bold text-white bg-white/15 rounded-full px-3 py-1 mb-4">
-              ★ Major Innovation
-            </span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">
-              Accessibility-first, by default
-            </h2>
-            <p className="text-brand-50 text-lg leading-relaxed mb-4">
-              Wheelchair users, senior citizens, pregnant travellers and more — inaccessible routes are
-              filtered out as a hard constraint, not just scored lower. A clearly labelled demonstration
-              dataset of station features (lift, ramp, escalator, tactile paving) powers every check, with
-              authenticated user reporting for corrections.
-            </p>
-            <span className="inline-block text-xs font-semibold text-brand-700 bg-white rounded-full px-3 py-1">
-              Phase 7 · Rule-Based
-            </span>
-          </div>
-          <div className="relative flex justify-center lg:justify-end">
-            <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(15,23,42,0.4)] p-5 w-72 -rotate-3">
-              <div className="flex items-center gap-2 mb-3">
-                <Accessibility className="w-5 h-5 text-brand-600" />
-                <span className="font-display font-bold text-navy-900 text-sm">Wheelchair check</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between bg-emerald-50 rounded-xl px-3 py-2">
-                  <span className="text-xs font-medium text-emerald-800">MG Road Metro</span>
-                  <span className="text-xs font-bold text-go-800">✓ Accessible</span>
-                </div>
-                <div className="flex items-center justify-between bg-red-50 rounded-xl px-3 py-2">
-                  <span className="text-xs font-medium text-red-800">Trinity Metro</span>
-                  <span className="text-xs font-bold text-red-800">✕ Excluded</span>
-                </div>
-              </div>
-            </div>
-            <div className="hidden sm:block bg-white rounded-2xl shadow-[0_16px_32px_-12px_rgba(15,23,42,0.35)] px-4 py-3 w-40 absolute -bottom-6 -left-4 rotate-6">
-              <p className="text-[10px] font-semibold text-navy-400 uppercase">Hard constraint</p>
-              <p className="font-display font-bold text-navy-900 text-sm leading-tight">Never a score — a filter</p>
-            </div>
-          </div>
-        </div>
-      </RevealSection>
-
-      {/* Weather + crowd — full-bleed color block #2, a real street-crossing
-          commuters photograph color-graded into a warm amber tone. */}
-      <RevealSection className="relative overflow-hidden py-20">
-        <Photo id="vidhana-soudha-rain" decorative className="absolute inset-0 h-full w-full object-cover object-center" />
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-700/95 to-orange-800/95" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="order-2 lg:order-1 relative flex justify-center lg:justify-start">
-            <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(15,23,42,0.4)] p-5 w-72 rotate-2">
-              <p className="text-[10px] font-semibold text-navy-400 uppercase tracking-wide mb-2">Live context</p>
-              <div className="flex items-center gap-2 mb-2">
-                <CloudRain className="w-4 h-4 text-brand-500" />
-                <span className="text-sm font-semibold text-navy-800">Light rain · low impact</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-emerald-500" />
-                <span className="text-sm font-semibold text-navy-800">Low crowd at MG Road</span>
-              </div>
-            </div>
-            <div className="hidden sm:block bg-white rounded-2xl shadow-[0_16px_32px_-12px_rgba(15,23,42,0.35)] px-4 py-3 w-44 absolute -top-5 -right-6 -rotate-6">
-              <p className="text-[10px] font-semibold text-navy-400 uppercase">Weather-friendly</p>
-              <p className="font-display font-bold text-navy-900 text-sm leading-tight">Less walking in current conditions</p>
-            </div>
-          </div>
-          <div className="order-1 lg:order-2">
-            <span className="inline-block text-xs font-bold text-orange-900 bg-white/70 rounded-full px-3 py-1 mb-4">
-              Rule-Based
-            </span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">
-              Weather and crowd, before you leave
-            </h2>
-            <p className="text-orange-50 text-lg leading-relaxed">
-              Heavy rain or high heat raises the walking-discomfort score for routes with longer walking
-              segments. Crowd estimates combine recent authenticated user reports with historical
-              demonstration data using a transparent weighted rule — always labelled with its actual source,
-              never presented as a live sensor feed it isn't.
-            </p>
-          </div>
-        </div>
-      </RevealSection>
-
-      {/* Multimodal + history — full-bleed color block #3, a real city-bus
-          photograph color-graded into deep navy. */}
-      <RevealSection className="relative overflow-hidden py-20">
-        <Photo id="bmtc-bus" decorative className="absolute inset-0 h-full w-full object-cover object-center" />
-        <div className="absolute inset-0 bg-gradient-to-br from-navy-900/93 to-navy-950/95" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="inline-block text-xs font-bold text-white bg-white/10 rounded-full px-3 py-1 mb-4">
-              Multimodal · Phase 4
-            </span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">
-              Multimodal, with a memory
-            </h2>
-            <p className="text-navy-300 text-lg leading-relaxed">
-              Metro, bus, walking, and auto-rickshaw combinations over a demonstration transit dataset for the
-              Bengaluru metropolitan area. Every saved journey stores a full snapshot of the route, weather,
-              accessibility, and crowd context at the time you saved it — reproducible, never silently
-              recalculated later.
-            </p>
-          </div>
-          <div className="relative flex justify-center lg:justify-end">
-            <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(0,0,0,0.5)] p-5 w-72 rotate-3">
-              <div className="flex items-center gap-2 mb-3">
-                <ModeIcon mode="metro" className="w-5 h-5 text-navy-900" />
-                <span className="font-display font-bold text-navy-900 text-sm">Metro → Walking</span>
-                <div className="flex-1" />
-                <span className="text-navy-900 font-bold text-sm">38 min</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Dna className="w-3.5 h-3.5 text-brand-500" />
-                <span className="text-xs text-navy-500">Saved · reproducible snapshot</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </RevealSection>
-
-      {/* How it works */}
-      <RevealSection className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <h2 className="font-display text-3xl font-bold text-navy-900 mb-3">How TransitSwap works</h2>
-          <p className="text-navy-500 text-lg">From your location to the best journey, in seconds.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            {
-              step: "01",
-              title: "Set your journey & profile",
-              desc: "Enter origin and destination. Select your travel profile — standard, wheelchair, senior, stroller, or more.",
-            },
-            {
-              step: "02",
-              title: "TransitSwap checks accessibility, weather and crowd",
-              desc: "Routes that don't meet your accessibility profile are filtered out. The rest are enriched with weather impact and crowd context using transparent rule-based logic.",
-            },
-            {
-              step: "03",
-              title: "Compare your route options",
-              desc: "See ranked-by-time alternatives with clear labels for weather impact, accessibility status, and crowd level on each one.",
-            },
-          ].map((s, i) => (
-            <div key={s.step} className="relative flex flex-col items-start">
-              {i < 2 && (
-                <div className="hidden md:block absolute right-0 top-8 w-1/2 h-0.5 bg-gradient-to-r from-brand-200 to-transparent" />
+              </Link>
+              {!isAuthenticated && (
+                <Link to="/login">
+                  <Button size="lg" variant="outline">Sign In</Button>
+                </Link>
               )}
-              <div className="w-14 h-14 rounded-full bg-navy-900 text-white font-display font-bold text-xl flex items-center justify-center mb-5 shadow-[0_8px_20px_-6px_rgba(15,23,42,0.35)]">
-                {s.step}
-              </div>
-              <h3 className="font-display font-bold text-navy-900 text-lg mb-2">{s.title}</h3>
-              <p className="text-navy-500 text-sm leading-relaxed">{s.desc}</p>
             </div>
-          ))}
-        </div>
-      </RevealSection>
-
-      {/* Tech stack banner */}
-      <section className="bg-navy-900 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-navy-300 text-sm font-medium uppercase tracking-widest mb-6">Built with</p>
-          <div className="flex flex-wrap justify-center gap-3">
-            {["React + TypeScript", "Node.js + Express", "MongoDB Atlas", "JWT Auth", "Google Maps Platform", "OpenWeatherMap"].map((t) => (
-              <span key={t} className="px-4 py-2 bg-white/5 rounded-full text-navy-300 text-sm font-medium">
-                {t}
-              </span>
-            ))}
+            <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2">
+              {["Free to use", "No credit card required", "Accessibility-first", "Student project"].map((t) => (
+                <li key={t} className="flex items-center gap-1.5 text-sm text-navy-200">
+                  <ShieldCheck className="h-4 w-4 text-brand-300" aria-hidden="true" />
+                  {t}
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 text-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="font-display text-3xl font-bold text-navy-900 mb-4">
-          Ready to travel smarter?
-        </h2>
-        <p className="text-navy-500 text-lg mb-8 max-w-md mx-auto">
-          Create your account and start getting personalized journey recommendations today.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link to="/register">
-            <Button size="lg" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
-              Create Free Account
-            </Button>
-          </Link>
-          <Link to="/login">
-            <Button size="lg" variant="outline">
-              Sign In
-            </Button>
-          </Link>
-        </div>
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-8">
-          {["Free to use", "No credit card required", "Accessibility-first", "Student project"].map((t) => (
-            <span key={t} className="flex items-center gap-1.5 text-sm text-navy-500">
-              <CheckCircle className="w-4 h-4 text-brand-500" />
-              {t}
-            </span>
-          ))}
-        </div>
-      </section>
+        </RevealSection>
+      </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-navy-100 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-navy-900 flex items-center justify-center">
-              <Bus className="w-3.5 h-3.5 text-white" />
+      <footer className="border-t border-navy-100 bg-white py-10">
+        <div className={`${SECTION} grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]`}>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy-900">
+                <Bus className="h-3.5 w-3.5 text-white" aria-hidden="true" />
+              </span>
+              <span className="font-display text-sm font-bold text-navy-800">TransitSwap</span>
             </div>
-            <span className="font-display font-bold text-navy-700 text-sm">TransitSwap</span>
+            <p className="mt-3 max-w-sm text-sm text-navy-600">
+              A rule-based multimodal urban mobility platform: a final-year engineering project. The transit, crowd and accessibility
+              data in the app are demonstration data.
+            </p>
           </div>
-          <p className="text-navy-400 text-sm">
-            Rule-Based Multimodal Urban Mobility Platform · Final Year Engineering Project · 2025
-            {" · "}
-            <Link to="/credits" className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700">Photo credits</Link>
-          </p>
+          <nav aria-label="Footer" className="text-sm">
+            <p className="mb-2 font-semibold text-navy-900">TransitSwap</p>
+            <ul className="space-y-1.5">
+              <li><Link to="/login" className="text-navy-600 hover:text-navy-900">Sign In</Link></li>
+              <li><Link to="/register" className="text-navy-600 hover:text-navy-900">Create an account</Link></li>
+              <li><Link to="/credits" className="text-navy-600 hover:text-navy-900">Photo credits</Link></li>
+            </ul>
+          </nav>
+          <div className="text-sm">
+            <p className="mb-2 font-semibold text-navy-900">Built with</p>
+            <p className="text-navy-600">React, TypeScript, Node.js, MongoDB, OpenStreetMap and Leaflet, Open-Meteo.</p>
+          </div>
         </div>
+        <p className={`${SECTION} mt-8 text-xs text-navy-500`}>© {new Date().getFullYear()} TransitSwap</p>
       </footer>
     </div>
   )
