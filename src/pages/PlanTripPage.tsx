@@ -1,14 +1,17 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react"
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   ArrowRight, ArrowLeftRight, AlertTriangle, Navigation,
-  FlaskConical, Layers, Settings, Lightbulb, Map as MapIcon,
+  FlaskConical, Layers, Settings, Map as MapIcon,
 } from "lucide-react"
-import ProfileIcon from "../components/ui/ProfileIcon"
-import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Badge from "../components/ui/Badge"
-import PageContainer from "../layouts/PageContainer"
+import SegmentedControl from "../components/ui/SegmentedControl"
+import PlannerSheet, { atLeast, type SheetSnap } from "../components/planner/PlannerSheet"
+import ProfilePicker from "../components/planner/ProfilePicker"
+import DepartureControl from "../components/planner/DepartureControl"
+import DemoOptions from "../components/planner/DemoOptions"
+import ResultsSkeleton from "../components/planner/ResultsSkeleton"
 import LocationSearch from "../components/routing/LocationSearch"
 import RouteSummary from "../components/routing/RouteSummary"
 import RouteInstructions from "../components/routing/RouteInstructions"
@@ -156,6 +159,11 @@ export default function PlanTripPage() {
 
   const { location: geoLocation, isLoading: geoLoading, error: geoError, requestLocation } = useGeolocation()
   const routerLocation = useLocation()
+
+  // The journey panel's height on a phone (a column on a desktop, where this does nothing), and the two scroll targets.
+  const [snap, setSnap] = useState<SheetSnap>("half")
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const resultsRef = useRef<HTMLDivElement>(null)
 
   // Problem 10 — "Use Route" from Saved Routes navigates here with origin/destination
   // in router state; prefill the search form. Live routing is still recalculated via
@@ -381,6 +389,29 @@ export default function PlanTripPage() {
     [destination, profile, weatherMode],
   )
 
+  // A search that starts or finishes makes sure the panel is at least half open (it never closes itself), and a finished
+  // search scrolls the panel down to its results.
+  useEffect(() => {
+    if (isLoading || multimodalStatus === "success" || routeStatus === "success") setSnap((s) => atLeast(s, "half"))
+  }, [isLoading, multimodalStatus, routeStatus])
+  useEffect(() => {
+    if (multimodalStatus !== "success" && routeStatus !== "success") return
+    // Scroll the panel only. (scrollIntoView would also scroll the whole page, pushing the header off screen.)
+    const box = scrollRef.current
+    const target = resultsRef.current
+    if (!box || !target) return
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    const top = target.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - 8
+    box.scrollTo?.({ top, behavior: reduce ? "auto" : "smooth" })
+  }, [multimodalStatus, routeStatus])
+
+  // How much of the bottom of the map the sheet covers on a phone, so a new route is fitted into the part still visible.
+  const mapBottomInset = (() => {
+    if (typeof window === "undefined" || window.matchMedia?.("(min-width: 1024px)").matches) return 0
+    const mapHeight = Math.max(window.innerHeight - 128, 300)
+    return snap === "peek" ? 216 : Math.round(mapHeight * (snap === "half" ? 0.58 : 0.94))
+  })()
+
   if (activeNavRoute && origin && destination) {
     return (
       <ActiveNavigationView
@@ -395,454 +426,323 @@ export default function PlanTripPage() {
   }
 
   return (
-    <PageContainer width="wide">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-navy-900">Plan Your Journey</h1>
-        <p className="text-navy-500 text-sm mt-1">
-          Search locations and discover multimodal or road routes for your journey.
-        </p>
-      </div>
+    <div className="relative h-[calc(100dvh-8rem)] lg:grid lg:h-[calc(100dvh-4rem)] lg:grid-cols-[minmax(24rem,28rem)_minmax(0,1fr)]">
+      {/* ── The journey panel: a column beside the map on a desktop, a sheet over it on a phone ── */}
+      <PlannerSheet snap={snap} onSnapChange={setSnap} scrollRef={scrollRef}>
+        <div className="space-y-5 px-4 pb-8 pt-1 sm:px-5 lg:pt-5" onFocusCapture={() => setSnap((s) => atLeast(s, "half"))}>
+          <header className="space-y-3">
+            <h1 className="font-display text-xl font-bold text-navy-900">Plan Your Journey</h1>
+            <SegmentedControl
+              ariaLabel="Routing mode"
+              value={routingMode}
+              onChange={(mode) => { setRoutingMode(mode); clearResults() }}
+              className="w-full [&>button]:flex-1"
+              options={[
+                { value: "multimodal", label: "Multimodal", icon: <Layers className="h-4 w-4" aria-hidden="true" /> },
+                { value: "road", label: "Road Routing", icon: <MapIcon className="h-4 w-4" aria-hidden="true" /> },
+              ]}
+            />
+            <p className="text-xs text-navy-500">
+              {routingMode === "multimodal"
+                ? "Metro · Bus · Auto, combined with walking for the best journey."
+                : "Drive · Walk · Cycle directions along real roads."}
+            </p>
+          </header>
 
-      {/* Routing mode toggle */}
-      <div className="inline-flex gap-1 mb-6 bg-navy-50 rounded-full p-1">
-        <button
-          type="button"
-          onClick={() => { setRoutingMode("multimodal"); clearResults() }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold transition-all ${
-            routingMode === "multimodal"
-              ? "bg-white text-navy-900 shadow-[0_2px_8px_rgba(15,23,42,0.1)]"
-              : "text-navy-500 hover:text-navy-800"
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          Multimodal <span className="text-xs font-normal">Metro · Bus · Auto</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => { setRoutingMode("road"); clearResults() }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold transition-all ${
-            routingMode === "road"
-              ? "bg-white text-navy-900 shadow-[0_2px_8px_rgba(15,23,42,0.1)]"
-              : "text-navy-500 hover:text-navy-800"
-          }`}
-        >
-          <MapIcon className="w-4 h-4" /> Road Routing <span className="text-xs font-normal">Drive · Walk · Cycle</span>
-        </button>
-      </div>
+          <form onSubmit={handleSearch} className="space-y-5">
+            {/* Transport mode (road only) */}
+            {routingMode === "road" && (
+              <TransportModeSelector value={transportMode} onChange={handleModeChange} />
+            )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* ── Left panel: search form ──────────────────────────── */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card>
-            <form onSubmit={handleSearch} className="space-y-5">
-              {/* Transport mode (road only) */}
-              {routingMode === "road" && (
-                <TransportModeSelector value={transportMode} onChange={handleModeChange} />
-              )}
+            {/* Where from, where to: one card, with the swap button beside it */}
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1 rounded-panel border border-navy-200 bg-white shadow-card focus-within:border-brand-500">
+                <LocationSearch
+                  label="Origin"
+                  kind="origin"
+                  placeholder="Search start location…"
+                  value={origin}
+                  onSelect={setOrigin}
+                  onClear={() => { setOrigin(null); clearResults() }}
+                  iconColor="#1f5bd8"
+                  showLocateButton
+                  onLocate={requestLocation}
+                  locating={geoLoading}
+                  initialQuery={landingSearch?.origin ?? ""}
+                />
+                <div className="mx-3 border-t border-navy-100" aria-hidden="true" />
+                <LocationSearch
+                  label="Destination"
+                  kind="destination"
+                  placeholder="Search destination…"
+                  value={destination}
+                  onSelect={setDestination}
+                  onClear={() => { setDestination(null); clearResults() }}
+                  initialQuery={landingSearch?.destination ?? ""}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSwap}
+                disabled={!origin && !destination}
+                title="Swap origin and destination"
+                aria-label="Swap origin and destination"
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-navy-200 bg-white text-navy-600 shadow-card transition-colors hover:bg-brand-50 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
 
-              {/* Multimodal label */}
-              {routingMode === "multimodal" && (
-                <div className="flex items-center gap-2 bg-brand-50 rounded-2xl px-3 py-2.5">
-                  <Layers className="w-4 h-4 text-brand-600 flex-shrink-0" />
-                  <p className="text-xs text-brand-700 font-medium">
-                    Multimodal: combines Walk, Metro, Bus and Auto for the best journey.
-                  </p>
-                </div>
-              )}
+            <DepartureControl date={date} time={time} onChange={({ date: d, time: t }) => { setDate(d); setTime(t) }} />
 
-              {/* Origin */}
-              <LocationSearch
-                label="Origin"
-                placeholder="Search start location…"
-                value={origin}
-                onSelect={setOrigin}
-                onClear={() => { setOrigin(null); clearResults() }}
-                iconColor="#1f5bd8"
-                showLocateButton
-                onLocate={requestLocation}
-                locating={geoLoading}
-                initialQuery={landingSearch?.origin ?? ""}
-              />
+            <ProfilePicker profiles={PROFILES} value={profile} onChange={(id) => setProfile(id as RoutingProfile)} />
 
-              {/* Swap button */}
-              <div className="flex justify-center -my-1">
+            {/* The action bar sticks to the bottom of the panel, so Find Routes is always reachable, even in a half-open sheet. */}
+            <div className="sticky bottom-0 z-10 -mx-4 space-y-3 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5">
+            {/* Validation / geo errors */}
+            {(activeError || geoError) && !isLoading &&
+              multimodalStatus !== "error" && routeStatus !== "error" && (
+              <div role="alert" className="flex items-start gap-2 rounded-control border border-red-200 bg-red-50 px-4 py-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-danger" aria-hidden="true" />
+                <p className="text-sm text-red-800">{activeError || geoError}</p>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              loading={isLoading}
+              fullWidth
+              size="lg"
+              icon={<ArrowRight className="h-4 w-4" />}
+              iconPosition="right"
+              disabled={isLoading}
+            >
+              {isLoading
+                ? routingMode === "multimodal" ? "Finding best routes…" : "Calculating route…"
+                : routingMode === "multimodal" ? "Find Routes" : "Get Directions"}
+            </Button>
+            </div>
+
+            {/* Demo weather: shows how routes change in rain or heat even on a sunny day */}
+            {routingMode === "multimodal" && (
+              <DemoOptions options={WEATHER_OPTIONS} value={weatherMode} onChange={setWeatherMode} />
+            )}
+
+            {/* Problem 23 — Active Preferences (display-only; edited on Profile) */}
+            <div className="space-y-2 rounded-panel bg-navy-50 px-3.5 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-navy-500">Your Active Travel Preferences</p>
                 <button
                   type="button"
-                  onClick={handleSwap}
-                  disabled={!origin && !destination}
-                  title="Swap origin and destination"
-                  aria-label="Swap origin and destination"
-                  className="p-2 rounded-full bg-navy-50 text-navy-500 hover:text-brand-600 hover:bg-brand-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  onClick={() => navigate("/profile")}
+                  className="inline-flex min-h-9 flex-shrink-0 items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
                 >
-                  <ArrowLeftRight className="w-4 h-4" />
+                  <Settings className="h-3 w-3" aria-hidden="true" /> Edit Preferences
                 </button>
               </div>
-
-              {/* Destination */}
-              <LocationSearch
-                label="Destination"
-                placeholder="Search destination…"
-                value={destination}
-                onSelect={setDestination}
-                onClear={() => { setDestination(null); clearResults() }}
-                iconColor="#ef4444"
-                initialQuery={landingSearch?.destination ?? ""}
-              />
-
-              {/* Date / Time */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label htmlFor="trip-date" className="text-xs font-semibold text-navy-500 uppercase tracking-wider">Date</label>
-                  <input
-                    id="trip-date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-2xl border border-transparent bg-navy-50/70 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="trip-time" className="text-xs font-semibold text-navy-500 uppercase tracking-wider">Time</label>
-                  <input
-                    id="trip-time"
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-2xl border border-transparent bg-navy-50/70 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-navy-600">
+                <div><span className="text-navy-500">Accessibility:</span> <span className="font-medium text-navy-800">{ACCESSIBILITY_LABELS[profile] ?? profile}</span></div>
+                <div><span className="text-navy-500">Preferred mode:</span> <span className="font-medium text-navy-800">{PREFERRED_MODE_LABELS[preferredMode] ?? preferredMode}</span></div>
+                <div><span className="text-navy-500">Walking:</span> <span className="font-medium text-navy-800">{WALK_TOLERANCE_LABELS[walkingTolerance] ?? walkingTolerance}</span></div>
+                <div><span className="text-navy-500">Budget:</span> <span className="font-medium text-navy-800">{BUDGET_LABELS[budgetPreference] ?? budgetPreference}</span></div>
+                <div><span className="text-navy-500">Priority:</span> <span className="font-medium text-navy-800">{PRIORITY_LABELS[prioritize] ?? prioritize}</span></div>
               </div>
+            </div>
 
-              {/* Demo weather — shows how routes change in rain or heat even on a sunny day */}
-              {routingMode === "multimodal" && (
-                <div className="space-y-2" role="group" aria-labelledby="weather-label">
-                  <p id="weather-label" className="text-xs font-semibold text-navy-500 uppercase tracking-wider">
-                    Weather <span className="ml-1 normal-case tracking-normal font-medium text-navy-400">(demo options for showing the rules)</span>
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {WEATHER_OPTIONS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        aria-pressed={weatherMode === option.id}
-                        onClick={() => setWeatherMode(option.id)}
-                        className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          weatherMode === option.id ? "bg-brand-600 text-white" : "bg-navy-50 text-navy-700 hover:bg-navy-100"
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+            <div className="space-y-2 border-t border-navy-100 pt-4">
+              <label htmlFor="save-destination-name" className="text-xs font-semibold uppercase tracking-wider text-navy-500">
+                Save Destination
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="save-destination-name"
+                  type="text"
+                  value={destinationSaveName}
+                  onChange={(event) => setDestinationSaveName(event.target.value)}
+                  placeholder="Home, College, Office"
+                  className="min-h-11 min-w-0 flex-1 rounded-control border border-navy-200 bg-white px-3 py-2 text-sm text-navy-900 placeholder-navy-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => void handleSaveDestination()}>
+                  Save
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          {/* Problem 11 — Nearby Transit (uses origin coordinates already entered) */}
+          <NearbyTransit origin={origin} />
+
+          {/* ── Results ─────────────────────────────────────────── */}
+          <div ref={resultsRef} className="scroll-mt-4 space-y-4">
+            {/* While a search runs */}
+            {isLoading && <ResultsSkeleton mode={routingMode} />}
+
+            {/* Empty state */}
+            {routingMode === "multimodal" && multimodalStatus === "idle" && !origin && !destination && (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-panel bg-navy-100">
+                  <Layers className="h-6 w-6 text-navy-500" aria-hidden="true" />
+                </div>
+                <p className="font-display text-sm font-semibold text-navy-700">Discover multimodal routes</p>
+                <p className="mt-1 text-xs text-navy-500">Combines Metro, Bus, Auto and Walking for your journey</p>
+              </div>
+            )}
+            {routingMode === "road" && routeStatus === "idle" && !origin && !destination && (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-panel bg-navy-100">
+                  <Navigation className="h-6 w-6 text-navy-500" aria-hidden="true" />
+                </div>
+                <p className="font-display text-sm font-semibold text-navy-700">Search for locations to begin</p>
+                <p className="mt-1 text-xs text-navy-500">Enter an origin and destination, then click Get Directions</p>
+              </div>
+            )}
+
+            {/* Road route results */}
+            {routingMode === "road" && routeStatus === "success" && routes.length > 0 && origin && destination && (
+              <>
+                <RouteSummary
+                  routes={routes}
+                  selectedIndex={selectedRouteIndex}
+                  onSelectRoute={setSelectedRouteIndex}
+                  origin={origin}
+                  destination={destination}
+                />
+                <RouteInstructions route={routes[selectedRouteIndex]} />
+              </>
+            )}
+
+            {/* Multimodal results */}
+            {routingMode === "multimodal" && multimodalStatus === "success" && multimodalRoutes.length > 0 && origin && destination && (
+              <MultimodalResults
+                routes={multimodalRoutes}
+                selectedIndex={selectedMultimodalIndex}
+                onSelectRoute={setSelectedMultimodalIndex}
+                origin={origin}
+                destination={destination}
+                busAlternativeNote={busAlternativeNote}
+                weatherReport={weatherReport}
+                onStartNavigation={setActiveNavRoute}
+                onSaveJourney={handleSaveJourney}
+                saveStatus={saveStatus}
+                saveMessage={saveMessage}
+                onSaveRoute={handleSaveRoute}
+                saveRouteStatus={saveRouteStatus}
+                saveRouteMessage={saveRouteMessage}
+              />
+            )}
+
+            {/* Candidate routes that were ruled out for this profile (B3) — collapsed beside the results. */}
+            {routingMode === "multimodal" && multimodalStatus === "success" && excludedRoutes.length > 0 && (
+              <ExcludedRoutes
+                routes={excludedRoutes}
+                profileLabel={PROFILES.find((p) => p.id === profile)?.label ?? profile}
+                variant="some-left"
+              />
+            )}
+
+            {/* Road error state */}
+            {routingMode === "road" && routeStatus === "error" && (
+              <div className="space-y-3 rounded-panel border border-red-200 bg-red-50 px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-danger" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800">Route not available</p>
+                    <p className="mt-0.5 text-sm text-navy-600">{routeError}</p>
                   </div>
-                  <p className="text-[11px] text-navy-500">
-                    {weatherMode === "live"
-                      ? "Uses the real weather — the forecast for your departure hour if you pick a time."
-                      : "Demo weather: in rain or heat, walks over 300 m become autos."}
-                  </p>
                 </div>
-              )}
+                <button
+                  type="button"
+                  onClick={handleLoadDemoRoadRoute}
+                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-control border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+                >
+                  <FlaskConical className="h-4 w-4" aria-hidden="true" />
+                  View prototype demo route instead
+                </button>
+              </div>
+            )}
 
-              {/* Accessibility profile */}
-              <div className="space-y-2.5">
-                <label className="text-xs font-semibold text-navy-500 uppercase tracking-wider">
-                  Accessibility Profile
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {PROFILES.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setProfile(p.id)}
-                      className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-2xl text-xs font-semibold transition-all ${
-                        profile === p.id
-                          ? "bg-brand-500 text-white shadow-card"
-                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
-                      }`}
-                    >
-                      <ProfileIcon id={p.id} className="w-5 h-5" />
-                      {p.label}
-                    </button>
-                  ))}
+            {/* Multimodal error state */}
+            {routingMode === "multimodal" && multimodalStatus === "error" && (
+              <div className="space-y-3 rounded-panel border border-red-200 bg-red-50 px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-danger" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800">Multimodal route unavailable</p>
+                    <p className="mt-0.5 text-sm text-navy-600">{multimodalError}</p>
+                  </div>
                 </div>
-                {PROFILES.find((p) => p.id === profile)?.description && (
-                  <p className="text-xs text-navy-600 bg-navy-50 rounded-2xl px-3 py-2">
-                    <Lightbulb className="inline w-3.5 h-3.5 mr-1 -mt-0.5 text-amber-700" aria-hidden="true" /> <span className="font-medium">{PROFILES.find((p) => p.id === profile)?.description}</span>
+                {/* Phase 12 — "why no route?" (see WhyNoRoute.tsx): a real,
+                    data-driven answer instead of a generic "try Road Routing"
+                    hint, using the actual nearby-transit lookup for both points. */}
+                {excludedRoutes.length > 0 ? (
+                  // Routes DID exist but none was usable for this profile — say which and why,
+                  // instead of WhyNoRoute's "outside the network" explanation, which would be wrong here.
+                  <ExcludedRoutes
+                    routes={excludedRoutes}
+                    profileLabel={PROFILES.find((p) => p.id === profile)?.label ?? profile}
+                    variant="none-left"
+                  />
+                ) : origin && destination ? (
+                  <WhyNoRoute origin={origin} destination={destination} />
+                ) : (
+                  <p className="px-1 text-xs text-navy-500">
+                    The selected locations may be outside the demo transit service area. Try the Road Routing mode instead.
                   </p>
                 )}
               </div>
+            )}
+          </div>
 
-              {/* Problem 23 — Active Preferences (display-only; edited on Profile) */}
-              <div className="bg-navy-50 rounded-2xl px-3.5 py-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-navy-500 uppercase tracking-wider">
-                    Your Active Travel Preferences
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/profile")}
-                    className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
-                  >
-                    <Settings className="w-3 h-3" /> Edit Preferences
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-navy-600">
-                  <div><span className="text-navy-400">Accessibility:</span> <span className="font-medium text-navy-800">{ACCESSIBILITY_LABELS[profile] ?? profile}</span></div>
-                  <div><span className="text-navy-400">Preferred mode:</span> <span className="font-medium text-navy-800">{PREFERRED_MODE_LABELS[preferredMode] ?? preferredMode}</span></div>
-                  <div><span className="text-navy-400">Walking:</span> <span className="font-medium text-navy-800">{WALK_TOLERANCE_LABELS[walkingTolerance] ?? walkingTolerance}</span></div>
-                  <div><span className="text-navy-400">Budget:</span> <span className="font-medium text-navy-800">{BUDGET_LABELS[budgetPreference] ?? budgetPreference}</span></div>
-                  <div><span className="text-navy-400">Priority:</span> <span className="font-medium text-navy-800">{PRIORITY_LABELS[prioritize] ?? prioritize}</span></div>
-                </div>
-              </div>
-
-              {/* Validation / geo errors */}
-              {(activeError || geoError) && !isLoading &&
-                multimodalStatus !== "error" && routeStatus !== "error" && (
-                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                  <AlertTriangle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-danger">{activeError || geoError}</p>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                loading={isLoading}
-                fullWidth
-                size="lg"
-                icon={<ArrowRight className="w-4 h-4" />}
-                iconPosition="right"
-                disabled={isLoading}
-              >
-                {isLoading
-                  ? routingMode === "multimodal" ? "Finding best routes…" : "Calculating route…"
-                  : routingMode === "multimodal" ? "Find Routes" : "Get Directions"}
-              </Button>
-
-              <div className="border-t border-navy-100 pt-4 space-y-2">
-                <label className="text-xs font-semibold text-navy-500 uppercase tracking-wider">
-                  Save Destination
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={destinationSaveName}
-                    onChange={(event) => setDestinationSaveName(event.target.value)}
-                    placeholder="Home, College, Office"
-                    className="min-w-0 flex-1 px-3 py-2 rounded-2xl border border-transparent bg-navy-50/70 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white"
-                  />
-                  <Button type="button" variant="outline" size="sm" onClick={() => void handleSaveDestination()}>
-                    Save
-                  </Button>
-                </div>
-              </div>
-            </form>
-          </Card>
-
-          <p className="text-xs text-navy-400 text-center">
+          <p className="text-center text-xs text-navy-500">
             {routingMode === "multimodal"
               ? "Demo multimodal transit data, enriched with weather, accessibility and crowd context · Real transit feeds in a future phase"
               : "Road routing via OpenStreetMap/OSRM · Switch to Multimodal for weather, accessibility and crowd-aware transit routes"}
           </p>
         </div>
+      </PlannerSheet>
 
-        {/* ── Right panel: map + results ───────────────────────── */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Map */}
-          <div
-            className="relative isolate rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.18)]"
-            style={{ height: "480px" }}
-          >
-            <Suspense
-              fallback={
-                <div className="h-full flex items-center justify-center bg-navy-50">
-                  <div className="text-center space-y-2">
-                    <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="text-sm text-navy-500">Loading map…</p>
-                  </div>
-                </div>
-              }
+      {/* ── The map: fills the screen behind the sheet on a phone, the rest of the page beside the panel on a desktop ── */}
+      <section aria-label="Map" className="absolute inset-0 isolate z-0 lg:relative lg:inset-auto lg:h-full">
+        <Suspense
+          fallback={
+            <div className="flex h-full items-center justify-center bg-navy-100">
+              <div className="space-y-2 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent motion-reduce:animate-none" />
+                <p className="text-sm text-navy-600">Loading map…</p>
+              </div>
+            </div>
+          }
+        >
+          <MapView
+            origin={origin}
+            destination={destination}
+            route={routingMode === "road" ? selectedRoadRoute : null}
+            multimodalRoute={routingMode === "multimodal" ? selectedMultimodalRoute : null}
+            otherRoutes={routingMode === "multimodal" ? multimodalRoutes.flatMap((r, index) => (index === selectedMultimodalIndex ? [] : [{ index, route: r }])) : undefined}
+            onSelectOtherRoute={setSelectedMultimodalIndex}
+            bottomInset={mapBottomInset}
+            onSetOrigin={setOrigin}
+            onSetDestination={setDestination}
+          />
+        </Suspense>
+
+        {/* Map badge */}
+        <div className="absolute left-3 top-3 z-10">
+          {selectedMultimodalRoute ? (
+            <Badge variant="warning" dot>Demo Transit</Badge>
+          ) : selectedRoadRoute?.isDemoData ? (
+            <Badge variant="warning" dot>Demo Route</Badge>
+          ) : (
+            <Badge
+              variant={routeStatus === "success" || multimodalStatus === "success" ? "success" : "info"}
+              dot
             >
-              <MapView
-                origin={origin}
-                destination={destination}
-                route={routingMode === "road" ? selectedRoadRoute : null}
-                multimodalRoute={routingMode === "multimodal" ? selectedMultimodalRoute : null}
-                onSetOrigin={setOrigin}
-                onSetDestination={setDestination}
-              />
-            </Suspense>
-
-            {/* Map badge */}
-            <div className="absolute top-3 right-3 z-10">
-              {selectedMultimodalRoute ? (
-                <Badge variant="warning" dot>Demo Transit</Badge>
-              ) : selectedRoadRoute?.isDemoData ? (
-                <Badge variant="warning" dot>Demo Route</Badge>
-              ) : (
-                <Badge
-                  variant={routeStatus === "success" || multimodalStatus === "success" ? "success" : "info"}
-                  dot
-                >
-                  {routeStatus === "success" || multimodalStatus === "success" ? "Route Found" : "OpenStreetMap"}
-                </Badge>
-              )}
-            </div>
-
-            {/* Loading overlay */}
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-20 rounded-3xl">
-                <div className="bg-white rounded-3xl shadow-[0_8px_30px_-8px_rgba(15,23,42,0.25)] px-6 py-5 text-center space-y-3 max-w-xs">
-                  <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="font-display font-semibold text-navy-800 text-sm">
-                    {routingMode === "multimodal"
-                      ? "Finding the best available routes…"
-                      : "Calculating route…"}
-                  </p>
-                  <div className="space-y-1.5 text-left">
-                    {(routingMode === "multimodal"
-                      ? ["Locating nearby metro stations…", "Checking bus connections…", "Calculating transit segments…"]
-                      : ["Validating coordinates…", "Querying routing service…", "Processing route data…"]
-                    ).map((msg, i) => (
-                      <div key={msg} className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full border-2 border-brand-400 border-t-transparent animate-spin"
-                          style={{ animationDelay: `${i * 0.2}s` }}
-                        />
-                        <span className="text-xs text-navy-500">{msg}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Problem 11 — Nearby Transit (uses origin coordinates already entered) */}
-          <NearbyTransit origin={origin} />
-
-          {/* Empty state */}
-          {routingMode === "multimodal" && multimodalStatus === "idle" && !origin && !destination && (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-navy-50 flex items-center justify-center mb-3">
-                <Layers className="w-6 h-6 text-navy-300" />
-              </div>
-              <p className="font-display font-semibold text-navy-700 text-sm">
-                Discover multimodal routes
-              </p>
-              <p className="text-xs text-navy-400 mt-1">
-                Combines Metro, Bus, Auto and Walking for your journey
-              </p>
-            </div>
-          )}
-          {routingMode === "road" && routeStatus === "idle" && !origin && !destination && (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-navy-50 flex items-center justify-center mb-3">
-                <Navigation className="w-6 h-6 text-navy-300" />
-              </div>
-              <p className="font-display font-semibold text-navy-700 text-sm">
-                Search for locations to begin
-              </p>
-              <p className="text-xs text-navy-400 mt-1">
-                Enter an origin and destination, then click Get Directions
-              </p>
-            </div>
-          )}
-
-          {/* Road route results */}
-          {routingMode === "road" && routeStatus === "success" && routes.length > 0 && origin && destination && (
-            <>
-              <RouteSummary
-                routes={routes}
-                selectedIndex={selectedRouteIndex}
-                onSelectRoute={setSelectedRouteIndex}
-                origin={origin}
-                destination={destination}
-              />
-              <RouteInstructions route={routes[selectedRouteIndex]} />
-            </>
-          )}
-
-          {/* Multimodal results */}
-          {routingMode === "multimodal" && multimodalStatus === "success" && multimodalRoutes.length > 0 && origin && destination && (
-            <MultimodalResults
-              routes={multimodalRoutes}
-              selectedIndex={selectedMultimodalIndex}
-              onSelectRoute={setSelectedMultimodalIndex}
-              origin={origin}
-              destination={destination}
-              busAlternativeNote={busAlternativeNote}
-              weatherReport={weatherReport}
-              onStartNavigation={setActiveNavRoute}
-              onSaveJourney={handleSaveJourney}
-              saveStatus={saveStatus}
-              saveMessage={saveMessage}
-              onSaveRoute={handleSaveRoute}
-              saveRouteStatus={saveRouteStatus}
-              saveRouteMessage={saveRouteMessage}
-            />
-          )}
-
-          {/* Candidate routes that were ruled out for this profile (B3) — collapsed beside the results. */}
-          {routingMode === "multimodal" && multimodalStatus === "success" && excludedRoutes.length > 0 && (
-            <ExcludedRoutes
-              routes={excludedRoutes}
-              profileLabel={PROFILES.find((p) => p.id === profile)?.label ?? profile}
-              variant="some-left"
-            />
-          )}
-
-          {/* Road error state */}
-          {routingMode === "road" && routeStatus === "error" && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-danger text-sm">Route not available</p>
-                  <p className="text-sm text-navy-600 mt-0.5">{routeError}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleLoadDemoRoadRoute}
-                className="flex items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 hover:bg-amber-100 transition-colors w-full justify-center"
-              >
-                <FlaskConical className="w-4 h-4" />
-                View prototype demo route instead
-              </button>
-            </div>
-          )}
-
-          {/* Multimodal error state */}
-          {routingMode === "multimodal" && multimodalStatus === "error" && (
-            <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-danger text-sm">Multimodal route unavailable</p>
-                  <p className="text-sm text-navy-600 mt-0.5">{multimodalError}</p>
-                </div>
-              </div>
-              {/* Phase 12 — "why no route?" (see WhyNoRoute.tsx): a real,
-                  data-driven answer instead of a generic "try Road Routing"
-                  hint, using the actual nearby-transit lookup for both points. */}
-              {excludedRoutes.length > 0 ? (
-                // Routes DID exist but none was usable for this profile — say which and why,
-                // instead of WhyNoRoute's "outside the network" explanation, which would be wrong here.
-                <ExcludedRoutes
-                  routes={excludedRoutes}
-                  profileLabel={PROFILES.find((p) => p.id === profile)?.label ?? profile}
-                  variant="none-left"
-                />
-              ) : origin && destination ? (
-                <WhyNoRoute origin={origin} destination={destination} />
-              ) : (
-                <p className="text-xs text-navy-500 px-1">
-                  The selected locations may be outside the demo transit service area. Try the Road Routing mode instead.
-                </p>
-              )}
-            </div>
+              {routeStatus === "success" || multimodalStatus === "success" ? "Route Found" : "OpenStreetMap"}
+            </Badge>
           )}
         </div>
-      </div>
-    </PageContainer>
+      </section>
+    </div>
   )
 }

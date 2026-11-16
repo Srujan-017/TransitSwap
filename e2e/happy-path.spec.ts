@@ -87,7 +87,10 @@ test("register, plan a trip, save it, and submit feedback", async ({ page }) => 
   // ── 3. Save the journey ──────────────────────────────────────────────
 
   await saveJourneyButton.click()
-  await expect(page.getByText(/saved/i).first()).toBeVisible({ timeout: 10_000 })
+  // Wait for the real confirmation. (This used to wait for /saved/i, whose first match is the always-visible "Saved Routes"
+  // nav link, so the test could move on to History before the save request had finished, and on a busy machine History
+  // then loaded without the journey. Waiting for the actual message makes the step deterministic.)
+  await expect(page.getByText("Journey saved to your history.")).toBeVisible({ timeout: 10_000 })
 
   // ── 4. Submit feedback on it from History ────────────────────────────
 

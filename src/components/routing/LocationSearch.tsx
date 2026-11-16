@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react"
-import { Search, X, MapPin, Loader2, LocateFixed } from "lucide-react"
+import { useState, useEffect, useId, useRef, useCallback } from "react"
+import { X, MapPin, Loader2, LocateFixed } from "lucide-react"
 import { mapService } from "../../services/mapService"
 import type { GeoLocation } from "../../types/map"
 
@@ -9,6 +9,9 @@ interface LocationSearchProps {
   value: GeoLocation | null
   onSelect: (location: GeoLocation) => void
   onClear: () => void
+  /** The start of a journey is drawn as a ring, the end as a pin, the way the big map apps do. */
+  kind?: "origin" | "destination"
+  /** Colour of the origin ring. */
   iconColor?: string
   showLocateButton?: boolean
   onLocate?: () => void
@@ -20,12 +23,18 @@ interface LocationSearchProps {
   initialQuery?: string
 }
 
+/**
+ * One row of the journey card: a place search with suggestions. The visible name ("Origin", "Destination") is a real label
+ * tied to the field but shown only to screen readers, because the ring or pin and the placeholder already say it on screen.
+ * It sits inside a card that supplies the border, so the field itself is borderless.
+ */
 export default function LocationSearch({
   label,
   placeholder,
   value,
   onSelect,
   onClear,
+  kind = "origin",
   iconColor = "#1f5bd8",
   showLocateButton = false,
   onLocate,
@@ -37,6 +46,7 @@ export default function LocationSearch({
   const [isSearching, setIsSearching] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [searchError, setSearchError] = useState("")
+  const inputId = useId()
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -129,29 +139,36 @@ export default function LocationSearch({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="block text-xs font-semibold text-navy-500 uppercase tracking-wider mb-1.5">
+      <label htmlFor={inputId} className="sr-only">
         {label}
       </label>
 
       <div className="relative flex items-center">
-        {/* Location dot indicator */}
-        <div
-          className="absolute left-3 w-2.5 h-2.5 rounded-full border-2 border-white ring-2 z-10 flex-shrink-0"
-          style={{ background: iconColor, boxShadow: `0 0 0 2px ${iconColor}40` }}
-        />
+        {/* Start: a ring. End: a pin. */}
+        {kind === "destination" ? (
+          <MapPin aria-hidden="true" className="absolute left-3.5 z-10 h-[18px] w-[18px] flex-shrink-0 text-danger" />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="absolute left-4 z-10 h-3 w-3 flex-shrink-0 rounded-full border-[3px] bg-white"
+            style={{ borderColor: iconColor }}
+          />
+        )}
 
         <input
+          id={inputId}
           type="text"
+          autoComplete="off"
           value={inputValue}
           onChange={(e) => handleInput(e.target.value)}
           onFocus={() => suggestions.length > 0 && setIsOpen(true)}
           placeholder={isSelected ? value!.name : placeholder}
-          className="w-full pl-8 pr-16 py-3 rounded-full border border-transparent bg-navy-50/70 text-sm text-navy-900 placeholder-navy-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
+          className="min-h-[3.25rem] w-full rounded-panel bg-transparent py-3 pl-11 pr-20 text-sm font-medium text-navy-900 placeholder-navy-500 transition-colors focus:bg-navy-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/50"
         />
 
         {/* Right icons */}
-        <div className="absolute right-2 flex items-center gap-1">
-          {isSearching && <Loader2 className="w-4 h-4 text-brand-500 animate-spin" />}
+        <div className="absolute right-1.5 flex items-center gap-0.5">
+          {isSearching && <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin text-brand-500" />}
           {showLocateButton && !isSelected && onLocate && (
             <button
               type="button"
@@ -159,13 +176,9 @@ export default function LocationSearch({
               disabled={locating}
               title="Use my current location"
               aria-label="Use my current location"
-              className="p-1.5 rounded-lg text-navy-400 hover:text-brand-500 hover:bg-brand-50 transition-all disabled:opacity-50"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-navy-500 transition-colors hover:bg-brand-50 hover:text-brand-600 disabled:opacity-50"
             >
-              {locating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <LocateFixed className="w-4 h-4" />
-              )}
+              {locating ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <LocateFixed aria-hidden="true" className="h-[18px] w-[18px]" />}
             </button>
           )}
           {isSelected && (
@@ -174,9 +187,9 @@ export default function LocationSearch({
               onClick={handleClear}
               title={`Clear ${label.toLowerCase()}`}
               aria-label={`Clear ${label.toLowerCase()}`}
-              className="p-1.5 rounded-lg text-navy-400 hover:text-danger hover:bg-red-50 transition-all"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-navy-500 transition-colors hover:bg-red-50 hover:text-danger"
             >
-              <X className="w-4 h-4" />
+              <X aria-hidden="true" className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -184,23 +197,23 @@ export default function LocationSearch({
 
       {/* Validation / search error */}
       {searchError && !isOpen && (
-        <p className="text-xs text-navy-400 mt-1">{searchError}</p>
+        <p className="px-4 pb-2 text-xs text-navy-500">{searchError}</p>
       )}
 
       {/* Suggestions dropdown */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-2xl shadow-[0_8px_30px_-8px_rgba(15,23,42,0.25)] z-50 overflow-hidden max-h-64 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-64 overflow-hidden overflow-y-auto rounded-panel border border-navy-100 bg-white shadow-float">
           {suggestions.map((loc, i) => (
             <button
               key={i}
               type="button"
               onClick={() => handleSelect(loc)}
-              className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-brand-50 transition-colors border-b border-navy-100/80 last:border-0"
+              className="flex min-h-12 w-full items-start gap-3 border-b border-navy-100/80 px-4 py-3 text-left transition-colors last:border-0 hover:bg-brand-50"
             >
-              <MapPin className="w-4 h-4 text-navy-400 mt-0.5 flex-shrink-0" />
+              <MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 flex-shrink-0 text-navy-500" />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-navy-800 truncate">{loc.name}</p>
-                <p className="text-xs text-navy-400 truncate mt-0.5">{loc.address}</p>
+                <p className="truncate text-sm font-medium text-navy-800">{loc.name}</p>
+                <p className="mt-0.5 truncate text-xs text-navy-500">{loc.address}</p>
               </div>
             </button>
           ))}

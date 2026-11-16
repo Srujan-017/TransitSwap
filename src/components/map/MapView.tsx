@@ -6,8 +6,9 @@ import {
 import L from "leaflet"
 import type { Feature, LineString } from "geojson"
 import type { GeoLocation, RouteResult } from "../../types/map"
-import type { MultimodalRoute, MultimodalMode } from "../../types/multimodal"
+import type { MultimodalRoute, MultimodalMode, RouteSegment } from "../../types/multimodal"
 import { mapService } from "../../services/mapService"
+import { STREET_TILES, OSM_TILES } from "./mapTiles"
 
 // Teardrop pin (the shape every major map app uses for a fixed point) —
 // built as inline SVG so it needs no external icon asset (avoids the
@@ -87,18 +88,54 @@ const ROAD_ROUTE_STYLE: L.PathOptions = {
 const SEGMENT_STYLES: Record<MultimodalMode, L.PathOptions> = {
   walking: { color: "#64748b", weight: 4, opacity: 0.9, dashArray: "1 9", lineCap: "round" },
   metro:   { color: "#2563eb", weight: 5.5, opacity: 0.95, lineCap: "round", lineJoin: "round" },
-  bus:     { color: "#16a34a", weight: 5, opacity: 0.95, lineCap: "round", lineJoin: "round" },
-  auto:    { color: "#ea580c", weight: 5, opacity: 0.95, lineCap: "round", lineJoin: "round" },
+  bus:     { color: "#0f766e", weight: 5, opacity: 0.95, lineCap: "round", lineJoin: "round" },
+  auto:    { color: "#e0a500", weight: 5, opacity: 0.95, lineCap: "round", lineJoin: "round" },
+}
+
+// A metro leg is drawn in its own line's colour (Purple, Green, Yellow...) when the route says what it is.
+function segmentColour(seg: RouteSegment): string {
+  if (seg.mode === "metro" && seg.transitDetails?.lineColor) return seg.transitDetails.lineColor
+  return SEGMENT_STYLES[seg.mode].color as string
+}
+
+// The route options that were not chosen: a quiet grey line under the chosen one, like the alternatives on Google Maps.
+const OTHER_ROUTE_STYLE: L.PathOptions = { color: "#94a3b8", weight: 5, opacity: 0.8, lineCap: "round", lineJoin: "round" }
+
+// The street map. Standard OpenStreetMap tiles by default; CARTO Voyager only when a key was supplied (see mapTiles.ts).
+// If CARTO's tiles fail to load, this switches to OpenStreetMap instead of leaving a grey map.
+function StreetLayer() {
+  const [tiles, setTiles] = useState(STREET_TILES)
+  const loaded = useRef(0)
+  const failed = useRef(0)
+  return (
+    <TileLayer
+      attribution={tiles.attribution}
+      url={tiles.url}
+      subdomains={tiles.subdomains ?? "abc"}
+      maxZoom={tiles.maxZoom}
+      eventHandlers={{
+        tileload: () => { loaded.current += 1 },
+        tileerror: () => {
+          failed.current += 1
+          if (tiles !== OSM_TILES && loaded.current === 0 && failed.current >= 4) setTiles(OSM_TILES)
+        },
+      }}
+    />
+  )
 }
 
 // Only cased (walking's dotted line doesn't need — or visually want — a casing).
 const CASED_MODES: MultimodalMode[] = ["metro", "bus", "auto"]
 
 // Helper: fit map to route or two points
-function FitBounds({ bounds }: { bounds: L.LatLngBoundsExpression }) {
+// `bottomInset` is how many pixels at the bottom of the map are covered (by the phone's journey sheet); the route is fitted
+// into what is left. It is read when the bounds change, not on every change of the sheet, so the map does not jump around.
+function FitBounds({ bounds, bottomInset = 0 }: { bounds: L.LatLngBoundsExpression; bottomInset?: number }) {
   const map = useMap()
+  const inset = useRef(bottomInset)
+  inset.current = bottomInset
   useEffect(() => {
-    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 })
+    map.fitBounds(bounds, { paddingTopLeft: [50, 50], paddingBottomRight: [50, 50 + inset.current], maxZoom: 16 })
   }, [map, bounds])
   return null
 }
@@ -326,6 +363,11 @@ interface MapViewProps {
   destination: GeoLocation | null
   route: RouteResult | null
   multimodalRoute?: MultimodalRoute | null
+  // The other route options, drawn in grey under the chosen one; clicking one chooses it. `index` is its place in the list.
+  otherRoutes?: Array<{ index: number; route: MultimodalRoute }>
+  onSelectOtherRoute?: (index: number) => void
+  /** Pixels at the bottom of the map that something covers (the phone's journey sheet); routes are fitted above it. */
+  bottomInset?: number
   onSetOrigin?: (location: GeoLocation) => void
   onSetDestination?: (location: GeoLocation) => void
   // Active-navigation additions (ActiveNavigationView.tsx) — both optional
@@ -335,7 +377,7 @@ interface MapViewProps {
 }
 
 export default function MapView({
-  origin, destination, route, multimodalRoute, onSetOrigin, onSetDestination,
+  origin, destination, route, multimodalRoute, otherRoutes, onSelectOtherRoute, bottomInset, onSetOrigin, onSetDestination,
   livePosition, activeSegmentId,
 }: MapViewProps) {
   // Bengaluru city centre (the demo network covers Bengaluru's metro and bus corridors).
@@ -374,17 +416,10 @@ export default function MapView({
     return multimodalRoute.segments
       .filter((s) => s.mode !== "walking")
       .flatMap((s) => [
-        { lat: s.from.latitude, lng: s.from.longitude, mode: s.mode, name: s.from.name },
-        { lat: s.to.latitude,   lng: s.to.longitude,   mode: s.mode, name: s.to.name   },
+        { lat: s.from.latitude, lng: s.from.longitude, mode: s.mode, name: s.from.name, color: segmentColour(s) },
+        { lat: s.to.latitude,   lng: s.to.longitude,   mode: s.mode, name: s.to.name,   color: segmentColour(s) },
       ])
   }, [multimodalRoute])
-
-  const stationPinColors: Record<MultimodalMode, string> = {
-    metro:   "#2563eb",
-    bus:     "#16a34a",
-    auto:    "#ea580c",
-    walking: "#64748b",
-  }
 
   return (
     <MapContainer
@@ -396,12 +431,7 @@ export default function MapView({
     >
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="Street">
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="https://www.hotosm.org/updates/working-with-the-openstreetmap-cartography-team">Humanitarian OSM Team</a>'
-            url="https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png"
-            subdomains="abc"
-            maxZoom={19}
-          />
+          <StreetLayer />
         </LayersControl.BaseLayer>
         <LayersControl.BaseLayer name="Satellite">
           <TileLayer
@@ -413,7 +443,7 @@ export default function MapView({
         </LayersControl.BaseLayer>
       </LayersControl>
 
-      <ZoomControl position="bottomright" />
+      <ZoomControl position="topright" />
       <ScaleControl position="bottomleft" />
       <FullscreenControl />
       <LocateControl />
@@ -426,6 +456,23 @@ export default function MapView({
           <GeoJSON key={route?.id} data={routeGeoJson} style={ROAD_ROUTE_STYLE} />
         </>
       )}
+
+      {/* The route options that were not chosen, in grey under the chosen one. Clicking one chooses it. */}
+      {multimodalRoute &&
+        otherRoutes?.flatMap(({ index, route: other }) =>
+          other.segments.flatMap((seg) => {
+            const geo: Feature<LineString> = { type: "Feature", geometry: seg.geometry, properties: {} }
+            return [
+              <GeoJSON key={`other-${index}-${seg.id}-casing`} data={geo} style={CASING_STYLE} interactive={false} />,
+              <GeoJSON
+                key={`other-${index}-${seg.id}`}
+                data={geo}
+                style={OTHER_ROUTE_STYLE}
+                eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); onSelectOtherRoute?.(index) } }}
+              />,
+            ]
+          }),
+        )}
 
       {/* Multimodal segment polylines — each segment's white casing is a
           sibling layer rendered immediately before its colored line, so it
@@ -442,7 +489,8 @@ export default function MapView({
           // current step, every other segment fades back so the rider's
           // eye goes straight to the leg they're actually on right now.
           const isDimmed = Boolean(activeSegmentId) && seg.id !== activeSegmentId
-          const segmentStyle = isDimmed ? { ...SEGMENT_STYLES[seg.mode], opacity: 0.35 } : SEGMENT_STYLES[seg.mode]
+          const baseStyle = { ...SEGMENT_STYLES[seg.mode], color: segmentColour(seg) }
+          const segmentStyle = isDimmed ? { ...baseStyle, opacity: 0.35 } : baseStyle
           const layers = []
           if (CASED_MODES.includes(seg.mode) && !isDimmed) {
             layers.push(<GeoJSON key={`${seg.id}-casing`} data={segmentGeoJson} style={CASING_STYLE} />)
@@ -456,7 +504,7 @@ export default function MapView({
         <Marker
           key={`${stop.name}-${i}`}
           position={[stop.lat, stop.lng]}
-          icon={makeStationPin(stationPinColors[stop.mode])}
+          icon={makeStationPin(stop.color)}
           title={`${stop.name} (${stop.mode})`}
           alt={`${stop.name} (${stop.mode})`}
         />
@@ -480,7 +528,7 @@ export default function MapView({
         </>
       )}
 
-      {bounds && <FitBounds bounds={bounds} />}
+      {bounds && <FitBounds bounds={bounds} bottomInset={bottomInset} />}
     </MapContainer>
   )
 }

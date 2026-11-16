@@ -68,6 +68,9 @@ describe("PlanTripPage", () => {
     const user = userEvent.setup()
     renderPlanTripPage()
 
+    // Phase 5 contract change: the weather switch now sits behind a "Demo options" line. Every assertion below is the same
+    // as before; the only new step is opening it.
+    await user.click(screen.getByRole("button", { name: /Demo options/ }))
     const group = screen.getByRole("group", { name: /Weather/ })
     const live = screen.getByRole("button", { name: "Live weather" })
     expect(live).toHaveAttribute("aria-pressed", "true")
