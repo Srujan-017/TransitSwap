@@ -648,7 +648,7 @@ export default function PlanTripPage() {
         <div className="lg:col-span-3 space-y-4">
           {/* Map */}
           <div
-            className="relative rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.18)]"
+            className="relative isolate rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.18)]"
             style={{ height: "480px" }}
           >
             <Suspense
