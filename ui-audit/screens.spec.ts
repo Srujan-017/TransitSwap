@@ -39,7 +39,7 @@ const STATIONS = {
   majestic: { name: "Majestic Kempegowda Bus Station", address: "Majestic, Bengaluru, Karnataka, India", latitude: 12.9767, longitude: 77.5713 },
 }
 
-type Finding = { screen: string; viewport: string; violations: Array<{ id: string; impact: string | null; nodes: number; targets?: string[]; detail?: string }>; overflowX: boolean; error?: string }
+type Finding = { screen: string; viewport: string; violations: Array<{ id: string; impact: string | null; nodes: number; targets?: string[]; detail?: string }>; overflowX: boolean; mapShare?: number; error?: string }
 const results: Finding[] = []
 
 async function settle(page: Page) {
@@ -88,6 +88,11 @@ async function capture(page: Page, vp: string, screen: string, reveal = false, e
   fs.mkdirSync(OUT, { recursive: true })
   await page.screenshot({ path: path.join(OUT, `${vp}-${screen}.png`), fullPage: true })
   const finding: Finding = { screen, viewport: vp, violations: [], overflowX: false }
+  // On the live navigation screen: how much of the screen height the map keeps (the plan promises about half on a phone).
+  finding.mapShare = await page.evaluate(() => {
+    const map = document.querySelector('[role="dialog"][aria-label="Live navigation"] .leaflet-container')
+    return map ? Math.round((map.getBoundingClientRect().height / window.innerHeight) * 100) / 100 : undefined
+  })
   try {
     if (!(await page.evaluate(() => Boolean((window as unknown as { axe?: unknown }).axe)))) await page.addScriptTag({ url: AXE_URL })
     const axe = await page.evaluate(async () => {
@@ -188,9 +193,11 @@ test("screenshots and accessibility of every screen", async ({ page }) => {
       await start.first().click()
       await expect(page.getByTestId("guidance-primary")).toBeVisible({ timeout: 10_000 })
       await capture(page, vp.name, "navigation")
+      if (vp.name === "375") expect(results[results.length - 1].mapShare ?? 0, "the map keeps half the phone screen while navigating").toBeGreaterThanOrEqual(0.5)
       await page.getByRole("button", { name: /Simulate journey/ }).click()
       await page.waitForTimeout(1500)
       await capture(page, vp.name, "navigation-simulating")
+      if (vp.name === "375") expect(results[results.length - 1].mapShare ?? 0, "the map keeps half the phone screen even with the demo controls showing").toBeGreaterThanOrEqual(0.5)
       await page.getByRole("button", { name: "Exit navigation" }).click()
     }
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react"
 import { MapContainer, TileLayer, Polyline, CircleMarker, Circle, Marker, ZoomControl, useMap, useMapEvents } from "react-leaflet"
 import L from "leaflet"
 import { slicePath } from "../../navigation/geo"
+import { STREET_TILES } from "../map/mapTiles"
 import type { NavLeg, NavState, Fix } from "../../navigation/engine"
 
 /**
@@ -10,7 +11,13 @@ import type { NavLeg, NavState, Fix } from "../../navigation/engine"
  * destination, and a camera that follows the rider until they drag the map.
  */
 
-const MODE_COLOR: Record<string, string> = { walking: "#475569", metro: "#2563eb", bus: "#16a34a", auto: "#ea580c" }
+// The same colours as the planner map and the route cards: a metro leg in its own line colour, bus teal, auto yellow, walking grey.
+function legColour(leg: NavLeg): string {
+  if (leg.mode === "metro") return leg.segment.transitDetails?.lineColor || "#1f5bd8"
+  if (leg.mode === "bus") return "#0f766e"
+  if (leg.mode === "auto") return "#e0a500"
+  return "#475569"
+}
 const TRAVELLED = "#94a3b8"
 
 const DEST_ICON = L.divIcon({
@@ -74,7 +81,7 @@ export default function LiveNavMap({ legs, state, fix, follow, onUserMove }: Pro
 
   const lines = useMemo(() => {
     return legs.map((leg) => {
-      const color = MODE_COLOR[leg.mode] ?? "#475569"
+      const color = legColour(leg)
       const dashed = leg.mode === "walking"
       if (leg.index < state.legIndex || state.done) {
         return { key: leg.index, travelled: slicePath(leg.path, 0, leg.path.length), remaining: null, color, dashed, current: false }
@@ -92,7 +99,7 @@ export default function LiveNavMap({ legs, state, fix, follow, onUserMove }: Pro
 
   return (
     <MapContainer center={center} zoom={17} zoomControl={false} style={{ height: "100%", width: "100%" }} className="z-0" attributionControl>
-      <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer attribution={STREET_TILES.attribution} url={STREET_TILES.url} subdomains={STREET_TILES.subdomains ?? "abc"} maxZoom={STREET_TILES.maxZoom} />
       <ZoomControl position="bottomright" />
 
       {lines.map((line) => (
@@ -114,7 +121,7 @@ export default function LiveNavMap({ legs, state, fix, follow, onUserMove }: Pro
         leg.stops.map((stop) => {
           const point = leg.path.points.length ? stopPoint(leg, stop.along) : null
           return point ? (
-            <CircleMarker key={`${leg.index}-${stop.name}-${stop.along}`} center={point} radius={5} pathOptions={{ color: MODE_COLOR[leg.mode], weight: 3, fillColor: "#ffffff", fillOpacity: 1 }} />
+            <CircleMarker key={`${leg.index}-${stop.name}-${stop.along}`} center={point} radius={5} pathOptions={{ color: legColour(leg), weight: 3, fillColor: "#ffffff", fillOpacity: 1 }} />
           ) : null
         }),
       )}
