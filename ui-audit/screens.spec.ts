@@ -171,6 +171,12 @@ test("screenshots and accessibility of every screen", async ({ page }) => {
     await page.goto("/dashboard")
     await expect(page.getByRole("heading").first()).toBeVisible()
     await capture(page, vp.name, "dashboard")
+    // The same pages before anything is saved: their empty states (a photo and a way forward).
+    for (const [screen, url] of [["history-empty", "/history"], ["saved-routes-empty", "/saved-routes"]] as const) {
+      await page.goto(url)
+      await expect(page.getByText(screen === "history-empty" ? "No journeys saved yet." : "No saved routes yet.").first()).toBeVisible({ timeout: 10_000 })
+      await capture(page, vp.name, screen)
+    }
 
     await page.goto("/plan")
     await expect(page.getByText("Plan Your Journey")).toBeVisible()
@@ -186,6 +192,9 @@ test("screenshots and accessibility of every screen", async ({ page }) => {
     await save.click()
     // (visible text only: at 375 px the desktop nav link "Saved Routes" is in the page but hidden)
     await expect(page.locator("text=/saved/i >> visible=true").first()).toBeVisible({ timeout: 10_000 })
+    // Also save it as a route, so Saved Routes and the dashboard have something to show.
+    await page.getByRole("button", { name: "Save Route" }).click()
+    await expect(page.locator("text=/Route saved/ >> visible=true").first()).toBeVisible({ timeout: 10_000 })
 
     // Live navigation with the simulated journey, if the route offers "Start Journey".
     const start = page.getByRole("button", { name: /Start Journey/ })
@@ -238,6 +247,11 @@ test("screenshots and accessibility of every screen", async ({ page }) => {
       await details.click()
       await capture(page, vp.name, "history-details")
     }
+
+    // The dashboard once it has journeys and a saved route.
+    await page.goto("/dashboard")
+    await expect(page.getByText("Awaiting feedback").first()).toBeVisible({ timeout: 10_000 })
+    await capture(page, vp.name, "dashboard-filled")
 
     // ── Admin ──
     await signInWith(page, adminToken!)

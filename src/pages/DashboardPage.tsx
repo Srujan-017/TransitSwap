@@ -1,9 +1,8 @@
-import { useState, useEffect, type CSSProperties } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import {
-  MapPin, Navigation, TrendingUp, Zap, ArrowRight,
-  Bus, Footprints, FlaskConical, Dna, CheckCircle2, ShieldCheck,
-  Star, Bookmark, Leaf, User as UserIcon, History as HistoryIcon,
+  MapPin, Navigation, TrendingUp, Zap, ArrowRight, ChevronRight, Footprints, Dna, Bus,
+  Star, Bookmark, Leaf, User as UserIcon, History as HistoryIcon, Search,
 } from "lucide-react"
 import { useAuthContext } from "../context/AuthContext"
 import {
@@ -16,13 +15,13 @@ import Card from "../components/ui/Card"
 import Badge from "../components/ui/Badge"
 import ProfileIcon from "../components/ui/ProfileIcon"
 import ModeIcon from "../components/ui/ModeIcon"
-import Button from "../components/ui/Button"
-import { IsometricSkyline, RouteLinePins, RadialGauge } from "../components/dashboard/DashboardIllustrations"
-
-// Staggered-entrance helper — see .animate-fade-slide-up in index.css.
-function fadeDelay(ms: number): CSSProperties {
-  return { "--fade-delay": `${ms}ms` } as CSSProperties
-}
+import Photo from "../components/ui/Photo"
+import StatTile from "../components/ui/StatTile"
+import Skeleton from "../components/ui/Skeleton"
+import RouteEnds from "../components/ui/RouteEnds"
+import { ModeChips } from "../components/ui/ModeStrip"
+import { RadialGauge } from "../components/dashboard/DashboardIllustrations"
+import { formatDate, formatTime } from "../utils/formatters"
 
 const QUICK_DESTINATIONS = [
   { label: "MG Road Metro Station", address: "MG Road, Bengaluru", mode: "metro" },
@@ -36,6 +35,59 @@ const PROFILE_BADGE: Record<string, string> = {
 }
 const MODE_BADGE: Record<string, string> = { metro: "Metro", bus: "Bus", walking: "Walking", auto: "Auto" }
 const PRIORITY_BADGE: Record<string, string> = { speed: "Speed", comfort: "Comfort", accessibility: "Accessibility", reliability: "Reliability" }
+
+const QUICK_ACTIONS: Array<{ to: string; label: string; icon: ReactNode }> = [
+  { to: "/plan", label: "Plan Journey", icon: <Navigation className="h-5 w-5" aria-hidden="true" /> },
+  { to: "/history", label: "View History", icon: <HistoryIcon className="h-5 w-5" aria-hidden="true" /> },
+  { to: "/saved-routes", label: "Saved Routes", icon: <Bookmark className="h-5 w-5" aria-hidden="true" /> },
+  { to: "/profile", label: "Profile", icon: <UserIcon className="h-5 w-5" aria-hidden="true" /> },
+]
+
+/** A section title with an optional "View all" link on the right: the same pattern in every card on this page. */
+function CardHeading({ title, hint, to, linkLabel = "View all", icon }: { title: string; hint?: string; to?: string; linkLabel?: string; icon?: ReactNode }) {
+  return (
+    <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className="flex items-center gap-2 font-display text-base font-semibold text-navy-900">
+          {icon}
+          {title}
+        </h2>
+        {hint && <p className="mt-0.5 text-xs text-navy-600">{hint}</p>}
+      </div>
+      {to && (
+        <Link to={to} className="flex-shrink-0 rounded-control px-1 py-1 text-sm font-semibold text-brand-700 hover:text-brand-800 hover:underline">
+          {linkLabel} →
+        </Link>
+      )}
+    </div>
+  )
+}
+
+function ListSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} className="space-y-3">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+      <span className="sr-only">{label}</span>
+    </div>
+  )
+}
+
+/** One preference weight as a labelled bar. The number is always written out, the bar only helps the eye. */
+function WeightBar({ label, value, barClass }: { label: string; value: number; barClass: string }) {
+  const pct = Math.round(value * 100)
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-navy-600">{label}</p>
+        <p className="font-display text-base font-bold tabular-nums text-navy-900">{pct}%</p>
+      </div>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-navy-100" aria-hidden="true">
+        <div className={`h-full rounded-full ${barClass}`} style={{ width: `${Math.min(100, pct)}%` }} />
+      </div>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const { user } = useAuthContext()
@@ -154,10 +206,10 @@ export default function DashboardPage() {
   const totalFareThisMonth = journeysThisMonth.reduce((sum, j) => sum + (j.estimatedFare ?? 0), 0)
   const totalWalkingThisMonth = journeysThisMonth.reduce((sum, j) => sum + (j.walkingDistanceMeters ?? 0), 0)
 
-  const STATS = [
-    { label: "Trips Completed", value: String(completedThisMonth.length), icon: <Bus className="w-5 h-5" />, color: "text-brand-600 bg-brand-50" },
-    { label: "Est. Fare Spent", value: `\u20b9${totalFareThisMonth}`, icon: <TrendingUp className="w-5 h-5" />, color: "text-amber-600 bg-amber-50" },
-    { label: "Walking Distance", value: `${(totalWalkingThisMonth / 1000).toFixed(1)} km`, icon: <Footprints className="w-5 h-5" />, color: "text-purple-600 bg-purple-50" },
+  const STATS: Array<{ label: string; value: string; icon: ReactNode; tone: "brand" | "warn" | "go" }> = [
+    { label: "Trips Completed", value: String(completedThisMonth.length), icon: <Bus className="h-4 w-4" />, tone: "brand" },
+    { label: "Est. Fare Spent", value: `₹${totalFareThisMonth}`, icon: <TrendingUp className="h-4 w-4" />, tone: "warn" },
+    { label: "Walking Distance", value: `${(totalWalkingThisMonth / 1000).toFixed(1)} km`, icon: <Footprints className="h-4 w-4" />, tone: "go" },
   ]
 
   // Problem 16 — Travel statistics computed client-side from actual journey
@@ -176,8 +228,8 @@ export default function DashboardPage() {
   const TRAVEL_STATS = [
     { label: "Trips Completed", value: String(completedJourneys.length) },
     { label: "Avg Travel Time", value: totalTrips > 0 ? `${avgDurationMinutes} min` : "—" },
-    { label: "Total Est. Fare", value: `\u20b9${totalFareAll}` },
-    { label: "Avg Est. Fare", value: totalTrips > 0 ? `\u20b9${avgFare}` : "—" },
+    { label: "Total Est. Fare", value: `₹${totalFareAll}` },
+    { label: "Avg Est. Fare", value: totalTrips > 0 ? `₹${avgFare}` : "—" },
     { label: "Total Walking", value: `${(totalWalkingAll / 1000).toFixed(1)} km` },
     { label: "Avg Walking", value: totalTrips > 0 ? `${avgWalkingMeters} m` : "—" },
     { label: "Total Transfers", value: String(totalTransfersAll) },
@@ -214,7 +266,10 @@ export default function DashboardPage() {
 
   // Problem 22 — Sections 31/32: feedback + continuous-improvement summary,
   // computed entirely from the journeys already loaded above (no new API).
-  const feedbackJourneys = journeys.filter((j) => j.userFeedback)
+  // A journey has feedback only once it has a rating: the server returns `userFeedback: { issues: [] }` for journeys that
+  // never got any (the same quirk History handles), so a plain truthiness check counted every journey as rated.
+  const hasFeedback = (j: JourneyRecord) => j.userFeedback?.rating != null
+  const feedbackJourneys = journeys.filter(hasFeedback)
   const avgRating =
     feedbackJourneys.length > 0
       ? Math.round((feedbackJourneys.reduce((sum, j) => sum + (j.userFeedback?.rating ?? 0), 0) / feedbackJourneys.length) * 10) / 10
@@ -223,246 +278,173 @@ export default function DashboardPage() {
   // has supplied an actual travel duration alongside their feedback.
   const observationsContributed = journeys.filter((j) => j.userFeedback?.actualDurationMinutes !== undefined).length
 
+  const apiLabel = apiStatus === "checking" ? "Connecting..." : apiStatus === "online" ? "Online" : "Demo Mode"
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Header */}
-      <div className="animate-fade-slide-up flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div>
-            <p className="text-navy-500 text-sm font-medium">{getGreeting()},</p>
-            <h1 className="font-display text-2xl font-bold text-navy-900 mt-0.5">
-              {user?.name?.split(" ")[0] ?? "Commuter"}
-            </h1>
-            <p className="text-navy-500 text-sm mt-1">Travel Smarter, Safer, and More Reliably with TransitSwap Intelligence.</p>
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      {/* Header: the greeting over a real photograph, with the one question every trip starts with. */}
+      <section aria-labelledby="dashboard-heading" className="animate-fade-slide-up relative overflow-hidden rounded-sheet bg-navy-900 shadow-card">
+        <Photo id="streets-of-bangalore" decorative priority sizes="(min-width: 1280px) 80rem, 100vw" className="absolute inset-0 h-full w-full object-cover" />
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-r from-navy-950/90 via-navy-950/70 to-navy-950/30" />
+        <div className="relative flex flex-col gap-6 p-5 sm:p-8">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white">{getGreeting()},</p>
+              <h1 id="dashboard-heading" className="mt-0.5 font-display text-3xl font-bold text-white sm:text-4xl">
+                {user?.name?.split(" ")[0] ?? "Commuter"}
+              </h1>
+              <p className="mt-2 max-w-md text-sm text-white">Travel Smarter, Safer, and More Reliably with TransitSwap Intelligence.</p>
+            </div>
+            <div className="flex flex-shrink-0 items-center gap-2 rounded-full bg-white px-3 py-1.5 shadow-card">
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 rounded-full ${apiStatus === "online" ? "animate-pulse bg-go-500" : apiStatus === "offline" ? "bg-danger" : "animate-pulse bg-amber-500"}`}
+              />
+              <span className="text-xs font-semibold text-navy-800">API {apiLabel}</span>
+            </div>
           </div>
-          <RouteLinePins className="hidden md:block w-28 h-7 text-brand-300 flex-shrink-0" />
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_-8px_rgba(15,23,42,0.16)] rounded-full px-3.5 py-2">
-            <div className={`w-2 h-2 rounded-full ${
-              apiStatus === "online" ? "bg-emerald-500 animate-pulse" :
-              apiStatus === "offline" ? "bg-rose-500" : "bg-amber-400 animate-pulse"
-            }`} />
-            <span className="text-xs font-medium text-navy-600">
-              API {apiStatus === "checking" ? "Connecting..." : apiStatus === "online" ? "Online" : "Demo Mode"}
+
+          {/* The search bar: the trip itself is planned on the Plan Trip map, so the whole bar opens it. */}
+          <Link
+            to="/plan"
+            aria-label="Plan Journey: choose where to go"
+            className="group flex flex-col gap-3 rounded-panel bg-white p-3 shadow-float sm:flex-row sm:items-center sm:gap-4 sm:p-2 sm:pl-4"
+          >
+            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <span className="flex min-w-0 items-center gap-2.5 text-sm text-navy-700">
+                <span aria-hidden="true" className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-brand-500 ring-4 ring-brand-100" />
+                <span className="truncate"><span className="font-semibold text-navy-900">From</span> Current Location</span>
+              </span>
+              <span aria-hidden="true" className="hidden h-6 w-px bg-navy-200 sm:block" />
+              <span className="flex min-w-0 items-center gap-2.5 text-sm text-navy-700">
+                <MapPin className="h-4 w-4 flex-shrink-0 text-go-700" aria-hidden="true" />
+                <span className="truncate"><span className="font-semibold text-navy-900">To</span> Where to? Enter a destination in Plan Trip</span>
+              </span>
+            </div>
+            <span className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-go-600 px-5 text-sm font-semibold text-white transition-colors group-hover:bg-go-700">
+              <Search className="h-4 w-4" aria-hidden="true" />
+              Explore Routes
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </span>
-          </div>
-          <Link to="/plan">
-            <Button icon={<Navigation className="w-4 h-4" />}>Plan Journey</Button>
           </Link>
         </div>
-      </div>
+      </section>
 
       {/* Problem 16 — Quick Actions */}
-      <div className="animate-fade-slide-up grid grid-cols-2 sm:grid-cols-4 gap-3" style={fadeDelay(60)}>
-        <Link to="/plan">
-          <Card hover padding="sm" className="flex items-center gap-2.5">
-            <Navigation className="w-4 h-4 text-brand-600 flex-shrink-0" />
-            <span className="text-sm font-semibold text-navy-800">Plan Journey</span>
-          </Card>
-        </Link>
-        <Link to="/history">
-          <Card hover padding="sm" className="flex items-center gap-2.5">
-            <HistoryIcon className="w-4 h-4 text-brand-600 flex-shrink-0" />
-            <span className="text-sm font-semibold text-navy-800">View History</span>
-          </Card>
-        </Link>
-        <Link to="/saved-routes">
-          <Card hover padding="sm" className="flex items-center gap-2.5">
-            <Bookmark className="w-4 h-4 text-brand-600 flex-shrink-0" />
-            <span className="text-sm font-semibold text-navy-800">Saved Routes</span>
-          </Card>
-        </Link>
-        <Link to="/profile">
-          <Card hover padding="sm" className="flex items-center gap-2.5">
-            <UserIcon className="w-4 h-4 text-brand-600 flex-shrink-0" />
-            <span className="text-sm font-semibold text-navy-800">Profile</span>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Quick Search Card */}
-      <Card className="animate-fade-slide-up relative overflow-hidden bg-gradient-to-r from-navy-900 via-navy-800 to-brand-950" style={fadeDelay(120)}>
-        <IsometricSkyline className="pointer-events-none absolute -right-4 -bottom-6 w-56 h-36 opacity-80" />
-        <div className="relative flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-brand-500 border-2 border-white/30 ring-2 ring-brand-500/50" />
-            <input
-              type="text"
-              readOnly
-              aria-label="Origin"
-              value="Origin: Current Location"
-              className="w-full pl-9 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 text-sm focus:outline-none"
-            />
-          </div>
-          <div className="flex-1 relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-            <input
-              type="text"
-              readOnly
-              aria-label="Destination"
-              value="Destination: Enter target location in Plan Trip"
-              className="w-full pl-9 pr-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white/70 text-sm focus:outline-none"
-            />
-          </div>
-          <Link to="/plan">
-            <Button className="w-full sm:w-auto whitespace-nowrap" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
-              Explore Routes
-            </Button>
+      <nav aria-label="Quick actions" className="animate-fade-slide-up grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {QUICK_ACTIONS.map((a) => (
+          <Link
+            key={a.to}
+            to={a.to}
+            className="flex min-h-14 items-center gap-3 rounded-panel border border-navy-100 bg-white px-4 py-3 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-float"
+          >
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-700">{a.icon}</span>
+            <span className="text-sm font-semibold text-navy-900">{a.label}</span>
           </Link>
-        </div>
-      </Card>
+        ))}
+      </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Column */}
-        <div className="animate-fade-slide-up lg:col-span-2 space-y-6" style={fadeDelay(180)}>
-          {/* TransitDNA Intelligence Profile Card */}
-          <Card className="bg-gradient-to-br from-white via-brand-50/20 to-brand-50/30">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Dna className="w-5 h-5 text-brand-600" />
-                <h2 className="font-display font-bold text-navy-900">Personalized TransitDNA (ML Engine)</h2>
-              </div>
-              <Badge variant="brand">Pairwise Logistic Regression Active</Badge>
-            </div>
-            <p className="text-xs text-navy-500 mb-4">
-              Learns your preference weights via Pairwise Logistic Regression from your route choices & feedback ratings.
-            </p>
-            {!hasLearnedWeights && (
-              <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-4">
-                TransitDNA is using your initial preference profile — it hasn't learned from any route choices yet.
-              </p>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Speed</p>
-                <p className="text-base font-bold text-brand-700">{Math.round(weights.time * 100)}%</p>
-              </div>
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Cost</p>
-                <p className="text-base font-bold text-emerald-700">{Math.round(weights.cost * 100)}%</p>
-              </div>
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Walking</p>
-                <p className="text-base font-bold text-purple-700">{Math.round(weights.walking * 100)}%</p>
-              </div>
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Reliability</p>
-                <p className="text-base font-bold text-brand-700">{Math.round(weights.reliability * 100)}%</p>
-              </div>
-              <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
-                <p className="text-[11px] font-semibold text-navy-500 uppercase">Access</p>
-                <p className="text-base font-bold text-amber-700">{Math.round(weights.accessibility * 100)}%</p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Quick Destinations — demo hubs, distinct from the user's personal Saved Destinations below */}
-          <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-1">Demo / Quick Transit Hubs</h2>
-            <p className="text-xs text-navy-400 mb-4">Sample transit hubs for route evaluation — not your saved destinations</p>
-            <div className="space-y-2">
-              {QUICK_DESTINATIONS.map((d) => (
-                <Link
-                  key={d.label}
-                  to="/plan"
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-navy-50 transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-navy-100 flex items-center justify-center flex-shrink-0">
-                    <ModeIcon mode={d.mode} className="w-5 h-5 text-navy-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy-900">{d.label}</p>
-                    <p className="text-xs text-navy-500 truncate">{d.address}</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-navy-300 group-hover:text-brand-500 transition-colors flex-shrink-0" />
-                </Link>
-              ))}
-            </div>
-          </Card>
-
+        <div className="animate-fade-slide-up space-y-6 lg:col-span-2">
           {/* Recent Journeys */}
           <Card padding="none">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-navy-100">
-              <h2 className="font-display font-semibold text-navy-900">Recent Journeys</h2>
-              <Link to="/history" className="text-xs font-semibold text-brand-600 hover:text-brand-700">
-                View all →
-              </Link>
+            <div className="px-5 pt-5">
+              <CardHeading title="Recent Journeys" to="/history" />
             </div>
-            <div className="divide-y divide-navy-50">
+            <div className="px-2 pb-2">
               {journeysLoading && (
-                <p className="px-5 py-6 text-sm text-navy-400 text-center">Loading your journeys...</p>
+                <div className="px-3 pb-4"><ListSkeleton label="Loading your journeys..." /></div>
               )}
               {!journeysLoading && journeysError && (
-                <p className="px-5 py-6 text-sm text-danger text-center">{journeysError}</p>
+                <p className="px-3 pb-4 text-sm text-danger" role="alert">{journeysError}</p>
               )}
               {!journeysLoading && !journeysError && recentJourneys.length === 0 && (
-                <div className="px-5 py-6 text-center">
-                  <p className="text-sm text-navy-500">No journeys saved yet.</p>
-                  <Link to="/plan" className="text-xs font-semibold text-brand-600 hover:text-brand-700">
+                <div className="px-3 pb-6 text-center">
+                  <p className="text-sm text-navy-600">No journeys saved yet.</p>
+                  <Link to="/plan" className="mt-1 inline-block text-sm font-semibold text-brand-700 hover:underline">
                     Plan your first trip →
                   </Link>
                 </div>
               )}
-              {!journeysLoading && !journeysError && recentJourneys.map((j) => (
-                <div key={j._id} className="flex items-start gap-4 px-5 py-4 hover:bg-navy-50/50 transition-colors">
-                  <div className="flex -space-x-1 flex-shrink-0 mt-0.5">
-                    {j.transportModes.map((m, i) => (
-                      <div key={i} className="w-8 h-8 rounded-lg bg-navy-100 flex items-center justify-center text-[10px] font-semibold uppercase text-navy-600 border-2 border-white">
-                        {m.slice(0, 2)}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-sm font-semibold text-navy-900 truncate">{j.origin.name}</p>
-                      <ArrowRight className="w-3 h-3 text-navy-400 flex-shrink-0" />
-                      <p className="text-sm font-semibold text-navy-900 truncate">{j.destination.name}</p>
-                    </div>
-                    <p className="text-xs text-navy-500 mt-0.5">
-                      {new Date(j.createdAt).toLocaleDateString()} · {new Date(j.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-semibold text-navy-900">₹{j.estimatedFare}</p>
-                    <p className="text-xs text-navy-500">{Math.round(j.totalDurationSeconds / 60)} min</p>
-                    {j.userFeedback ? (
-                      <Badge variant="success" size="sm" className="mt-1 inline-flex items-center gap-1">
-                        <Star className="w-3 h-3" /> {j.userFeedback.rating}/5
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" size="sm" className="mt-1">Awaiting feedback</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
+              {!journeysLoading && !journeysError && recentJourneys.length > 0 && (
+                <ul>
+                  {recentJourneys.map((j) => (
+                    <li key={j._id}>
+                      <Link to="/history" className="flex items-start gap-3 rounded-panel px-3 py-3 transition-colors hover:bg-navy-50">
+                        <div className="min-w-0 flex-1">
+                          <RouteEnds origin={j.origin.name} destination={j.destination.name} />
+                          <p className="mt-0.5 text-xs text-navy-600">
+                            {formatDate(j.createdAt)} · {formatTime(j.createdAt)}
+                          </p>
+                          <ModeChips modes={j.transportModes} className="mt-2" />
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          <p className="font-display text-base font-bold tabular-nums text-navy-900">₹{j.estimatedFare}</p>
+                          <p className="text-xs tabular-nums text-navy-600">{Math.round(j.totalDurationSeconds / 60)} min</p>
+                          {hasFeedback(j) ? (
+                            <Badge variant="success" size="sm" className="mt-1">
+                              <Star className="h-3 w-3 fill-current" aria-hidden="true" /> {j.userFeedback?.rating}/5
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" size="sm" className="mt-1">Awaiting feedback</Badge>
+                          )}
+                        </div>
+                        <ChevronRight className="mt-1 h-4 w-4 flex-shrink-0 text-navy-400" aria-hidden="true" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </Card>
+
+          {/* TransitDNA Intelligence Profile Card */}
+          <Card>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <CardHeading title="Personalized TransitDNA (ML Engine)" icon={<Dna className="h-5 w-5 text-brand-700" aria-hidden="true" />} />
+              <Badge variant="info">Pairwise Logistic Regression Active</Badge>
+            </div>
+            <p className="-mt-2 mb-4 text-sm text-navy-600">
+              Learns your preference weights via Pairwise Logistic Regression from your route choices & feedback ratings.
+            </p>
+            {!hasLearnedWeights && (
+              <p className="mb-4 rounded-control bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                TransitDNA is using your initial preference profile — it hasn't learned from any route choices yet.
+              </p>
+            )}
+
+            <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+              <WeightBar label="Speed" value={weights.time} barClass="bg-brand-500" />
+              <WeightBar label="Cost" value={weights.cost} barClass="bg-go-600" />
+              <WeightBar label="Walking" value={weights.walking} barClass="bg-bus-600" />
+              <WeightBar label="Reliability" value={weights.reliability} barClass="bg-navy-700" />
+              <WeightBar label="Access" value={weights.accessibility} barClass="bg-auto-500" />
             </div>
           </Card>
 
           {/* Problem 16 — Travel Statistics (derived from actual journey history) */}
           <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-1">Travel Statistics</h2>
-            <p className="text-xs text-navy-400 mb-4">Calculated from your saved journey history</p>
+            <CardHeading title="Travel Statistics" hint="Calculated from your saved journey history" />
             {journeysLoading ? (
-              <p className="text-sm text-navy-400 text-center py-4">Loading statistics...</p>
+              <ListSkeleton label="Loading statistics..." />
             ) : totalTrips === 0 ? (
-              <p className="text-sm text-navy-500 text-center py-4">
-                No journeys yet. <Link to="/plan" className="text-brand-600 font-semibold">Plan your first journey.</Link>
+              <p className="py-4 text-center text-sm text-navy-600">
+                No journeys yet. <Link to="/plan" className="font-semibold text-brand-700 hover:underline">Plan your first journey.</Link>
               </p>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {TRAVEL_STATS.map((s) => (
-                    <div key={s.label} className="bg-navy-50 rounded-xl p-3">
-                      <p className="text-lg font-bold text-navy-900">{s.value}</p>
-                      <p className="text-[11px] text-navy-500 mt-0.5 font-medium">{s.label}</p>
+                    <div key={s.label} className="rounded-panel bg-navy-50 p-3">
+                      <p className="font-display text-xl font-bold tabular-nums text-navy-900">{s.value}</p>
+                      <p className="mt-0.5 text-xs font-medium text-navy-600">{s.label}</p>
                     </div>
                   ))}
                 </div>
                 {/* Problem 22 — Sections 31/32: feedback + continuous-improvement
                     summary, derived from existing journey data only. */}
-                <p className="text-xs text-navy-400 mt-3">
+                <p className="mt-3 text-sm text-navy-600">
                   {feedbackJourneys.length > 0
                     ? `${feedbackJourneys.length} feedback submitted${avgRating !== null ? ` · avg rating ${avgRating}/5` : ""}.`
                     : "No feedback yet."}
@@ -472,183 +454,198 @@ export default function DashboardPage() {
               </>
             )}
           </Card>
+
+          {/* Quick Destinations — demo hubs, distinct from the user's personal Saved Destinations */}
+          <Card>
+            <CardHeading title="Demo / Quick Transit Hubs" hint="Sample transit hubs for route evaluation — not your saved destinations" />
+            <ul className="-mx-2 space-y-1">
+              {QUICK_DESTINATIONS.map((d) => (
+                <li key={d.label}>
+                  <Link to="/plan" className="group flex min-h-14 items-center gap-3 rounded-panel px-2 py-2 transition-colors hover:bg-navy-50">
+                    <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-700">
+                      <ModeIcon mode={d.mode} className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-navy-900">{d.label}</span>
+                      <span className="block truncate text-xs text-navy-600">{d.address}</span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 flex-shrink-0 text-navy-400 transition-colors group-hover:text-brand-600" aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </div>
 
         {/* Sidebar Column */}
-        <div className="animate-fade-slide-up space-y-6" style={fadeDelay(240)}>
+        <div className="animate-fade-slide-up space-y-6">
           {/* Monthly Stats */}
           <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-4">This Month</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <CardHeading title="This Month" />
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 lg:grid-cols-1">
               {STATS.map((s) => (
-                <div key={s.label} className={`rounded-xl p-3 ${s.color.split(" ")[1]}`}>
-                  <div className={s.color.split(" ")[0]}>{s.icon}</div>
-                  <p className={`font-display font-bold text-xl mt-2 ${s.color.split(" ")[0]}`}>{s.value}</p>
-                  <p className="text-xs text-navy-500 mt-0.5 font-medium">{s.label}</p>
-                </div>
+                <StatTile key={s.label} label={s.label} value={s.value} icon={s.icon} tone={s.tone} className="shadow-none" />
               ))}
             </div>
           </Card>
 
           {/* Profile Summary */}
           <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-4">Mobility Profile</h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Accessibility</span>
-                <Badge variant="info">
-                  <ProfileIcon id={user?.accessibilityProfile ?? "standard"} className="w-3.5 h-3.5" />
-                  {PROFILE_BADGE[user?.accessibilityProfile ?? ""] ?? "Standard"}
-                </Badge>
+            <CardHeading title="Mobility Profile" />
+            <dl className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-sm text-navy-700">Accessibility</dt>
+                <dd>
+                  <Badge variant="info">
+                    <ProfileIcon id={user?.accessibilityProfile ?? "standard"} className="h-3.5 w-3.5" />
+                    {PROFILE_BADGE[user?.accessibilityProfile ?? ""] ?? "Standard"}
+                  </Badge>
+                </dd>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">TransitDNA</span>
-                <Badge variant={hasLearnedWeights ? "success" : "outline"} dot={hasLearnedWeights}>
-                  {hasLearnedWeights ? `Learning (${user?.transitDNA?.totalTrips} Trips)` : "Not learned yet"}
-                </Badge>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-sm text-navy-700">TransitDNA</dt>
+                <dd>
+                  <Badge variant={hasLearnedWeights ? "success" : "outline"} dot={hasLearnedWeights}>
+                    {hasLearnedWeights ? `Learning (${user?.transitDNA?.totalTrips} Trips)` : "Not learned yet"}
+                  </Badge>
+                </dd>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Preferred Mode</span>
-                <Badge>
-                  <ModeIcon mode={MODE_BADGE[user?.preferences?.preferredMode ?? ""] ? user!.preferences!.preferredMode : "any"} className="w-3.5 h-3.5" />
-                  {MODE_BADGE[user?.preferences?.preferredMode ?? ""] ?? "Any"}
-                </Badge>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-sm text-navy-700">Preferred Mode</dt>
+                <dd>
+                  <Badge>
+                    <ModeIcon mode={MODE_BADGE[user?.preferences?.preferredMode ?? ""] ? user!.preferences!.preferredMode : "any"} className="h-3.5 w-3.5" />
+                    {MODE_BADGE[user?.preferences?.preferredMode ?? ""] ?? "Any"}
+                  </Badge>
+                </dd>
               </div>
               {/* Problem 22 — Section 11: Walking Tolerance (was missing from the dashboard). */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Walking Tolerance</span>
-                <Badge variant="outline">
-                  {user?.preferences?.walkingTolerance === "low" ? "Low (<300 m)" :
-                   user?.preferences?.walkingTolerance === "high" ? "High (>800 m)" :
-                   user?.preferences?.walkingTolerance === "medium" ? "Medium (300–800 m)" : "Not set"}
-                </Badge>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-sm text-navy-700">Walking Tolerance</dt>
+                <dd>
+                  <Badge variant="outline">
+                    {user?.preferences?.walkingTolerance === "low" ? "Low (<300 m)" :
+                     user?.preferences?.walkingTolerance === "high" ? "High (>800 m)" :
+                     user?.preferences?.walkingTolerance === "medium" ? "Medium (300–800 m)" : "Not set"}
+                  </Badge>
+                </dd>
               </div>
               {/* Problem 22 — Section 12: Budget preference (was missing from the dashboard). */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Budget</span>
-                <Badge variant="outline">
-                  {user?.preferences?.budgetPreference === "cheapest" ? "Cheapest" :
-                   user?.preferences?.budgetPreference === "comfort" ? "Comfort-first" :
-                   user?.preferences?.budgetPreference === "balanced" ? "Balanced" : "Not set"}
-                </Badge>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-sm text-navy-700">Budget</dt>
+                <dd>
+                  <Badge variant="outline">
+                    {user?.preferences?.budgetPreference === "cheapest" ? "Cheapest" :
+                     user?.preferences?.budgetPreference === "comfort" ? "Comfort-first" :
+                     user?.preferences?.budgetPreference === "balanced" ? "Balanced" : "Not set"}
+                  </Badge>
+                </dd>
               </div>
               {/* Problem 22 — Section 13: Priority (was missing from the dashboard). */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-navy-600">Priority</span>
-                <Badge variant="outline">
-                  {PRIORITY_BADGE[user?.preferences?.prioritize ?? ""] ? (
-                    <>
-                      <ProfileIcon id={user!.preferences!.prioritize!} className="w-3.5 h-3.5" />
-                      {PRIORITY_BADGE[user!.preferences!.prioritize!]}
-                    </>
-                  ) : "Not set"}
-                </Badge>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-sm text-navy-700">Priority</dt>
+                <dd>
+                  <Badge variant="outline">
+                    {PRIORITY_BADGE[user?.preferences?.prioritize ?? ""] ? (
+                      <>
+                        <ProfileIcon id={user!.preferences!.prioritize!} className="h-3.5 w-3.5" />
+                        {PRIORITY_BADGE[user!.preferences!.prioritize!]}
+                      </>
+                    ) : "Not set"}
+                  </Badge>
+                </dd>
               </div>
-              <Link to="/profile" className="block">
-                <button className="w-full text-center text-xs font-semibold text-brand-600 hover:text-brand-700 mt-2 transition-colors">
-                  Edit preferences & profile →
-                </button>
-              </Link>
-            </div>
+            </dl>
+            <Link to="/profile" className="mt-4 block rounded-control text-center text-sm font-semibold text-brand-700 hover:underline">
+              Edit preferences & profile →
+            </Link>
           </Card>
 
           {/* Problem 16 — Saved Destinations */}
           <Card>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-semibold text-navy-900">Saved Destinations</h2>
-              <Bookmark className="w-4 h-4 text-navy-400" />
-            </div>
-            {destinationsLoading && <p className="text-sm text-navy-400 text-center py-2">Loading...</p>}
+            <CardHeading title="Saved Destinations" icon={<Bookmark className="h-4 w-4 text-navy-500" aria-hidden="true" />} />
+            {destinationsLoading && <ListSkeleton label="Loading..." />}
             {!destinationsLoading && destinationsError && (
-              <p className="text-sm text-danger text-center py-2">{destinationsError}</p>
+              <p className="text-sm text-danger" role="alert">{destinationsError}</p>
             )}
             {!destinationsLoading && !destinationsError && destinations.length === 0 && (
-              <p className="text-sm text-navy-500 text-center py-2">No saved destinations yet.</p>
+              <p className="text-sm text-navy-600">No saved destinations yet.</p>
             )}
             {!destinationsLoading && !destinationsError && destinations.length > 0 && (
-              <div className="space-y-2">
+              <ul className="-mx-2 space-y-1">
                 {destinations.slice(0, 4).map((d) => (
-                  <Link
-                    key={d._id}
-                    to="/plan"
-                    className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-navy-50 transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-navy-900 truncate">{d.name}</p>
-                      <p className="text-xs text-navy-500 truncate">{d.address}</p>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-navy-300 flex-shrink-0" />
-                  </Link>
+                  <li key={d._id}>
+                    <Link to="/plan" className="flex min-h-12 items-center justify-between gap-2 rounded-control px-2 py-1.5 transition-colors hover:bg-navy-50">
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <MapPin className="h-4 w-4 flex-shrink-0 text-brand-600" aria-hidden="true" />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-navy-900">{d.name}</span>
+                          <span className="block truncate text-xs text-navy-600">{d.address}</span>
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 flex-shrink-0 text-navy-400" aria-hidden="true" />
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </Card>
 
           {/* Problem 16 — Saved Routes summary */}
           <Card>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display font-semibold text-navy-900">Saved Routes</h2>
-              <Link to="/saved-routes" className="text-xs font-semibold text-brand-600 hover:text-brand-700">
-                View all →
-              </Link>
-            </div>
-            {savedRoutesLoading && <p className="text-sm text-navy-400 text-center py-2">Loading...</p>}
+            <CardHeading title="Saved Routes" to="/saved-routes" />
+            {savedRoutesLoading && <ListSkeleton label="Loading..." />}
             {!savedRoutesLoading && savedRoutesError && (
-              <p className="text-sm text-danger text-center py-2">{savedRoutesError}</p>
+              <p className="text-sm text-danger" role="alert">{savedRoutesError}</p>
             )}
             {!savedRoutesLoading && !savedRoutesError && savedRoutes.length === 0 && (
-              <p className="text-sm text-navy-500 text-center py-2">No saved routes yet.</p>
+              <p className="text-sm text-navy-600">No saved routes yet.</p>
             )}
             {!savedRoutesLoading && !savedRoutesError && savedRoutes.length > 0 && (
               <>
-                <p className="text-sm text-navy-600 mb-2">
+                <p className="mb-2 text-sm text-navy-700">
                   <span className="font-bold text-navy-900">{savedRoutes.length}</span> route{savedRoutes.length === 1 ? "" : "s"} saved
                 </p>
-                <div className="space-y-2">
+                <ul className="-mx-2 space-y-1">
                   {savedRoutes.slice(0, 3).map((r) => (
-                    <Link
-                      key={r._id}
-                      to="/saved-routes"
-                      className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-navy-50 transition-colors"
-                    >
-                      <p className="text-sm font-semibold text-navy-900 truncate">{r.name}</p>
-                      <ArrowRight className="w-3.5 h-3.5 text-navy-300 flex-shrink-0" />
-                    </Link>
+                    <li key={r._id}>
+                      <Link to="/saved-routes" className="flex min-h-11 items-center justify-between gap-2 rounded-control px-2 py-1.5 transition-colors hover:bg-navy-50">
+                        <span className="truncate text-sm font-semibold text-navy-900">{r.name}</span>
+                        <ChevronRight className="h-4 w-4 flex-shrink-0 text-navy-400" aria-hidden="true" />
+                      </Link>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </>
             )}
           </Card>
 
           {/* Problem 16 — Sustainability summary (existing relative score only) */}
           <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <Leaf className="w-4 h-4 text-emerald-600" />
-              <h2 className="font-display font-semibold text-navy-900">Sustainability</h2>
-            </div>
+            <CardHeading title="Sustainability" icon={<Leaf className="h-4 w-4 text-go-700" aria-hidden="true" />} />
             {avgSustainabilityScore !== null ? (
               <div className="flex items-center gap-4">
-                <RadialGauge value={avgSustainabilityScore} fillColor="#10b981" label="/ 100" />
-                <p className="text-xs text-navy-500">
+                <RadialGauge value={avgSustainabilityScore} fillColor="#087a41" label="/ 100" />
+                <p className="text-sm text-navy-600">
                   Average relative sustainability score across your saved journeys — higher favors walking and public transport over road-based private transport.
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-navy-500">
+              <p className="text-sm text-navy-600">
                 No relative sustainability data yet. It will appear once you save journeys with route details.
               </p>
             )}
           </Card>
 
           {/* Smart Tip */}
-          <Card className="bg-brand-50">
+          <Card className="border-brand-100 bg-brand-50">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center flex-shrink-0">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-control bg-brand-600 text-white">
+                <Zap className="h-4 w-4" aria-hidden="true" />
+              </span>
               <div>
-                <p className="text-sm font-semibold text-brand-900 font-display">Smart Mobility Tip</p>
-                <p className="text-xs text-brand-700 mt-1 leading-relaxed">
+                <p className="font-display text-sm font-semibold text-brand-900">Smart Mobility Tip</p>
+                <p className="mt-1 text-sm leading-relaxed text-brand-900">
                   During rain, TransitSwap automatically penalizes long walking distances and prioritizes metro connections with short transfer buffers.
                 </p>
               </div>

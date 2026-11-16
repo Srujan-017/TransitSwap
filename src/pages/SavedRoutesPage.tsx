@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { ArrowRight, Bookmark, Compass, Footprints, MapPin, Sprout, Trash2 } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { Bookmark, Compass, Footprints, Navigation, Sprout, Trash2 } from "lucide-react"
 import Card from "../components/ui/Card"
-import Badge from "../components/ui/Badge"
 import Button from "../components/ui/Button"
+import PageHeader from "../components/ui/PageHeader"
+import EmptyState from "../components/ui/EmptyState"
+import Photo from "../components/ui/Photo"
+import Skeleton from "../components/ui/Skeleton"
+import { ModeStrip, ModeChips } from "../components/ui/ModeStrip"
+import RouteEnds from "../components/ui/RouteEnds"
 import { tripService, type SavedRouteRecord } from "../services/tripService"
 import { formatDate, formatDistance, formatDuration } from "../utils/formatters"
 
@@ -56,97 +61,122 @@ export default function SavedRoutesPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-navy-900">Saved Routes</h1>
-        <p className="text-navy-500 text-sm mt-1">Reusable route snapshots you've saved for quick access.</p>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <PageHeader
+        eyebrow="Your places"
+        title="Saved Routes"
+        subtitle="Reusable route snapshots you've saved for quick access."
+        actions={
+          <Link to="/plan">
+            <Button variant="outline" size="sm" icon={<Navigation className="h-4 w-4" />}>Plan a trip</Button>
+          </Link>
+        }
+      />
 
-      <div className="mb-6 flex items-start gap-3 bg-brand-50 rounded-2xl px-4 py-3">
-        <Bookmark className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-brand-800 leading-relaxed">
+      <div className="mb-6 flex items-start gap-3 rounded-panel bg-brand-50 px-4 py-3">
+        <Bookmark className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-700" aria-hidden="true" />
+        <p className="text-sm leading-relaxed text-brand-900">
           A saved route is a snapshot at the time you saved it. Use "Use Route" to reload the origin and
           destination into Plan Trip and recalculate a fresh route.
         </p>
       </div>
 
-      {actionMessage && <p className="mb-4 text-sm text-navy-600">{actionMessage}</p>}
+      <div aria-live="polite">
+        {actionMessage && <p className="mb-4 text-sm text-navy-700">{actionMessage}</p>}
+      </div>
 
       {loading && (
-        <Card>
-          <p className="text-sm text-navy-500">Loading saved routes...</p>
-        </Card>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" role="status" aria-label="Loading saved routes">
+          {[0, 1].map((i) => (
+            <Card key={i} padding="md">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="mt-3 h-4 w-full" />
+              <Skeleton className="mt-4 h-8 w-1/2" />
+            </Card>
+          ))}
+          <p className="sr-only">Loading saved routes...</p>
+        </div>
       )}
 
       {!loading && error && (
-        <Card>
+        <Card role="alert">
           <p className="text-sm font-semibold text-danger">Could not load saved routes</p>
-          <p className="text-sm text-navy-500 mt-1">{error}</p>
+          <p className="mt-1 text-sm text-navy-600">{error}</p>
+          <Button className="mt-3" size="sm" variant="outline" onClick={() => void loadData()}>Try again</Button>
         </Card>
       )}
 
       {!loading && !error && routes.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)]">
-          <MapPin className="w-8 h-8 text-navy-300 mx-auto mb-3" />
-          <p className="text-navy-600 font-semibold">No saved routes yet.</p>
-          <p className="text-xs text-navy-400 mt-1">Save a route from Plan Trip to see it here.</p>
-        </div>
+        <Card padding="none" className="overflow-hidden">
+          <div className="relative h-36 sm:h-44">
+            <Photo id="cubbon-park-station" decorative sizes="(min-width: 1024px) 64rem, 100vw" className="h-full w-full object-cover" />
+          </div>
+          <EmptyState
+            icon={<Bookmark className="h-6 w-6" aria-hidden="true" />}
+            title="No saved routes yet."
+            description="Save a route from Plan Trip to see it here."
+            action={
+              <Link to="/plan">
+                <Button variant="go" icon={<Navigation className="h-4 w-4" />}>Plan a trip</Button>
+              </Link>
+            }
+          />
+        </Card>
       )}
 
       {!loading && !error && routes.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {routes.map((route) => (
-            <Card key={route._id} padding="md">
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <p className="font-semibold text-navy-900 truncate">{route.name}</p>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(route._id)}
-                  className="p-1.5 rounded-lg text-navy-400 hover:bg-red-50 hover:text-danger flex-shrink-0"
-                  title="Delete saved route"
-                  aria-label={`Delete saved route ${route.name}`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+            <li key={route._id}>
+              <Card padding="none" className="flex h-full flex-col overflow-hidden">
+                <ModeStrip modes={route.transportModes} />
+                <div className="flex flex-1 flex-col p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="min-w-0 break-words font-display text-base font-semibold text-navy-900">{route.name}</h2>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(route._id)}
+                      className="-mr-2 -mt-2 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-control text-navy-500 transition-colors hover:bg-red-50 hover:text-danger"
+                      title="Delete saved route"
+                      aria-label={`Delete saved route ${route.name}`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
 
-              <div className="flex items-center gap-1.5 text-xs text-navy-600 mb-3">
-                <span className="truncate">{route.origin.name}</span>
-                <ArrowRight className="w-3 h-3 flex-shrink-0 text-navy-400" />
-                <span className="truncate">{route.destination.name}</span>
-              </div>
+                  {/* The default name is already "Origin → Destination", so only show the ends when the name is something else. */}
+                  {!(route.name.includes(route.origin.name) && route.name.includes(route.destination.name)) && (
+                    <RouteEnds origin={route.origin.name} destination={route.destination.name} className="mt-2" />
+                  )}
+                  <ModeChips modes={route.transportModes} className="mt-3" />
 
-              <div className="flex flex-wrap gap-2 mb-2">
-                {route.transportModes.map((mode) => (
-                  <Badge key={mode} size="sm">{mode}</Badge>
-                ))}
-              </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-navy-600">
+                    <span className="font-semibold tabular-nums text-navy-900">{formatDuration(Math.round(route.totalDurationSeconds / 60))}</span>
+                    <span aria-hidden="true">·</span>
+                    <span className="tabular-nums">Rs {route.totalFare}</span>
+                    <span aria-hidden="true">·</span>
+                    <span className="inline-flex items-center gap-1 tabular-nums">
+                      <Footprints className="h-3.5 w-3.5" aria-hidden="true" /> {formatDistance(route.walkingDistanceMeters)}
+                    </span>
+                    {route.sustainabilityScore !== undefined && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span className="inline-flex items-center gap-1 tabular-nums text-go-800"><Sprout className="h-3.5 w-3.5" aria-hidden="true" /> {route.sustainabilityScore}/100</span>
+                      </>
+                    )}
+                  </div>
 
-              <div className="flex flex-wrap gap-2 text-xs text-navy-500 mb-3">
-                <span>{formatDuration(Math.round(route.totalDurationSeconds / 60))}</span>
-                <span>·</span>
-                <span>Rs {route.totalFare}</span>
-                <span>·</span>
-                <span className="flex items-center gap-1">
-                  <Footprints className="w-3 h-3" /> {formatDistance(route.walkingDistanceMeters)}
-                </span>
-                {route.sustainabilityScore !== undefined && (
-                  <>
-                    <span>·</span>
-                    <span className="inline-flex items-center gap-1"><Sprout className="w-3 h-3" aria-hidden="true" /> {route.sustainabilityScore}/100</span>
-                  </>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] text-navy-400">Saved {formatDate(route.createdAt)}</p>
-                <Button size="sm" variant="outline" icon={<Compass className="w-3.5 h-3.5" />} onClick={() => handleUseRoute(route)}>
-                  Use Route
-                </Button>
-              </div>
-            </Card>
+                  <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+                    <p className="text-xs text-navy-500">Saved {formatDate(route.createdAt)}</p>
+                    <Button size="sm" variant="outline" icon={<Compass className="h-4 w-4" />} onClick={() => handleUseRoute(route)}>
+                      Use Route
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   )
