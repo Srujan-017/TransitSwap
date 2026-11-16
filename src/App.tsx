@@ -22,6 +22,8 @@ const HistoryPage = lazy(() => import("./pages/HistoryPage"))
 const SavedRoutesPage = lazy(() => import("./pages/SavedRoutesPage"))
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"))
 const ResearchPage = lazy(() => import("./pages/ResearchPage"))
+// Public (no sign-in) and tiny; loaded only when someone follows a "Photo credits" link.
+const CreditsPage = lazy(() => import("./pages/CreditsPage"))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthContext()
@@ -52,6 +54,7 @@ function AppRoutes() {
     <Routes>
       {/* Public */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/credits" element={<Suspense fallback={<LoadingSpinner fullPage />}><CreditsPage /></Suspense>} />
 
       {/* Guest-only (redirect to dashboard if logged in) */}
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />

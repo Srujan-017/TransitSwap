@@ -36,7 +36,7 @@ const STATIONS = {
   baiyappanahalli: { name: "Baiyappanahalli Metro Station", address: "Baiyappanahalli, Bengaluru, Karnataka, India", latitude: 12.9906, longitude: 77.653 },
 }
 
-type Finding = { screen: string; viewport: string; violations: Array<{ id: string; impact: string | null; nodes: number }>; overflowX: boolean; error?: string }
+type Finding = { screen: string; viewport: string; violations: Array<{ id: string; impact: string | null; nodes: number; targets?: string[]; detail?: string }>; overflowX: boolean; error?: string }
 const results: Finding[] = []
 
 async function settle(page: Page) {
@@ -45,7 +45,18 @@ async function settle(page: Page) {
   await page.waitForTimeout(400)
 }
 
-async function capture(page: Page, vp: string, screen: string) {
+// `reveal`: scroll down the whole page first, so sections that fade in only once scrolled into view (the Landing page)
+// are visible in the screenshot and in the accessibility scan, not just the part above the fold.
+async function capture(page: Page, vp: string, screen: string, reveal = false) {
+  if (reveal) {
+    const height = await page.evaluate(() => document.documentElement.scrollHeight)
+    for (let y = 0; y <= height; y += 400) {
+      await page.evaluate((top) => window.scrollTo(0, top), y)
+      await page.waitForTimeout(150)
+    }
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.waitForTimeout(900) // let the last fade-in finish
+  }
   await settle(page)
   fs.mkdirSync(OUT, { recursive: true })
   await page.screenshot({ path: path.join(OUT, `${vp}-${screen}.png`), fullPage: true })
@@ -56,7 +67,12 @@ async function capture(page: Page, vp: string, screen: string) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const r = await (window as any).axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] } })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return r.violations.map((v: any) => ({ id: v.id, impact: v.impact, nodes: v.nodes.length }))
+      return r.violations.map((v: any) => ({
+        id: v.id, impact: v.impact, nodes: v.nodes.length,
+        // Which elements, so a finding can be located without re-running by hand.
+        targets: v.nodes.slice(0, 4).map((n: any) => n.target.join(" ")),
+        detail: String((v.nodes[0].any[0] && v.nodes[0].any[0].message) || "").slice(0, 160),
+      }))
     })
     finding.violations = axe
   } catch (e) {
@@ -104,10 +120,12 @@ test("screenshots and accessibility of every screen", async ({ page }) => {
     // ── Public screens (signed out) ──
     await page.goto("/")
     await page.evaluate(() => localStorage.removeItem("ts_token"))
-    for (const [screen, url] of [["landing", "/"], ["login", "/login"], ["register", "/register"], ["not-found", "/no-such-page"]] as const) {
+    for (const [screen, url] of [["landing", "/"], ["login", "/login"], ["register", "/register"], ["not-found", "/no-such-page"], ["credits", "/credits"]] as const) {
       await page.goto(url)
       await capture(page, vp.name, screen)
     }
+    await page.goto("/")
+    await capture(page, vp.name, "landing-revealed", true)
 
     // ── Signed in as the test user ──
     await signInWith(page, userToken!)

@@ -1,0 +1,341 @@
+{
+  "label": "phase-2",
+  "results": [
+    {
+      "screen": "landing",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "login",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "register",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "not-found",
+      "viewport": "375",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 1,
+          "targets": [
+            ".text-8xl"
+          ],
+          "detail": "Element has insufficient color contrast of 1.17 (foreground color: #e2e8f0, background color: #f8fafc, font size: 72.0pt (96px), font weight: bold). Expected co"
+        }
+      ],
+      "overflowX": false
+    },
+    {
+      "screen": "credits",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "landing-revealed",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "dashboard",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-empty",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-results",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation-simulating",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "saved-routes",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "profile",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "research",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history-details",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "admin",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "landing",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "login",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "register",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "not-found",
+      "viewport": "768",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 1,
+          "targets": [
+            ".text-8xl"
+          ],
+          "detail": "Element has insufficient color contrast of 1.17 (foreground color: #e2e8f0, background color: #f8fafc, font size: 72.0pt (96px), font weight: bold). Expected co"
+        }
+      ],
+      "overflowX": false
+    },
+    {
+      "screen": "credits",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "landing-revealed",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "dashboard",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-empty",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-results",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation-simulating",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "saved-routes",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "profile",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "research",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history-details",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "admin",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": true
+    },
+    {
+      "screen": "landing",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "login",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "register",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "not-found",
+      "viewport": "1280",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 1,
+          "targets": [
+            ".text-8xl"
+          ],
+          "detail": "Element has insufficient color contrast of 1.17 (foreground color: #e2e8f0, background color: #f8fafc, font size: 72.0pt (96px), font weight: bold). Expected co"
+        }
+      ],
+      "overflowX": false
+    },
+    {
+      "screen": "credits",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "landing-revealed",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "dashboard",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-empty",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-results",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation-simulating",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "saved-routes",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "profile",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "research",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history-details",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "admin",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    }
+  ]
+}

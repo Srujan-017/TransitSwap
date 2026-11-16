@@ -14,22 +14,15 @@ import {
   Dna,
 } from "lucide-react"
 import Button from "../components/ui/Button"
+import Photo from "../components/ui/Photo"
 import ProfileIcon from "../components/ui/ProfileIcon"
 import ModeIcon from "../components/ui/ModeIcon"
 import { FloatingArrivalCard } from "../components/landing/LandingIllustrations"
 import { useScrollReveal } from "../hooks/useScrollReveal"
 
-// Real photographs (not illustration) — all from Unsplash, free for
-// commercial/personal use under the Unsplash License, no attribution
-// required. Picked for subject relevance to each section, not stock-generic
-// filler: a real metro platform, a real city bus, a real accessibility
-// marking, and real commuters crossing a street.
-const PHOTOS = {
-  metroHero: "https://images.unsplash.com/photo-1728873861110-6f572ff6cc98?w=1920&q=80&auto=format&fit=crop",
-  cityBus: "https://images.unsplash.com/photo-1564694202883-46e7448c1b26?w=1600&q=75&auto=format&fit=crop",
-  accessibility: "https://images.unsplash.com/photo-1545483656-1a34ae73add1?w=1600&q=75&auto=format&fit=crop",
-  crosswalkCommuters: "https://images.unsplash.com/photo-1652793822328-47340b1b4407?w=1600&q=75&auto=format&fit=crop",
-}
+// The section backgrounds are real photographs, served from this site's own files through <Photo> (src/data/photoCredits.ts
+// holds each photographer's credit; the /credits page lists them). They sit under a colour wash and a headline that says
+// everything the picture shows, so they are decorative for screen readers.
 
 const PROFILES = [
   { id: "standard", label: "Standard" },
@@ -121,10 +114,7 @@ export default function LandingPage() {
           color-graded with the app's own navy/brand gradient overlay for
           text contrast, instead of flat illustration. */}
       <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${PHOTOS.metroHero})` }}
-        />
+        <Photo id="metro-sunset" decorative priority className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-navy-950/90 via-navy-900/85 to-navy-950/95" />
         <div className="absolute inset-0 bg-gradient-to-t from-brand-900/40 via-transparent to-transparent" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
@@ -225,7 +215,7 @@ export default function LandingPage() {
       {/* Accessibility — full-bleed color block #1, a real accessibility-
           marking photograph color-graded into the brand blue palette. */}
       <RevealSection className="relative overflow-hidden py-20">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${PHOTOS.accessibility})` }} />
+        <Photo id="tactile-platform" decorative className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-br from-brand-500/92 to-brand-800/92" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
@@ -254,11 +244,11 @@ export default function LandingPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between bg-emerald-50 rounded-xl px-3 py-2">
                   <span className="text-xs font-medium text-emerald-800">MG Road Metro</span>
-                  <span className="text-xs font-bold text-emerald-600">✓ Accessible</span>
+                  <span className="text-xs font-bold text-go-800">✓ Accessible</span>
                 </div>
                 <div className="flex items-center justify-between bg-red-50 rounded-xl px-3 py-2">
                   <span className="text-xs font-medium text-red-800">Trinity Metro</span>
-                  <span className="text-xs font-bold text-red-600">✕ Excluded</span>
+                  <span className="text-xs font-bold text-red-800">✕ Excluded</span>
                 </div>
               </div>
             </div>
@@ -273,8 +263,8 @@ export default function LandingPage() {
       {/* Weather + crowd — full-bleed color block #2, a real street-crossing
           commuters photograph color-graded into a warm amber tone. */}
       <RevealSection className="relative overflow-hidden py-20">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${PHOTOS.crosswalkCommuters})` }} />
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/92 to-orange-700/92" />
+        <Photo id="vidhana-soudha-rain" decorative className="absolute inset-0 h-full w-full object-cover object-center" />
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-700/95 to-orange-800/95" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="order-2 lg:order-1 relative flex justify-center lg:justify-start">
             <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(15,23,42,0.4)] p-5 w-72 rotate-2">
@@ -313,7 +303,7 @@ export default function LandingPage() {
       {/* Multimodal + history — full-bleed color block #3, a real city-bus
           photograph color-graded into deep navy. */}
       <RevealSection className="relative overflow-hidden py-20">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${PHOTOS.cityBus})` }} />
+        <Photo id="bmtc-bus" decorative className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-br from-navy-900/93 to-navy-950/95" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
@@ -440,6 +430,8 @@ export default function LandingPage() {
           </div>
           <p className="text-navy-400 text-sm">
             Rule-Based Multimodal Urban Mobility Platform · Final Year Engineering Project · 2025
+            {" · "}
+            <Link to="/credits" className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700">Photo credits</Link>
           </p>
         </div>
       </footer>

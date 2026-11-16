@@ -61,6 +61,9 @@
   --color-brand-700: #173fa0;
   --color-brand-800: #153383;
   --color-brand-900: #132b66;
+  /* 950 shades: the page code already asks for navy-950 and brand-950 (dark gradient ends) but they were never defined,
+     so those gradients silently lost their dark end. */
+  --color-brand-950: #0e2152;
 
   /* Neutrals (ink and greys). navy-400 and navy-500 stay the AA-corrected values from the accessibility pass. */
   --color-navy-50: #f8fafc;
@@ -73,6 +76,7 @@
   --color-navy-700: #334155;
   --color-navy-800: #172033;
   --color-navy-900: #0b1220;
+  --color-navy-950: #060b16;
 
   /* "Go Green": Start, Best for you, success. go-600 is 5.4:1 on white. */
   --color-go-50: #ecfdf3;
