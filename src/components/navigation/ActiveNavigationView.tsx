@@ -4,6 +4,7 @@ import {
   Footprints, Loader2, LocateFixed, Pause, PartyPopper, Play, RotateCw, TrainFront, Undo2, Volume2, VolumeX, X, ChevronRight, Zap,
 } from "lucide-react"
 import Button from "../ui/Button"
+import ModeIcon from "../ui/ModeIcon"
 import { useNavigationSession, SIM_SPEEDS } from "../../hooks/useNavigationSession"
 import { useSpeechNarration } from "../../hooks/useSpeechNarration"
 import { useWakeLock } from "../../hooks/useWakeLock"
@@ -11,13 +12,11 @@ import { describeGuidance, type GuidanceIcon } from "../../navigation/guidance"
 import { formatClock } from "../../navigation/clock"
 import { buildStepInstruction } from "../../utils/navigationInstructions"
 import { formatDuration, formatDistance } from "../../utils/formatters"
-import type { MultimodalRoute, MultimodalMode } from "../../types/multimodal"
+import type { MultimodalRoute } from "../../types/multimodal"
 import type { GeoLocation } from "../../types/map"
 import type { LatLng } from "../../navigation/geo"
 
 const LiveNavMap = lazy(() => import("./LiveNavMap"))
-
-const MODE_EMOJI: Record<MultimodalMode, string> = { walking: "🚶", metro: "🚇", bus: "🚌", auto: "🛺" }
 
 const ICONS: Record<GuidanceIcon, ReactNode> = {
   straight: <ArrowUp className="h-8 w-8" aria-hidden="true" />,
@@ -176,13 +175,13 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
 
             {leg && (
               <div className="flex items-start gap-2 rounded-2xl bg-navy-50 px-3 py-2">
-                <span className="text-lg" aria-hidden="true">{MODE_EMOJI[leg.mode]}</span>
+                <ModeIcon mode={leg.mode} className="mt-0.5 h-5 w-5 flex-shrink-0 text-navy-700" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">Step {state.legIndex + 1} of {state.legCount}</p>
                   <p className="text-sm font-medium text-navy-800">{legTitle}</p>
                   {nextLeg && (
                     <p className="mt-0.5 flex items-center gap-1 text-xs text-navy-500">
-                      <ChevronRight className="h-3 w-3" aria-hidden="true" /> Then {MODE_EMOJI[nextLeg.mode]} {nextLeg.segment.instruction}
+                      <ChevronRight className="h-3 w-3" aria-hidden="true" /> Then <ModeIcon mode={nextLeg.mode} className="h-3.5 w-3.5" /> {nextLeg.segment.instruction}
                     </p>
                   )}
                 </div>

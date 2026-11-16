@@ -5,16 +5,18 @@ import { intelligenceService } from "../services/intelligenceService"
 import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Badge from "../components/ui/Badge"
+import ProfileIcon from "../components/ui/ProfileIcon"
+import ModeIcon from "../components/ui/ModeIcon"
 import type { AccessibilityProfile, UserPreferences } from "../types"
 
 const PROFILES = [
-  { id: "standard", icon: "🚶", label: "Standard", desc: "Regular commuter" },
-  { id: "wheelchair", icon: "♿", label: "Wheelchair", desc: "Requires accessible routes" },
-  { id: "senior", icon: "🧓", label: "Senior Citizen", desc: "Prefers minimal stairs" },
-  { id: "pregnant", icon: "🤰", label: "Pregnant", desc: "Needs accessible & comfortable routes" },
-  { id: "stroller", icon: "👶", label: "Stroller", desc: "Requires ramp access" },
-  { id: "luggage", icon: "🧳", label: "Heavy Luggage", desc: "Avoids stairs and long walks" },
-  { id: "reduced_mobility", icon: "🦯", label: "Reduced Mobility", desc: "Requires step-free access & elevators" },
+  { id: "standard", label: "Standard", desc: "Regular commuter" },
+  { id: "wheelchair", label: "Wheelchair", desc: "Requires accessible routes" },
+  { id: "senior", label: "Senior Citizen", desc: "Prefers minimal stairs" },
+  { id: "pregnant", label: "Pregnant", desc: "Needs accessible & comfortable routes" },
+  { id: "stroller", label: "Stroller", desc: "Requires ramp access" },
+  { id: "luggage", label: "Heavy Luggage", desc: "Avoids stairs and long walks" },
+  { id: "reduced_mobility", label: "Reduced Mobility", desc: "Requires step-free access & elevators" },
 ]
 
 // Phase 4 fix — each array's `id` is typed to match the corresponding
@@ -23,11 +25,11 @@ const PROFILES = [
 // fields were declared as `string`, and intelligenceService.updatePreferences(
 // form.*) failed tsc with TS2322 on all 4 fields — `npm run build` never
 // caught it because `vite build` doesn't type-check.
-const TRANSPORT_MODES: Array<{ id: UserPreferences["preferredMode"]; icon: string; label: string }> = [
-  { id: "any", icon: "🔀", label: "Any mode" },
-  { id: "metro", icon: "🚇", label: "Metro preferred" },
-  { id: "bus", icon: "🚌", label: "Bus preferred" },
-  { id: "auto", icon: "🛺", label: "Auto preferred" },
+const TRANSPORT_MODES: Array<{ id: UserPreferences["preferredMode"]; label: string }> = [
+  { id: "any", label: "Any mode" },
+  { id: "metro", label: "Metro preferred" },
+  { id: "bus", label: "Bus preferred" },
+  { id: "auto", label: "Auto preferred" },
 ]
 
 const WALK_TOLERANCE: Array<{ id: UserPreferences["walkingTolerance"]; label: string; desc: string }> = [
@@ -36,17 +38,17 @@ const WALK_TOLERANCE: Array<{ id: UserPreferences["walkingTolerance"]; label: st
   { id: "high", label: "High", desc: "> 800 m" },
 ]
 
-const BUDGET_PREFERENCE: Array<{ id: UserPreferences["budgetPreference"]; icon: string; label: string; desc: string }> = [
-  { id: "cheapest", icon: "💰", label: "Cheapest", desc: "Prefer lower fares." },
-  { id: "balanced", icon: "⚖️", label: "Balanced", desc: "Balance cost, time and comfort." },
-  { id: "comfort", icon: "🛋️", label: "Comfort", desc: "Prefer lower crowd and better weather comfort." },
+const BUDGET_PREFERENCE: Array<{ id: UserPreferences["budgetPreference"]; label: string; desc: string }> = [
+  { id: "cheapest", label: "Cheapest", desc: "Prefer lower fares." },
+  { id: "balanced", label: "Balanced", desc: "Balance cost, time and comfort." },
+  { id: "comfort", label: "Comfort", desc: "Prefer lower crowd and better weather comfort." },
 ]
 
-const PRIORITIZE_OPTIONS: Array<{ id: UserPreferences["prioritize"]; icon: string; label: string }> = [
-  { id: "speed", icon: "⚡", label: "Speed" },
-  { id: "reliability", icon: "🎯", label: "Reliability" },
-  { id: "comfort", icon: "🛋️", label: "Comfort" },
-  { id: "accessibility", icon: "♿", label: "Accessibility" },
+const PRIORITIZE_OPTIONS: Array<{ id: UserPreferences["prioritize"]; label: string }> = [
+  { id: "speed", label: "Speed" },
+  { id: "reliability", label: "Reliability" },
+  { id: "comfort", label: "Comfort" },
+  { id: "accessibility", label: "Accessibility" },
 ]
 
 export default function ProfilePage() {
@@ -172,7 +174,7 @@ export default function ProfilePage() {
             <p className="text-xs text-navy-500 mt-0.5">{form.email}</p>
             <div className="mt-3 flex items-center justify-center gap-2">
               <Badge variant="info">
-                {PROFILES.find((p) => p.id === form.accessibilityProfile)?.icon}{" "}
+                <ProfileIcon id={form.accessibilityProfile} className="w-3.5 h-3.5" />
                 {PROFILES.find((p) => p.id === form.accessibilityProfile)?.label}
               </Badge>
             </div>
@@ -253,11 +255,11 @@ export default function ProfilePage() {
                   onClick={() => setForm((f) => ({ ...f, accessibilityProfile: p.id as AccessibilityProfile }))}
                   className={`flex flex-col items-start gap-1 p-3.5 rounded-2xl text-left transition-all ${
                     form.accessibilityProfile === p.id
-                      ? "bg-brand-500 shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                      ? "bg-brand-500 shadow-card"
                       : "bg-navy-50 hover:bg-navy-100"
                   }`}
                 >
-                  <span className="text-xl">{p.icon}</span>
+                  <ProfileIcon id={p.id} className={`w-6 h-6 ${form.accessibilityProfile === p.id ? "text-white" : "text-navy-700"}`} />
                   <span className={`text-sm font-semibold font-display ${form.accessibilityProfile === p.id ? "text-white" : "text-navy-800"}`}>
                     {p.label}
                   </span>
@@ -280,11 +282,11 @@ export default function ProfilePage() {
                       onClick={() => setForm((f) => ({ ...f, preferredMode: m.id }))}
                       className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                         form.preferredMode === m.id
-                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          ? "bg-brand-500 text-white shadow-card"
                           : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
-                      <span>{m.icon}</span> {m.label}
+                      <ModeIcon mode={m.id} className="w-4 h-4" /> {m.label}
                     </button>
                   ))}
                 </div>
@@ -299,7 +301,7 @@ export default function ProfilePage() {
                       onClick={() => setForm((f) => ({ ...f, walkingTolerance: w.id }))}
                       className={`flex flex-col px-4 py-2.5 rounded-2xl text-sm transition-all flex-1 text-center ${
                         form.walkingTolerance === w.id
-                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          ? "bg-brand-500 text-white shadow-card"
                           : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
@@ -317,13 +319,13 @@ export default function ProfilePage() {
                     <button
                       key={b.id}
                       onClick={() => setForm((f) => ({ ...f, budgetPreference: b.id }))}
-                      className={`flex flex-col px-4 py-2.5 rounded-2xl text-sm transition-all flex-1 text-center ${
+                      className={`flex flex-col items-center min-w-0 px-2 sm:px-4 py-2.5 rounded-2xl text-sm transition-all flex-1 text-center ${
                         form.budgetPreference === b.id
-                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          ? "bg-brand-500 text-white shadow-card"
                           : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
-                      <span className="font-semibold">{b.icon} {b.label}</span>
+                      <span className="flex flex-wrap items-center justify-center gap-x-1.5 font-semibold"><ProfileIcon id={b.id} className="w-4 h-4" /> {b.label}</span>
                       <span className={`text-xs mt-0.5 ${form.budgetPreference === b.id ? "text-white" : "text-navy-400"}`}>{b.desc}</span>
                     </button>
                   ))}
@@ -339,11 +341,11 @@ export default function ProfilePage() {
                       onClick={() => setForm((f) => ({ ...f, prioritize: opt.id }))}
                       className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                         form.prioritize === opt.id
-                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          ? "bg-brand-500 text-white shadow-card"
                           : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
-                      <span>{opt.icon}</span> {opt.label}
+                      <ProfileIcon id={opt.id} className="w-4 h-4" /> {opt.label}
                     </button>
                   ))}
                 </div>

@@ -12,9 +12,9 @@ interface BadgeProps {
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: "bg-navy-100 text-navy-700",
-  success: "bg-emerald-50 text-emerald-700",
-  warning: "bg-amber-50 text-amber-700",
-  danger: "bg-red-50 text-danger",
+  success: "bg-go-50 text-go-800",
+  warning: "bg-amber-50 text-amber-800",
+  danger: "bg-red-50 text-red-800",
   info: "bg-brand-50 text-brand-700",
   navy: "bg-navy-800 text-white",
   brand: "bg-brand-500 text-white",
@@ -23,7 +23,7 @@ const variantClasses: Record<BadgeVariant, string> = {
 
 const dotClasses: Record<BadgeVariant, string> = {
   default: "bg-navy-400",
-  success: "bg-emerald-500",
+  success: "bg-go-500",
   warning: "bg-amber-500",
   danger: "bg-danger",
   info: "bg-brand-500",

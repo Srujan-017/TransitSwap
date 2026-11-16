@@ -29,8 +29,8 @@ const makeTeardropPin = (fill: string) =>
 // the destination's fixed pin).
 const ORIGIN_ICON = L.divIcon({
   html: `<div style="position:relative;width:24px;height:24px;">
-    <div style="position:absolute;inset:-7px;border-radius:50%;background:rgba(14,165,233,0.22);"></div>
-    <div style="position:absolute;inset:0;border-radius:50%;background:#0ea5e9;border:3px solid white;box-shadow:0 2px 6px rgba(15,23,42,0.45);"></div>
+    <div style="position:absolute;inset:-7px;border-radius:50%;background:rgba(31,91,216,0.22);"></div>
+    <div style="position:absolute;inset:0;border-radius:50%;background:#1f5bd8;border:3px solid white;box-shadow:0 2px 6px rgba(15,23,42,0.45);"></div>
   </div>`,
   iconSize: [24, 24],
   iconAnchor: [12, 12],
@@ -44,8 +44,8 @@ const CLICKED_PIN_ICON = makeTeardropPin("#334155")
 // start point, not necessarily where the device actually is right now).
 const MY_LOCATION_ICON = L.divIcon({
   html: `<div style="position:relative;width:20px;height:20px;">
-    <div class="my-location-pulse" style="position:absolute;inset:-10px;border-radius:50%;background:rgba(14,165,233,0.35);"></div>
-    <div style="position:absolute;inset:0;border-radius:50%;background:#0ea5e9;border:3px solid white;box-shadow:0 1px 4px rgba(15,23,42,0.5);"></div>
+    <div class="my-location-pulse" style="position:absolute;inset:-10px;border-radius:50%;background:rgba(31,91,216,0.35);"></div>
+    <div style="position:absolute;inset:0;border-radius:50%;background:#1f5bd8;border:3px solid white;box-shadow:0 1px 4px rgba(15,23,42,0.5);"></div>
   </div>`,
   iconSize: [20, 20],
   iconAnchor: [10, 10],
@@ -77,7 +77,7 @@ const CASING_STYLE: L.PathOptions = {
 }
 
 const ROAD_ROUTE_STYLE: L.PathOptions = {
-  color: "#0ea5e9", weight: 5.5, opacity: 0.95, lineCap: "round", lineJoin: "round",
+  color: "#1f5bd8", weight: 5.5, opacity: 0.95, lineCap: "round", lineJoin: "round",
 }
 
 // Walking keeps a dotted line (the convention every major map app uses for

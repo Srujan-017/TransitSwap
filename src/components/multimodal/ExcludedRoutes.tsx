@@ -16,7 +16,7 @@ const REASON_META: Record<ExclusionReasonType, { label: string; Icon: typeof Use
   station: { label: "Station not accessible", Icon: Building2, chip: "bg-red-50 text-red-700" },
   walking_distance: { label: "Too much walking or rolling", Icon: Footprints, chip: "bg-amber-50 text-amber-700" },
   crowd: { label: "Too crowded", Icon: Users, chip: "bg-violet-50 text-violet-700" },
-  mode: { label: "Not suitable for you", Icon: Bus, chip: "bg-sky-50 text-sky-800" },
+  mode: { label: "Not suitable for you", Icon: Bus, chip: "bg-brand-50 text-brand-800" },
   service_hours: { label: "Not running then", Icon: Clock, chip: "bg-slate-100 text-slate-700" },
 }
 

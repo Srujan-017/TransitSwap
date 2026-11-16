@@ -25,11 +25,11 @@ const DEST_ICON = L.divIcon({
 function userIcon(heading: number | null) {
   const arrow = heading === null
     ? ""
-    : `<svg viewBox="0 0 44 44" style="position:absolute;inset:0;transform:rotate(${Math.round(heading)}deg);transition:transform 0.4s linear"><path d="M22 1 L30 14 L22 10.5 L14 14 Z" fill="#0ea5e9" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`
+    : `<svg viewBox="0 0 44 44" style="position:absolute;inset:0;transform:rotate(${Math.round(heading)}deg);transition:transform 0.4s linear"><path d="M22 1 L30 14 L22 10.5 L14 14 Z" fill="#1f5bd8" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>`
   return L.divIcon({
     html: `<div style="position:relative;width:44px;height:44px;">
-      <div class="my-location-pulse" style="position:absolute;left:11px;top:11px;width:22px;height:22px;border-radius:50%;background:rgba(14,165,233,0.35);"></div>
-      <div style="position:absolute;left:11px;top:11px;width:22px;height:22px;border-radius:50%;background:#0ea5e9;border:3px solid #fff;box-shadow:0 1px 5px rgba(15,23,42,0.55);box-sizing:border-box;"></div>
+      <div class="my-location-pulse" style="position:absolute;left:11px;top:11px;width:22px;height:22px;border-radius:50%;background:rgba(31,91,216,0.35);"></div>
+      <div style="position:absolute;left:11px;top:11px;width:22px;height:22px;border-radius:50%;background:#1f5bd8;border:3px solid #fff;box-shadow:0 1px 5px rgba(15,23,42,0.55);box-sizing:border-box;"></div>
       ${arrow}
     </div>`,
     iconSize: [44, 44],
@@ -122,7 +122,7 @@ export default function LiveNavMap({ legs, state, fix, follow, onUserMove }: Pro
       {destination && <Marker position={[destination.latitude, destination.longitude]} icon={DEST_ICON} title="Destination" alt="Destination" />}
 
       {fix?.accuracy !== undefined && fix.accuracy > 8 && (
-        <Circle center={[state.position.latitude, state.position.longitude]} radius={Math.min(fix.accuracy, 200)} pathOptions={{ color: "#0ea5e9", weight: 1, fillColor: "#0ea5e9", fillOpacity: 0.12 }} />
+        <Circle center={[state.position.latitude, state.position.longitude]} radius={Math.min(fix.accuracy, 200)} pathOptions={{ color: "#1f5bd8", weight: 1, fillColor: "#1f5bd8", fillOpacity: 0.12 }} />
       )}
       <Marker position={[state.position.latitude, state.position.longitude]} icon={icon} title="Your location" alt="Your location" zIndexOffset={1000} />
 

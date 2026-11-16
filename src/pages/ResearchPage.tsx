@@ -187,7 +187,7 @@ function ReliabilityCoverageCard() {
     <Card>
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-display font-semibold text-navy-900 flex items-center gap-2">
-          <Activity className="w-4.5 h-4.5 text-sky-600" /> Prediction Interval Empirical Coverage
+          <Activity className="w-4.5 h-4.5 text-brand-600" /> Prediction Interval Empirical Coverage
         </h2>
         {data && <Badge variant={data.dataSource === "real" ? "success" : "warning"}>{data.dataSource === "real" ? "Real user data" : "Synthetic demo data"}</Badge>}
       </div>

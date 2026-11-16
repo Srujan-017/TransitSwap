@@ -1,0 +1,299 @@
+{
+  "label": "phase-1",
+  "results": [
+    {
+      "screen": "landing",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "login",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "register",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "not-found",
+      "viewport": "375",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 1
+        }
+      ],
+      "overflowX": false
+    },
+    {
+      "screen": "dashboard",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-empty",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-results",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation-simulating",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "saved-routes",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "profile",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "research",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history-details",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "admin",
+      "viewport": "375",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "landing",
+      "viewport": "768",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 2
+        }
+      ],
+      "overflowX": false
+    },
+    {
+      "screen": "login",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "register",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "not-found",
+      "viewport": "768",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 1
+        }
+      ],
+      "overflowX": false
+    },
+    {
+      "screen": "dashboard",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-empty",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-results",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation-simulating",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "saved-routes",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "profile",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "research",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history-details",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "admin",
+      "viewport": "768",
+      "violations": [],
+      "overflowX": true
+    },
+    {
+      "screen": "landing",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "login",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "register",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "not-found",
+      "viewport": "1280",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "nodes": 1
+        }
+      ],
+      "overflowX": false
+    },
+    {
+      "screen": "dashboard",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-empty",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "plan-results",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "navigation-simulating",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "saved-routes",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "profile",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "research",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "history-details",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    },
+    {
+      "screen": "admin",
+      "viewport": "1280",
+      "violations": [],
+      "overflowX": false
+    }
+  ]
+}

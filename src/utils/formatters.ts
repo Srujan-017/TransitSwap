@@ -37,31 +37,6 @@ export function getProfileLabel(profile: string): string {
   return labels[profile] ?? profile
 }
 
-export function getProfileIcon(profile: string): string {
-  const icons: Record<string, string> = {
-    standard: "🚶",
-    fastest: "⚡",
-    cheapest: "💰",
-    comfort: "🛋️",
-    wheelchair: "♿",
-    senior: "🧓",
-    pregnant: "🤰",
-    stroller: "👶",
-    luggage: "🧳",
-  }
-  return icons[profile] ?? "🚶"
-}
-
-export function getModeIcon(mode: string): string {
-  const icons: Record<string, string> = {
-    metro: "🚇",
-    bus: "🚌",
-    walking: "🚶",
-    auto: "🛺",
-  }
-  return icons[mode] ?? "🚌"
-}
-
 // Problem 13 — combines the HTML <input type="date"> and <input type="time">
 // values into a single local ("YYYY-MM-DDTHH:mm:00", no "Z") datetime string
 // for the backend's safe local parser. Returns undefined if no time was

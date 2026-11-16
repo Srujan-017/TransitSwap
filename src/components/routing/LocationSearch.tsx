@@ -26,7 +26,7 @@ export default function LocationSearch({
   value,
   onSelect,
   onClear,
-  iconColor = "#0ea5e9",
+  iconColor = "#1f5bd8",
   showLocateButton = false,
   onLocate,
   locating = false,

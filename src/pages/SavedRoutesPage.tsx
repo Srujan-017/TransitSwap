@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowRight, Bookmark, Compass, Footprints, MapPin, Trash2 } from "lucide-react"
+import { ArrowRight, Bookmark, Compass, Footprints, MapPin, Sprout, Trash2 } from "lucide-react"
 import Card from "../components/ui/Card"
 import Badge from "../components/ui/Badge"
 import Button from "../components/ui/Button"
@@ -133,7 +133,7 @@ export default function SavedRoutesPage() {
                 {route.sustainabilityScore !== undefined && (
                   <>
                     <span>·</span>
-                    <span>🌱 {route.sustainabilityScore}/100</span>
+                    <span className="inline-flex items-center gap-1"><Sprout className="w-3 h-3" aria-hidden="true" /> {route.sustainabilityScore}/100</span>
                   </>
                 )}
               </div>

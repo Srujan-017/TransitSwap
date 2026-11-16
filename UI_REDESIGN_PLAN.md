@@ -1,6 +1,6 @@
 # TransitSwap — UI & Design Redesign: Master Plan
 
-**Status:** plan written 16 Nov 2026 · Phase 0 done; Phase 1 next · **Deadline:** 19 Nov 2026
+**Status:** plan written 16 Nov 2026 · Phases 0–1 done; Phase 2 next · **Deadline:** 19 Nov 2026
 **Rule above all others:** the redesign changes how the app *looks and feels*, never what it *does*. Every feature from the completion plan and the feature upgrade (profiles, buses, weather, crowd, live navigation, saving, history, feedback, research, admin) must work exactly as it does now after every single phase.
 
 ---
@@ -467,7 +467,7 @@ This is tight. To keep the deadline safe:
 | Phase | Status | Commit | Notes |
 |---|---|---|---|
 | 0 Safety net and baseline | ✅ done | see git log | Baseline in `docs/ui-redesign/BASELINE.md`: frontend 122, backend 33/33, end-to-end passes; 45 screenshots with axe. 5 existing findings (not-found contrast ×3, landing 768 contrast ×2, admin 768 sideways scroll). Audit: `npm run ui:audit`. Contract checklist: `docs/ui-redesign/UI_CONTRACT.md` |
-| 1 Design system foundation | ⏳ | | |
+| 1 Design system foundation | ✅ done | see git log | New tokens (Transit Blue, Go Green, bus/auto colours, 3 shadows, radii, motion); self-hosted fonts; 14 new shared components + 5 restyled; ~80 emoji → lucide icons; 41/41 contrast pairs (`npm run ui:contrast`); tests 144 (was 122, +22 for the kit); end-to-end passes; audit: 45 screens, none worse than baseline. Record: `docs/ui-redesign/PHASE_1_DESIGN_SYSTEM.md`. One regression found and fixed by the audit (Profile page sideways scroll at 375 px) |
 | 2 Real photography | ⏳ | | needs approval of the photo list |
 | 3 App shell | ⏳ | | |
 | 4 Landing and auth | ⏳ | | |

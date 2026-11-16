@@ -390,7 +390,7 @@ export default function HistoryPage() {
                         </div>
                       )}
 
-                      <div className="bg-gradient-to-r from-brand-50 to-sky-50 rounded-xl p-3.5 border border-brand-200 space-y-3">
+                      <div className="bg-gradient-to-r from-brand-50 to-brand-50 rounded-xl p-3.5 border border-brand-200 space-y-3">
                         <div>
                           <p className="text-xs font-bold text-navy-900">
                             {existingFeedback ? "Update your feedback" : "How was your actual journey experience?"}

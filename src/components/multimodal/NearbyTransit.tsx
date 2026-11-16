@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Compass, Footprints, ShieldCheck, Users } from "lucide-react"
 import Badge from "../ui/Badge"
+import ModeIcon from "../ui/ModeIcon"
 import { multimodalService } from "../../services/multimodalService"
 import { formatDistance } from "../../utils/formatters"
 import type { GeoLocation } from "../../types/map"
@@ -11,14 +12,13 @@ interface Props {
 }
 
 function StationRow({ station }: { station: NearbyTransitStation }) {
-  const icon = station.transportMode === "metro" ? "🚇" : "🚌"
   const label = station.transportMode === "metro" ? "Metro Station" : "Bus Stop"
 
   return (
     <div className="flex-1 min-w-0 rounded-2xl bg-navy-50/70 p-3 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold text-navy-800 flex items-center gap-1.5 truncate">
-          <span>{icon}</span>
+          <ModeIcon mode={station.transportMode === "metro" ? "metro" : "bus"} className="w-4 h-4 flex-shrink-0 text-navy-600" />
           <span className="truncate">{station.stationName}</span>
         </p>
       </div>

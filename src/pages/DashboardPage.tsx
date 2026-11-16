@@ -14,6 +14,8 @@ import {
 } from "../services/tripService"
 import Card from "../components/ui/Card"
 import Badge from "../components/ui/Badge"
+import ProfileIcon from "../components/ui/ProfileIcon"
+import ModeIcon from "../components/ui/ModeIcon"
 import Button from "../components/ui/Button"
 import { IsometricSkyline, RouteLinePins, RadialGauge } from "../components/dashboard/DashboardIllustrations"
 
@@ -23,10 +25,17 @@ function fadeDelay(ms: number): CSSProperties {
 }
 
 const QUICK_DESTINATIONS = [
-  { label: "MG Road Metro Station", address: "MG Road, Bengaluru", icon: "🚇" },
-  { label: "Majestic Metro Station", address: "Kempegowda Bus Station, Bengaluru", icon: "🏢" },
-  { label: "Shivajinagar Bus Stand", address: "Shivajinagar, Bengaluru", icon: "🚌" },
+  { label: "MG Road Metro Station", address: "MG Road, Bengaluru", mode: "metro" },
+  { label: "Majestic Metro Station", address: "Kempegowda Bus Station, Bengaluru", mode: "metro" },
+  { label: "Shivajinagar Bus Stand", address: "Shivajinagar, Bengaluru", mode: "bus" },
 ]
+
+// The words (and icons) shown in the Mobility Profile card.
+const PROFILE_BADGE: Record<string, string> = {
+  wheelchair: "Wheelchair", senior: "Senior", pregnant: "Pregnant", stroller: "Stroller", luggage: "Heavy Luggage", reduced_mobility: "Reduced Mobility",
+}
+const MODE_BADGE: Record<string, string> = { metro: "Metro", bus: "Bus", walking: "Walking", auto: "Auto" }
+const PRIORITY_BADGE: Record<string, string> = { speed: "Speed", comfort: "Comfort", accessibility: "Accessibility", reliability: "Reliability" }
 
 export default function DashboardPage() {
   const { user } = useAuthContext()
@@ -222,7 +231,7 @@ export default function DashboardPage() {
           <div>
             <p className="text-navy-500 text-sm font-medium">{getGreeting()},</p>
             <h1 className="font-display text-2xl font-bold text-navy-900 mt-0.5">
-              {user?.name?.split(" ")[0] ?? "Commuter"} 👋
+              {user?.name?.split(" ")[0] ?? "Commuter"}
             </h1>
             <p className="text-navy-500 text-sm mt-1">Travel Smarter, Safer, and More Reliably with TransitSwap Intelligence.</p>
           </div>
@@ -308,7 +317,7 @@ export default function DashboardPage() {
         {/* Main Column */}
         <div className="animate-fade-slide-up lg:col-span-2 space-y-6" style={fadeDelay(180)}>
           {/* TransitDNA Intelligence Profile Card */}
-          <Card className="bg-gradient-to-br from-white via-brand-50/20 to-sky-50/30">
+          <Card className="bg-gradient-to-br from-white via-brand-50/20 to-brand-50/30">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Dna className="w-5 h-5 text-brand-600" />
@@ -340,7 +349,7 @@ export default function DashboardPage() {
               </div>
               <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
                 <p className="text-[11px] font-semibold text-navy-500 uppercase">Reliability</p>
-                <p className="text-base font-bold text-sky-700">{Math.round(weights.reliability * 100)}%</p>
+                <p className="text-base font-bold text-brand-700">{Math.round(weights.reliability * 100)}%</p>
               </div>
               <div className="bg-white p-2.5 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_10px_-6px_rgba(15,23,42,0.14)]">
                 <p className="text-[11px] font-semibold text-navy-500 uppercase">Access</p>
@@ -360,8 +369,8 @@ export default function DashboardPage() {
                   to="/plan"
                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-navy-50 transition-colors group"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-navy-100 flex items-center justify-center text-lg flex-shrink-0">
-                    {d.icon}
+                  <div className="w-10 h-10 rounded-xl bg-navy-100 flex items-center justify-center flex-shrink-0">
+                    <ModeIcon mode={d.mode} className="w-5 h-5 text-navy-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-navy-900">{d.label}</p>
@@ -488,12 +497,8 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-navy-600">Accessibility</span>
                 <Badge variant="info">
-                  {user?.accessibilityProfile === "wheelchair" ? "♿ Wheelchair" :
-                   user?.accessibilityProfile === "senior" ? "🧓 Senior" :
-                   user?.accessibilityProfile === "pregnant" ? "🤰 Pregnant" :
-                   user?.accessibilityProfile === "stroller" ? "👶 Stroller" :
-                   user?.accessibilityProfile === "luggage" ? "🧳 Heavy Luggage" :
-                   user?.accessibilityProfile === "reduced_mobility" ? "🦯 Reduced Mobility" : "🚶 Standard"}
+                  <ProfileIcon id={user?.accessibilityProfile ?? "standard"} className="w-3.5 h-3.5" />
+                  {PROFILE_BADGE[user?.accessibilityProfile ?? ""] ?? "Standard"}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
@@ -505,10 +510,8 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-navy-600">Preferred Mode</span>
                 <Badge>
-                  {user?.preferences?.preferredMode === "metro" ? "🚇 Metro" :
-                   user?.preferences?.preferredMode === "bus" ? "🚌 Bus" :
-                   user?.preferences?.preferredMode === "walking" ? "🚶 Walking" :
-                   user?.preferences?.preferredMode === "auto" ? "🛺 Auto" : "🔀 Any"}
+                  <ModeIcon mode={MODE_BADGE[user?.preferences?.preferredMode ?? ""] ? user!.preferences!.preferredMode : "any"} className="w-3.5 h-3.5" />
+                  {MODE_BADGE[user?.preferences?.preferredMode ?? ""] ?? "Any"}
                 </Badge>
               </div>
               {/* Problem 22 — Section 11: Walking Tolerance (was missing from the dashboard). */}
@@ -533,10 +536,12 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-navy-600">Priority</span>
                 <Badge variant="outline">
-                  {user?.preferences?.prioritize === "speed" ? "⚡ Speed" :
-                   user?.preferences?.prioritize === "comfort" ? "🛋️ Comfort" :
-                   user?.preferences?.prioritize === "accessibility" ? "♿ Accessibility" :
-                   user?.preferences?.prioritize === "reliability" ? "🎯 Reliability" : "Not set"}
+                  {PRIORITY_BADGE[user?.preferences?.prioritize ?? ""] ? (
+                    <>
+                      <ProfileIcon id={user!.preferences!.prioritize!} className="w-3.5 h-3.5" />
+                      {PRIORITY_BADGE[user!.preferences!.prioritize!]}
+                    </>
+                  ) : "Not set"}
                 </Badge>
               </div>
               <Link to="/profile" className="block">

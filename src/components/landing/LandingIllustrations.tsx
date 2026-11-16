@@ -39,10 +39,10 @@ export function CityTransitScene({ className = "" }: { className?: string }) {
       </g>
       {/* pedestrian + dotted path to station */}
       <g transform="translate(220,120)">
-        <circle cx="0" cy="-28" r="8" fill="#0ea5e9" />
-        <path d="M0 -20 L0 10 M-10 0 L10 0 M0 10 L-8 30 M0 10 L8 30" stroke="#0ea5e9" strokeWidth="4" strokeLinecap="round" />
+        <circle cx="0" cy="-28" r="8" fill="#1f5bd8" />
+        <path d="M0 -20 L0 10 M-10 0 L10 0 M0 10 L-8 30 M0 10 L8 30" stroke="#1f5bd8" strokeWidth="4" strokeLinecap="round" />
       </g>
-      <path d="M232 128 Q 290 100, 355 115" stroke="#0ea5e9" strokeWidth="2" strokeDasharray="1 6" strokeLinecap="round" fill="none" />
+      <path d="M232 128 Q 290 100, 355 115" stroke="#1f5bd8" strokeWidth="2" strokeDasharray="1 6" strokeLinecap="round" fill="none" />
       {/* cyclist */}
       <g transform="translate(140,128)">
         <circle cx="-10" cy="12" r="12" stroke="#f59e0b" strokeWidth="3" fill="none" />

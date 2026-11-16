@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { ChevronDown, ChevronUp, FlaskConical } from "lucide-react"
+import { ChevronDown, ChevronUp, FlaskConical, Map as MapIcon } from "lucide-react"
+import ModeIcon from "../ui/ModeIcon"
 import type { MultimodalRoute, MultimodalMode, RouteSegment, LegCrowd } from "../../types/multimodal"
 import { formatDuration, formatDistance } from "../../utils/formatters"
 
@@ -7,11 +8,6 @@ interface Props {
   route: MultimodalRoute
   profile?: string
 }
-
-const MODE_EMOJI: Record<MultimodalMode, string> = {
-  walking: "🚶", metro: "🚇", bus: "🚌", auto: "🛺",
-}
-const WHEELCHAIR_WALK_EMOJI = "🧑‍🦽"
 
 // A wheelchair user's shortest step-free path to a station is still shown
 // as a "walking" segment under the hood (same as every major map app's own
@@ -28,14 +24,14 @@ function displayInstruction(instruction: string, mode: MultimodalMode, profile?:
 
 const MODE_COLOR: Record<MultimodalMode, string> = {
   walking: "border-slate-400 bg-slate-50",
-  metro:   "border-blue-500 bg-blue-50",
+  metro:   "border-brand-500 bg-brand-50",
   bus:     "border-green-500 bg-green-50",
   auto:    "border-orange-500 bg-orange-50",
 }
 
 const MODE_DOT: Record<MultimodalMode, string> = {
   walking: "bg-slate-400",
-  metro:   "bg-blue-500",
+  metro:   "bg-brand-500",
   bus:     "bg-green-500",
   auto:    "bg-orange-500",
 }
@@ -126,7 +122,7 @@ function SegmentRow({ seg, profile, crowd }: { seg: RouteSegment; profile?: stri
     <div className={`rounded-xl border-l-4 px-4 py-3 space-y-1 ${MODE_COLOR[seg.mode]}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-base">{isWheelchairWalk ? WHEELCHAIR_WALK_EMOJI : MODE_EMOJI[seg.mode]}</span>
+          <ModeIcon mode={seg.mode} wheelchair={isWheelchairWalk} className="w-5 h-5 text-navy-700 flex-shrink-0" />
           <p className="text-sm font-semibold text-navy-800">{displayInstruction(seg.instruction, seg.mode, profile)}</p>
         </div>
         <span className="text-xs text-navy-500 whitespace-nowrap flex-shrink-0">
@@ -191,7 +187,7 @@ export default function SegmentTimeline({ route, profile }: Props) {
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-navy-50 transition-colors"
       >
         <div className="flex items-center gap-2.5">
-          <span className="text-base">🗺️</span>
+          <MapIcon className="w-5 h-5 text-navy-600" aria-hidden="true" />
           <span className="font-display font-semibold text-navy-800 text-sm">
             Step-by-step journey
           </span>

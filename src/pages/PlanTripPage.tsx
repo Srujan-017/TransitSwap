@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import {
   ArrowRight, ArrowLeftRight, AlertTriangle, Navigation,
-  FlaskConical, Layers, Settings,
+  FlaskConical, Layers, Settings, Lightbulb, Map as MapIcon,
 } from "lucide-react"
+import ProfileIcon from "../components/ui/ProfileIcon"
 import Card from "../components/ui/Card"
 import Button from "../components/ui/Button"
 import Badge from "../components/ui/Badge"
@@ -48,17 +49,17 @@ const WEATHER_OPTIONS: Array<{ id: WeatherMode; label: string }> = [
   { id: "heat", label: "Heat" },
 ]
 
-const PROFILES: Array<{ id: RoutingProfile; icon: string; label: string; description: string }> = [
-  { id: "standard",         icon: "🚶", label: "Standard",         description: "Optimizes for normal travel time, fare and schedule balance." },
-  { id: "wheelchair",       icon: "♿", label: "Wheelchair",       description: "Prioritizes step-free routes and avoids inaccessible stations." },
-  { id: "senior",           icon: "🧓", label: "Senior",           description: "Prioritizes fewer stairs, less walking and fewer transfers." },
-  { id: "pregnant",         icon: "🤰", label: "Pregnant",         description: "Prioritizes minimal walking, waiting and transfers." },
-  { id: "stroller",         icon: "👶", label: "Stroller",         description: "Prioritizes ramp/lift access and avoids difficult stairs." },
-  { id: "luggage",          icon: "🧳", label: "Luggage",          description: "Prioritizes less walking, fewer stairs and simpler transfers." },
-  { id: "reduced_mobility", icon: "🦯", label: "Reduced Mobility", description: "Prioritizes lower physical effort, step-free access and fewer stairs." },
-  { id: "fastest",          icon: "⚡", label: "Fastest",          description: "Prioritizes minimum travel duration." },
-  { id: "cheapest",         icon: "💰", label: "Cheapest",         description: "Prioritizes minimum fare." },
-  { id: "comfort",          icon: "🛋️", label: "Comfort",          description: "Prioritizes low crowds and weather protection." },
+const PROFILES: Array<{ id: RoutingProfile; label: string; description: string }> = [
+  { id: "standard",         label: "Standard",         description: "Optimizes for normal travel time, fare and schedule balance." },
+  { id: "wheelchair",       label: "Wheelchair",       description: "Prioritizes step-free routes and avoids inaccessible stations." },
+  { id: "senior",           label: "Senior",           description: "Prioritizes fewer stairs, less walking and fewer transfers." },
+  { id: "pregnant",         label: "Pregnant",         description: "Prioritizes minimal walking, waiting and transfers." },
+  { id: "stroller",         label: "Stroller",         description: "Prioritizes ramp/lift access and avoids difficult stairs." },
+  { id: "luggage",          label: "Luggage",          description: "Prioritizes less walking, fewer stairs and simpler transfers." },
+  { id: "reduced_mobility", label: "Reduced Mobility", description: "Prioritizes lower physical effort, step-free access and fewer stairs." },
+  { id: "fastest",          label: "Fastest",          description: "Prioritizes minimum travel duration." },
+  { id: "cheapest",         label: "Cheapest",         description: "Prioritizes minimum fare." },
+  { id: "comfort",          label: "Comfort",          description: "Prioritizes low crowds and weather protection." },
 ]
 
 const PREFERRED_MODE_LABELS: Record<string, string> = {
@@ -425,7 +426,7 @@ export default function PlanTripPage() {
               : "text-navy-500 hover:text-navy-800"
           }`}
         >
-          🗺️ Road Routing <span className="text-xs font-normal">Drive · Walk · Cycle</span>
+          <MapIcon className="w-4 h-4" /> Road Routing <span className="text-xs font-normal">Drive · Walk · Cycle</span>
         </button>
       </div>
 
@@ -456,7 +457,7 @@ export default function PlanTripPage() {
                 value={origin}
                 onSelect={setOrigin}
                 onClear={() => { setOrigin(null); clearResults() }}
-                iconColor="#0ea5e9"
+                iconColor="#1f5bd8"
                 showLocateButton
                 onLocate={requestLocation}
                 locating={geoLoading}
@@ -554,18 +555,18 @@ export default function PlanTripPage() {
                       onClick={() => setProfile(p.id)}
                       className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-2xl text-xs font-semibold transition-all ${
                         profile === p.id
-                          ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                          ? "bg-brand-500 text-white shadow-card"
                           : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                       }`}
                     >
-                      <span className="text-base">{p.icon}</span>
+                      <ProfileIcon id={p.id} className="w-5 h-5" />
                       {p.label}
                     </button>
                   ))}
                 </div>
                 {PROFILES.find((p) => p.id === profile)?.description && (
                   <p className="text-xs text-navy-600 bg-navy-50 rounded-2xl px-3 py-2">
-                    💡 <span className="font-medium">{PROFILES.find((p) => p.id === profile)?.description}</span>
+                    <Lightbulb className="inline w-3.5 h-3.5 mr-1 -mt-0.5 text-amber-700" aria-hidden="true" /> <span className="font-medium">{PROFILES.find((p) => p.id === profile)?.description}</span>
                   </p>
                 )}
               </div>

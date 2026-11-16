@@ -1,4 +1,4 @@
-import { Clock, Footprints, ArrowRight, IndianRupee, ShieldCheck, CloudRain, Users } from "lucide-react"
+import { Clock, Footprints, ArrowRight, IndianRupee, ShieldCheck, CloudRain, Users, Brain, Sprout } from "lucide-react"
 import type { MultimodalRoute, MultimodalMode, RouteSegment, LegCrowd } from "../../types/multimodal"
 import { formatDuration, formatDistance } from "../../utils/formatters"
 
@@ -18,7 +18,7 @@ const MODE_LABEL: Record<MultimodalMode, string> = {
 
 const MODE_BG: Record<MultimodalMode, string> = {
   walking: "bg-slate-100 text-slate-600",
-  metro: "bg-blue-100 text-blue-700",
+  metro: "bg-brand-100 text-brand-700",
   bus: "bg-green-100 text-green-800",
   auto: "bg-orange-100 text-orange-800",
 }
@@ -96,7 +96,7 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
       onClick={onSelect}
       className={`relative w-full text-left rounded-3xl p-4 pl-5 transition-all ${
         selected
-          ? "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_28px_-10px_rgba(14,165,233,0.35)]"
+          ? "bg-white shadow-card"
           : "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_24px_-12px_rgba(15,23,42,0.2)]"
       }`}
     >
@@ -111,7 +111,7 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
         <div className="flex items-center gap-2">
           {route.isPersonalized === true ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">
-              🧠 TransitDNA Personalized
+              <Brain className="h-3 w-3" aria-hidden="true" /> TransitDNA Personalized
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 rounded-full bg-navy-100 px-2 py-0.5 text-[10px] font-bold text-navy-500">
@@ -188,7 +188,7 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
               Weather-friendly
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
               <CloudRain className="w-3 h-3" />
               Weather {route.weatherImpact.level}
             </span>
@@ -211,7 +211,7 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
             className="inline-flex items-center gap-1 rounded-full bg-lime-50 px-2.5 py-0.5 text-xs font-medium text-lime-700"
             title={route.sustainabilitySummary}
           >
-            🌱 Sustainability {route.sustainabilityScore}/100
+            <Sprout className="h-3 w-3" aria-hidden="true" /> Sustainability {route.sustainabilityScore}/100
           </span>
         )}
       </div>

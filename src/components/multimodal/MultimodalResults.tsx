@@ -166,9 +166,9 @@ export default function MultimodalResults({
         </div>
 
         {busAlternativeNote && (
-          <div className="flex items-start gap-2 bg-sky-50 rounded-2xl px-3 py-2">
-            <Bus className="w-4 h-4 text-sky-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-sky-700 font-medium">{busAlternativeNote}</p>
+          <div className="flex items-start gap-2 bg-brand-50 rounded-2xl px-3 py-2">
+            <Bus className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-brand-700 font-medium">{busAlternativeNote}</p>
           </div>
         )}
 
@@ -271,7 +271,7 @@ export default function MultimodalResults({
 
       {/* Why Recommended Explainable Box */}
       {!selected.profileFit && selected.whyRecommended && selected.whyRecommended.length > 0 && (
-        <div className="bg-gradient-to-r from-brand-50 via-sky-50 to-indigo-50 rounded-3xl p-4 space-y-2">
+        <div className="bg-gradient-to-r from-brand-50 via-brand-50 to-indigo-50 rounded-3xl p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-bold text-brand-900">
             <Sparkles className="w-4 h-4 text-brand-600" />
             Why TransitSwap Recommends This Route
@@ -372,16 +372,16 @@ export default function MultimodalResults({
 
       {/* Smart Departure Suggestion */}
       {selected.departureSuggestion ? (
-        <div className="bg-sky-50 rounded-3xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-sky-600 flex-shrink-0 mt-0.5" />
+        <div className="bg-brand-50 rounded-3xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-brand-600 flex-shrink-0 mt-0.5" />
           <div className="space-y-0.5">
-            <p className="text-xs font-bold text-sky-900">Smart Departure Recommendation</p>
-            <p className="text-xs text-sky-800">
+            <p className="text-xs font-bold text-brand-900">Smart Departure Recommendation</p>
+            <p className="text-xs text-brand-800">
               Recommended departure: <span className="font-bold">{selected.departureSuggestion.suggestedDepartureTime}</span> (Expected arrival ~{selected.departureSuggestion.expectedArrival}).
             </p>
-            <p className="text-[11px] text-sky-700">{selected.departureSuggestion.reason}</p>
+            <p className="text-[11px] text-brand-700">{selected.departureSuggestion.reason}</p>
             {selected.departureSuggestion.reliabilityGainPercent > 0 && (
-              <p className="text-[11px] text-sky-700">
+              <p className="text-[11px] text-brand-700">
                 Estimated missed-connection risk improvement: {selected.departureSuggestion.reliabilityGainPercent}%
               </p>
             )}
@@ -400,7 +400,7 @@ export default function MultimodalResults({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <CloudSun className="w-4 h-4 text-sky-600" /> Weather Context
+            <CloudSun className="w-4 h-4 text-brand-600" /> Weather Context
           </div>
           {weather ? (
             <>
@@ -515,7 +515,7 @@ export default function MultimodalResults({
                         aria-pressed={selected}
                         onClick={() => setCrowdLevel(opt.value)}
                         className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-center transition-all ${
-                          selected ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]" : "bg-navy-50 text-navy-600 hover:bg-navy-100"
+                          selected ? "bg-brand-500 text-white shadow-card" : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                         }`}
                       >
                         <Icon className="w-4 h-4" />

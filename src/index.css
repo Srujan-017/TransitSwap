@@ -1,24 +1,68 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
 @import 'leaflet/dist/leaflet.css';
 @import 'tailwindcss';
 
+/* ── Fonts ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Self-hosted (variable woff2 from @fontsource-variable), Latin and Latin-extended only. Latin-extended is needed for
+   the rupee sign. The browser downloads a file only when a character in its range is on the page, and nothing is
+   requested from Google any more. */
+/* inter-latin-ext-wght-normal */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(../node_modules/@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2) format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+/* inter-latin-wght-normal */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url(../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2) format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+/* plus-jakarta-sans-latin-ext-wght-normal */
+@font-face {
+  font-family: 'Plus Jakarta Sans Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url(../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-wght-normal.woff2) format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+/* plus-jakarta-sans-latin-wght-normal */
+@font-face {
+  font-family: 'Plus Jakarta Sans Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url(../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2) format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* ── Design tokens (UI redesign, Phase 1) ────────────────────────────────────────────────────────────────────────────
+   The token NAMES are unchanged (brand-*, navy-*, success, warning, danger) so every page picks up the new look at once;
+   only their values changed. Contrast of each text/background pair is checked by scripts, not by eye (see
+   docs/ui-redesign/PHASE_1_DESIGN_SYSTEM.md). */
 @theme {
-  --font-display: 'Plus Jakarta Sans', sans-serif;
-  --font-body: 'Inter', sans-serif;
+  --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  /* Completion-phase 4: brand-500/600, navy-400/500 and danger were darkened to meet WCAG AA
-     (4.5:1) for text on white and light surfaces; the hues are unchanged. */
-  --color-brand-50: #f0f9ff;
-  --color-brand-100: #e0f2fe;
-  --color-brand-200: #bae6fd;
-  --color-brand-300: #7dd3fc;
-  --color-brand-400: #38bdf8;
-  --color-brand-500: #0b7caf;
-  --color-brand-600: #026599;
-  --color-brand-700: #0369a1;
-  --color-brand-800: #075985;
-  --color-brand-900: #0c4a6e;
+  /* Primary: "Transit Blue". brand-500 is 5.9:1 on white, brand-600 is 7.5:1. */
+  --color-brand-50: #eff5ff;
+  --color-brand-100: #dce8fd;
+  --color-brand-200: #bcd3fb;
+  --color-brand-300: #8db3f7;
+  --color-brand-400: #5a8ceb;
+  --color-brand-500: #1f5bd8;
+  --color-brand-600: #1a4ec0;
+  --color-brand-700: #173fa0;
+  --color-brand-800: #153383;
+  --color-brand-900: #132b66;
 
+  /* Neutrals (ink and greys). navy-400 and navy-500 stay the AA-corrected values from the accessibility pass. */
   --color-navy-50: #f8fafc;
   --color-navy-100: #f1f5f9;
   --color-navy-200: #e2e8f0;
@@ -27,14 +71,57 @@
   --color-navy-500: #515e71;
   --color-navy-600: #475569;
   --color-navy-700: #334155;
-  --color-navy-800: #1e293b;
-  --color-navy-900: #0f172a;
+  --color-navy-800: #172033;
+  --color-navy-900: #0b1220;
+
+  /* "Go Green": Start, Best for you, success. go-600 is 5.4:1 on white. */
+  --color-go-50: #ecfdf3;
+  --color-go-100: #d3f8e2;
+  --color-go-200: #a9f0c8;
+  --color-go-300: #6fe2a3;
+  --color-go-400: #34cc7b;
+  --color-go-500: #12a85a;
+  --color-go-600: #087a41;
+  --color-go-700: #066a38;
+  --color-go-800: #055a30;
+  --color-go-900: #04472a;
+
+  /* Modes. Bus is teal, auto is Bengaluru auto yellow (always with dark text), walking uses the neutral greys,
+     metro uses each line's own colour (from the data) shown as a dot or stripe beside dark text. */
+  --color-bus-50: #effbf9;
+  --color-bus-100: #d2f5ef;
+  --color-bus-600: #0f766e;
+  --color-bus-700: #0d625c;
+  --color-bus-800: #0b4e4a;
+  --color-auto-50: #fff9e0;
+  --color-auto-100: #ffefa8;
+  --color-auto-400: #f5b800;
+  --color-auto-500: #e0a500;
+  --color-auto-700: #8a5a00;
 
   --color-teal-400: #2dd4bf;
   --color-teal-500: #14b8a6;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #dc1313;
+  /* Used as text on white (for example the password-strength words), so both are the AA-safe shades. */
+  --color-success: #087a41;
+  --color-warning: #b45309;
+  --color-danger: #c81e1e;
+
+  /* Three elevation levels: raised card, floating sheet or menu, and the pop-over on top of a map. */
+  --shadow-card: 0 1px 2px rgba(11, 18, 32, 0.05), 0 4px 16px -8px rgba(11, 18, 32, 0.12);
+  --shadow-float: 0 2px 4px rgba(11, 18, 32, 0.06), 0 12px 32px -12px rgba(11, 18, 32, 0.22);
+  --shadow-pop: 0 4px 8px rgba(11, 18, 32, 0.08), 0 20px 48px -16px rgba(11, 18, 32, 0.32);
+
+  /* Shape: 8 px inputs, 12 px buttons and chips, 16 px cards, 24 px sheets and the hero search. */
+  --radius-field: 0.5rem;
+  --radius-control: 0.75rem;
+  --radius-panel: 1rem;
+  --radius-sheet: 1.5rem;
+
+  /* Motion: three durations, one easing. Everything is switched off under "reduce motion" below. */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 350ms;
 }
 
 * {
@@ -47,14 +134,16 @@ html {
 
 body {
   font-family: var(--font-body);
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--color-navy-50);
+  color: var(--color-navy-900);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 /* Scrollbar */
@@ -73,35 +162,35 @@ h1, h2, h3, h4, h5, h6 {
   background: #94a3b8;
 }
 
-/* Focus rings */
+/* Focus rings: 3:1 or better against both white and the light canvas. */
 *:focus-visible {
-  outline: 2px solid #0ea5e9;
+  outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
 }
 
-/* Leaflet control polish — rounded, shadowed, matching the app's own
-   design language instead of Leaflet's flat default chrome. */
+/* Leaflet control polish — rounded, shadowed, matching the app's own design language instead of Leaflet's flat
+   default chrome. */
 .leaflet-control-zoom {
   border: none !important;
-  border-radius: 0.75rem !important;
+  border-radius: var(--radius-control) !important;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2) !important;
+  box-shadow: var(--shadow-float) !important;
 }
 .leaflet-control-zoom a {
   width: 34px !important;
   height: 34px !important;
   line-height: 34px !important;
-  color: #1e293b !important;
+  color: var(--color-navy-800) !important;
   background: #ffffff !important;
   border: none !important;
   font-size: 18px !important;
 }
 .leaflet-control-zoom a:hover {
-  background: #f0f9ff !important;
-  color: #0ea5e9 !important;
+  background: var(--color-brand-50) !important;
+  color: var(--color-brand-600) !important;
 }
 .leaflet-control-zoom-in {
-  border-bottom: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid var(--color-navy-200) !important;
 }
 .leaflet-control-attribution {
   background: rgba(255, 255, 255, 0.85) !important;
@@ -110,17 +199,16 @@ h1, h2, h3, h4, h5, h6 {
   padding: 2px 8px !important;
 }
 .leaflet-popup-content-wrapper {
-  border-radius: 0.75rem !important;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18) !important;
+  border-radius: var(--radius-control) !important;
+  box-shadow: var(--shadow-pop) !important;
 }
 .leaflet-control-layers {
   border: none !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2) !important;
+  border-radius: var(--radius-control) !important;
+  box-shadow: var(--shadow-float) !important;
 }
 
-/* Custom map icon buttons (fullscreen, locate-me) — sized and styled to
-   match the zoom control they sit beside. */
+/* Custom map icon buttons (fullscreen, locate-me) — sized and styled to match the zoom control they sit beside. */
 .map-icon-btn {
   width: 34px !important;
   height: 34px !important;
@@ -128,16 +216,16 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   background: #ffffff !important;
-  color: #1e293b !important;
+  color: var(--color-navy-800) !important;
   border: none !important;
-  border-radius: 0.75rem !important;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2) !important;
+  border-radius: var(--radius-control) !important;
+  box-shadow: var(--shadow-float) !important;
   cursor: pointer;
   margin-bottom: 8px !important;
 }
 .map-icon-btn:hover {
-  background: #f0f9ff !important;
-  color: #0ea5e9 !important;
+  background: var(--color-brand-50) !important;
+  color: var(--color-brand-600) !important;
 }
 
 /* The animated "blue dot" halo for a live GPS position. */
@@ -149,19 +237,45 @@ h1, h2, h3, h4, h5, h6 {
   100% { transform: scale(1.6); opacity: 0; }
 }
 
-/* Staggered entrance animation for dashboard-style section lists — each
-   element fades/slides up once on mount, staggered via the inline
-   --fade-delay custom property each caller sets. Respects reduced-motion. */
+/* Staggered entrance animation for dashboard-style section lists — each element fades/slides up once on mount,
+   staggered via the inline --fade-delay custom property each caller sets. */
 .animate-fade-slide-up {
-  animation: fade-slide-up-anim 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fade-slide-up-anim 0.5s var(--ease-out-soft) both;
   animation-delay: var(--fade-delay, 0ms);
 }
 @keyframes fade-slide-up-anim {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Skeleton loading blocks (the Skeleton component): a soft moving highlight over a grey block. */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-navy-100) 25%, var(--color-navy-50) 50%, var(--color-navy-100) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* A bottom sheet or toast sliding up into place. */
+.animate-sheet-up {
+  animation: sheet-up-anim var(--duration-slow) var(--ease-out-soft) both;
+}
+@keyframes sheet-up-anim {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-slide-up {
+  .animate-fade-slide-up,
+  .animate-sheet-up,
+  .skeleton,
+  .my-location-pulse {
     animation: none;
+  }
+  html {
+    scroll-behavior: auto;
   }
 }

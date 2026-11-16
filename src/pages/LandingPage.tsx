@@ -14,6 +14,8 @@ import {
   Dna,
 } from "lucide-react"
 import Button from "../components/ui/Button"
+import ProfileIcon from "../components/ui/ProfileIcon"
+import ModeIcon from "../components/ui/ModeIcon"
 import { FloatingArrivalCard } from "../components/landing/LandingIllustrations"
 import { useScrollReveal } from "../hooks/useScrollReveal"
 
@@ -30,11 +32,11 @@ const PHOTOS = {
 }
 
 const PROFILES = [
-  { id: "standard", icon: "🚶", label: "Standard" },
-  { id: "fastest", icon: "⚡", label: "Fastest" },
-  { id: "cheapest", icon: "💰", label: "Cheapest" },
-  { id: "wheelchair", icon: "♿", label: "Wheelchair" },
-  { id: "senior", icon: "🧓", label: "Senior" },
+  { id: "standard", label: "Standard" },
+  { id: "fastest", label: "Fastest" },
+  { id: "cheapest", label: "Cheapest" },
+  { id: "wheelchair", label: "Wheelchair" },
+  { id: "senior", label: "Senior" },
 ]
 
 // A full-bleed, alternating color-block section with a headline + body on
@@ -185,11 +187,11 @@ export default function LandingPage() {
                         onClick={() => setProfile(p.id)}
                         className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                           profile === p.id
-                            ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                            ? "bg-brand-500 text-white shadow-card"
                             : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                         }`}
                       >
-                        <span>{p.icon}</span>
+                        <ProfileIcon id={p.id} className="w-4 h-4" />
                         {p.label}
                       </button>
                     ))}
@@ -278,7 +280,7 @@ export default function LandingPage() {
             <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(15,23,42,0.4)] p-5 w-72 rotate-2">
               <p className="text-[10px] font-semibold text-navy-400 uppercase tracking-wide mb-2">Live context</p>
               <div className="flex items-center gap-2 mb-2">
-                <CloudRain className="w-4 h-4 text-sky-500" />
+                <CloudRain className="w-4 h-4 text-brand-500" />
                 <span className="text-sm font-semibold text-navy-800">Light rain · low impact</span>
               </div>
               <div className="flex items-center gap-2">
@@ -331,7 +333,7 @@ export default function LandingPage() {
           <div className="relative flex justify-center lg:justify-end">
             <div className="bg-white rounded-3xl shadow-[0_24px_48px_-16px_rgba(0,0,0,0.5)] p-5 w-72 rotate-3">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-lg">🚇</span>
+                <ModeIcon mode="metro" className="w-5 h-5 text-navy-900" />
                 <span className="font-display font-bold text-navy-900 text-sm">Metro → Walking</span>
                 <div className="flex-1" />
                 <span className="text-navy-900 font-bold text-sm">38 min</span>

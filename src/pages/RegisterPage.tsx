@@ -6,15 +6,16 @@ import type { AccessibilityProfile } from "../types"
 import AuthLayout from "../layouts/AuthLayout"
 import Button from "../components/ui/Button"
 import Input from "../components/ui/Input"
+import ProfileIcon from "../components/ui/ProfileIcon"
 
 const PROFILES = [
-  { id: "standard", icon: "🚶", label: "Standard" },
-  { id: "wheelchair", icon: "♿", label: "Wheelchair" },
-  { id: "senior", icon: "🧓", label: "Senior Citizen" },
-  { id: "pregnant", icon: "🤰", label: "Pregnant" },
-  { id: "stroller", icon: "👶", label: "Stroller" },
-  { id: "luggage", icon: "🧳", label: "Heavy Luggage" },
-  { id: "reduced_mobility", icon: "🦯", label: "Reduced Mobility" },
+  { id: "standard", label: "Standard" },
+  { id: "wheelchair", label: "Wheelchair" },
+  { id: "senior", label: "Senior Citizen" },
+  { id: "pregnant", label: "Pregnant" },
+  { id: "stroller", label: "Stroller" },
+  { id: "luggage", label: "Heavy Luggage" },
+  { id: "reduced_mobility", label: "Reduced Mobility" },
 ]
 
 export default function RegisterPage() {
@@ -177,11 +178,11 @@ export default function RegisterPage() {
                   onClick={() => setForm((f) => ({ ...f, accessibilityProfile: p.id as AccessibilityProfile }))}
                   className={`flex flex-col items-center gap-1 px-2 py-3 rounded-2xl text-xs font-semibold transition-all ${
                     form.accessibilityProfile === p.id
-                      ? "bg-brand-500 text-white shadow-[0_4px_12px_-2px_rgba(14,165,233,0.4)]"
+                      ? "bg-brand-500 text-white shadow-card"
                       : "bg-navy-50 text-navy-600 hover:bg-navy-100"
                   }`}
                 >
-                  <span className="text-lg">{p.icon}</span>
+                  <ProfileIcon id={p.id} className="w-5 h-5" />
                   {p.label}
                 </button>
               ))}
