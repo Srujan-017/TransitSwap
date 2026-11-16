@@ -56,6 +56,7 @@ const ALL_ENTRIES = [
   "src/__tests__/accessibility.test.ts",
   "src/__tests__/crowdAccessibilityBlock.test.ts",
   "src/__tests__/profilePolicy.test.ts",
+  "src/__tests__/busNetwork.test.ts",
   "src/__tests__/ml.test.ts",
   "src/__tests__/recommendationExplanation.test.ts",
   "src/__tests__/reliability.test.ts",

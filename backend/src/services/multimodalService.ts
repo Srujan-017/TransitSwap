@@ -11,7 +11,8 @@ import {
 } from "../data/transitData"
 import { routingService } from "./routingService"
 import { accessibilityService } from "./accessibilityService"
-import { isPolicyProfile } from "./profilePolicy"
+import { isPolicyProfile, PROFILE_POLICIES } from "./profilePolicy"
+import { BUS_SPEED_MPS, BUS_DISTANCE_FACTOR, headwayAt, nextBuses } from "./busTimetable"
 import { createTtlCache } from "../utils/ttlCache"
 import { parseLocalDateTime, formatClockTime } from "../utils/dateTime"
 import type { NormalizedRoute, TransportMode } from "../types/routing"
@@ -43,14 +44,14 @@ export const ROUTING_CONSTANTS = {
   // Phase 5 — METRO_WAIT_SEC/BUS_WAIT_SEC (previously flat 300s/480s for every
   // train/bus regardless of line or route) were replaced by each line's/
   // route's own frequencyMinutes field (see metroSegment()/busSegment() below).
-  BUS_SPEED_MPS: 6.0,
+  BUS_SPEED_MPS, // shared with the bus timetable (busTimetable.ts) so a bus's clock times match its route duration
   AUTO_SPEED_MPS: 4.2,
   // Phase 9 — these 3 distance-inflation factors were previously inline
   // literals (1.15, 1.35, 1.25) at their one call site each. Named and moved
   // here so the sensitivity sweep can cover them too, per
   // PROJECT_MASTER_PLAN.md §13's "distance factors" entry.
   METRO_DISTANCE_FACTOR: 1.15,
-  BUS_DISTANCE_FACTOR: 1.35,
+  BUS_DISTANCE_FACTOR,
   AUTO_DISTANCE_FACTOR: 1.25,
 }
 
@@ -414,7 +415,13 @@ function selectBusRoute(fromStop: (typeof BUS_STOPS)[0], toStop: (typeof BUS_STO
     }
   }).filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate))
 
+  // The route that gets the rider there soonest: its boarding wait (one headway, as in busSegment) plus
+  // the ride. Used to be fewest stops, which ignored that a route with a bus every 7 minutes beats one
+  // every 16 even when it makes a stop or two more.
+  const effectiveSeconds = (candidate: (typeof candidates)[number]) =>
+    candidate.route.frequencyMinutes * 60 + candidate.distanceMeters / ROUTING_CONSTANTS.BUS_SPEED_MPS
   candidates.sort((a, b) => (
+    effectiveSeconds(a) - effectiveSeconds(b) ||
     a.stopCount - b.stopCount ||
     a.distanceMeters - b.distanceMeters ||
     a.route.id.localeCompare(b.route.id)
@@ -534,6 +541,7 @@ function busSegment(fromStop: (typeof BUS_STOPS)[0], toStop: (typeof BUS_STOPS)[
       waitMinutes: Math.round(waitSeconds / 60),
       towards,
       routeNumber: selected.route.number,
+      routeId: selected.route.id,
     },
   }
 }
@@ -628,6 +636,20 @@ function validateCandidate(
     if (!locationsClose(segments[i].to, segments[i + 1].from)) return false
   }
   return true
+}
+
+// A metro or bus leg that ends more than this much farther from the destination than it began is a
+// detour no rider would choose (e.g. a bus east to Hoodi, then a walk to a metro that goes west). The
+// bounded graph search can produce these when they happen to be cheap, so they are rejected up front.
+const MAX_RIDE_AWAY_M = 1500
+
+function ridesAwayFromDestination(segments: RouteSegment[], destination: SegmentLocation): boolean {
+  return segments.some((segment) => {
+    if (segment.mode !== "metro" && segment.mode !== "bus") return false
+    const before = haversine(segment.from.latitude, segment.from.longitude, destination.latitude, destination.longitude)
+    const after = haversine(segment.to.latitude, segment.to.longitude, destination.latitude, destination.longitude)
+    return after - before > MAX_RIDE_AWAY_M
+  })
 }
 
 function locationKey(location: SegmentLocation): string {
@@ -725,34 +747,69 @@ function buildRoute(segments: RouteSegment[], label: RouteLabel): MultimodalRout
 
 const UPCOMING_DEPARTURES_SHOWN = 2
 
-// Fills in each transit segment's estimatedBoardingTime (and the next couple
-// of departures after it) by walking the route in order and accumulating
-// prior segments' durationSeconds (which already include each segment's own
-// boarding wait — see metroSegment()/busSegment() above) plus this segment's
-// own waitMinutes. Later departures are spaced by the same waitMinutes
-// again, since this dataset models wait as "one full headway" — i.e. a bus
-// this frequent is expected roughly every waitMinutes. When no departure
-// time was supplied, every segment is left without these fields rather than
-// inventing one from "now" — the same honesty rule reliabilityService's
-// calculateSmartDeparture already follows for a missing departure time.
+// Fills in each transit segment's estimatedBoardingTime (and the next couple of departures after it)
+// by walking the route in order. Metro: prior segments' durationSeconds (which already include each
+// segment's own boarding wait) plus this segment's own headway, as before. Bus: the real next buses
+// from the route's timetable (busTimetable.ts) — the first bus at or after the rider reaches the stop,
+// the two after it, and when that bus reaches the stop where the rider gets off; the clock then
+// continues from that arrival, so a later leg's boarding time follows the actual bus. (Route totals keep
+// the conservative one-headway wait, so the clock arrival can be a little earlier than the total implies.)
+// When no departure time was supplied, every segment is left without these fields rather than inventing
+// one from "now" — the same honesty rule reliabilityService's calculateSmartDeparture follows.
 function attachBoardingEstimates(route: MultimodalRoute, departureDate: Date | null): MultimodalRoute {
   if (!departureDate) return route
 
   let cursorMs = departureDate.getTime()
   for (const segment of route.segments) {
-    if (segment.transitDetails) {
+    const details = segment.transitDetails
+    if (details && segment.mode === "bus" && details.routeId) {
+      const from = stopByName(segment.from.name)
+      const to = stopByName(segment.to.name)
+      const buses = from && to ? nextBuses(details.routeId, from.id, to.id, new Date(cursorMs), UPCOMING_DEPARTURES_SHOWN + 1) : []
+      if (buses.length > 0) {
+        details.estimatedBoardingTime = formatClockTime(buses[0].board)
+        details.upcomingBoardingTimes = buses.slice(1).map((bus) => formatClockTime(bus.board))
+        details.estimatedArrivalTime = formatClockTime(buses[0].arrive)
+        const busRoute = BUS_ROUTES.find((r) => r.id === details.routeId)
+        if (busRoute) details.headwayMinutes = headwayAt(busRoute, buses[0].board)
+        cursorMs = buses[0].arrive.getTime()
+        continue
+      }
+    }
+    if (details) {
       const arriveAtStopMs = cursorMs
-      const headwayMs = segment.transitDetails.waitMinutes * 60_000
-      segment.transitDetails.estimatedBoardingTime = formatClockTime(new Date(arriveAtStopMs + headwayMs))
-      // Starts at the SECOND departure — the first is estimatedBoardingTime
-      // above, so this is only the ones after it.
-      segment.transitDetails.upcomingBoardingTimes = Array.from({ length: UPCOMING_DEPARTURES_SHOWN }, (_, i) =>
+      const headwayMs = details.waitMinutes * 60_000
+      details.estimatedBoardingTime = formatClockTime(new Date(arriveAtStopMs + headwayMs))
+      // Starts at the SECOND departure — the first is estimatedBoardingTime above, so this is only the ones after it.
+      details.upcomingBoardingTimes = Array.from({ length: UPCOMING_DEPARTURES_SHOWN }, (_, i) =>
         formatClockTime(new Date(arriveAtStopMs + (i + 2) * headwayMs)),
       )
     }
     cursorMs += segment.durationSeconds * 1000
   }
   return route
+}
+
+/**
+ * False when a bus leg of this candidate has no bus left that day at the time the rider would reach its
+ * stop (the last bus has gone). Walks the candidate in order, following the real bus arrivals like
+ * attachBoardingEstimates() does. Only used when the rider chose a departure time.
+ */
+function busServiceAvailable(segments: RouteSegment[], departureDate: Date): boolean {
+  let cursorMs = departureDate.getTime()
+  for (const segment of segments) {
+    const details = segment.transitDetails
+    if (segment.mode === "bus" && details?.routeId) {
+      const from = stopByName(segment.from.name)
+      const to = stopByName(segment.to.name)
+      const buses = from && to ? nextBuses(details.routeId, from.id, to.id, new Date(cursorMs), 1) : []
+      if (buses.length === 0) return false
+      cursorMs = buses[0].arrive.getTime()
+    } else {
+      cursorMs += segment.durationSeconds * 1000
+    }
+  }
+  return true
 }
 
 async function tryWalkMetroWalk(
@@ -1208,6 +1265,9 @@ async function searchGraphCandidates(
     const endsHere = endEdgesByNode.get(current.nodeKey)
     if (endsHere) {
       for (const endEdge of endsHere) {
+        // The search never chains two walking hops, and that includes the final walk to the destination:
+        // a transfer walk followed by an egress walk is just one longer walk, listed as two steps.
+        if (endEdge.mode === "walking" && current.path[current.path.length - 1].mode === "walking") continue
         finalLabels.push({
           nodeKey: "DESTINATION",
           durationSeconds: current.durationSeconds + endEdge.durationSeconds,
@@ -1410,10 +1470,25 @@ async function accessLegOptions(ctx: RoadContext, from: SegmentLocation, to: Seg
   return Promise.all(options)
 }
 
+const ACCESS_BUS_STOPS_PER_END = 3
+const ACCESS_BUS_STOP_RADIUS_M = 1500
+
+function nearestBusStops(location: SegmentLocation, count: number, maxM: number, excludeIds: ReadonlySet<string>) {
+  return BUS_STOPS
+    .filter((stop) => !excludeIds.has(stop.id))
+    .map((stop) => ({ stop, distM: haversine(location.latitude, location.longitude, stop.latitude, stop.longitude) }))
+    .filter((entry) => entry.distM <= maxM)
+    .sort((a, b) => a.distM - b.distM)
+    .slice(0, count)
+}
+
 async function generateAccessCandidates(
   ctx: RoadContext,
   origin: SegmentLocation,
   destination: SegmentLocation,
+  // True for profiles that may use a bus (senior, luggage, reduced mobility: only when it is LOW crowd —
+  // decided later by the profile rules): adds {walk | auto} -> bus -> {walk | auto} candidates.
+  includeBus = false,
 ): Promise<RouteSegment[][]> {
   if (!inServiceArea(origin) || !inServiceArea(destination)) return []
   const candidates: RouteSegment[][] = []
@@ -1445,6 +1520,25 @@ async function generateAccessCandidates(
     return routes
   }))
   for (const routes of built) candidates.push(...routes)
+
+  if (includeBus) {
+    const busO = nearestBusStops(origin, ACCESS_BUS_STOPS_PER_END, ACCESS_BUS_STOP_RADIUS_M, ctx.excludeIds)
+    const busD = nearestBusStops(destination, ACCESS_BUS_STOPS_PER_END, ACCESS_BUS_STOP_RADIUS_M, ctx.excludeIds)
+    const busPairs: Array<{ o: (typeof busO)[number]; d: (typeof busD)[number] }> = []
+    for (const o of busO) for (const d of busD) if (o.stop.id !== d.stop.id) busPairs.push({ o, d })
+    const builtBus = await Promise.all(busPairs.map(async ({ o, d }) => {
+      const bus = busSegment(o.stop, d.stop)
+      if (!bus) return [] as RouteSegment[][]
+      const [firstMile, lastMile] = await Promise.all([
+        accessLegOptions(ctx, origin, { name: o.stop.name, latitude: o.stop.latitude, longitude: o.stop.longitude }),
+        accessLegOptions(ctx, { name: d.stop.name, latitude: d.stop.latitude, longitude: d.stop.longitude }, destination),
+      ])
+      const routes: RouteSegment[][] = []
+      for (const first of firstMile) for (const last of lastMile) routes.push([...first, bus, ...last])
+      return routes
+    }))
+    for (const routes of builtBus) candidates.push(...routes)
+  }
   return candidates
 }
 
@@ -1508,7 +1602,8 @@ export const multimodalService = {
     // Autos for the first/last mile and a door-to-door auto: for accessibility profiles up front,
     // for everyone else only if nothing else is found (below).
     const needsAccessCandidates = isPolicyProfile(request.profile)
-    const accessResults = needsAccessCandidates ? await generateAccessCandidates(ctx, origin, destination) : []
+    const busAllowed = isPolicyProfile(request.profile) && PROFILE_POLICIES[request.profile].bus !== "never"
+    const accessResults = needsAccessCandidates ? await generateAccessCandidates(ctx, origin, destination, busAllowed) : []
     const generated: Array<RouteSegment[] | null> = [...patternResults, ...graphResults, ...accessResults]
 
     // Phase 4 fix (B12) — drop degenerate near-zero walking segments (e.g. an
@@ -1518,10 +1613,17 @@ export const multimodalService = {
     const cleaned = generated.map((segments) => (segments ? omitNegligibleWalks(segments) : segments))
 
     const validCandidates = cleaned.filter((segments): segments is RouteSegment[] => (
-      validateCandidate(segments, origin, destination)
+      validateCandidate(segments, origin, destination) && !ridesAwayFromDestination(segments, destination)
     ))
     let uniqueCandidates = removeDuplicateCandidates(validCandidates)
     const departureDate = parseLocalDateTime(request.departureTime)
+
+    // A bus that has stopped running is not an option. Only checked when the rider chose a departure time
+    // (without one the timetable has nothing to be compared with, and "now" would make results depend on
+    // the real clock).
+    if (departureDate) {
+      uniqueCandidates = uniqueCandidates.filter((segments) => busServiceAvailable(segments, departureDate))
+    }
 
     if (options.pool) {
       return uniqueCandidates.map((segments) => attachBoardingEstimates(buildRoute(segments, "BALANCED"), departureDate))

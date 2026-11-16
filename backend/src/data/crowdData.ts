@@ -71,6 +71,10 @@ const TYPE_BY_ID: Record<string, StationType> = {
   "pl-01": "it", "pl-02": "it", "pl-03": "it", "yl-02": "it", "yl-03": "it", "yl-04": "it", "yl-05": "it", "yl-06": "it",
   "yl-07": "it", "yl-08": "it", "yl-09": "it", "yl-10": "it",
   "b-05": "it", "b-06": "it", "b-13": "it", "b-16": "it", "b-19": "it", "b-20": "it", "b-21": "it", "b-24": "it",
+  // added with the larger bus network (feature-upgrade phase 4)
+  "b-27": "it", "b-28": "it", "b-29": "it", "b-36": "it", "b-46": "it", "b-48": "it", "b-49": "it",
+  "b-30": "cbd", "b-31": "cbd", "b-32": "cbd", "b-37": "cbd", "b-38": "cbd", "b-47": "cbd",
+  "b-39": "interchange",
 }
 
 export function stationTypeOf(stationId: string): StationType {

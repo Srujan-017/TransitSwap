@@ -28,6 +28,10 @@ export interface TransitDetails {
   // The route's real terminus in this boarding direction (buses only) —
   // what to look for on the bus's own headboard.
   towards?: string
+  routeId?: string
+  // Buses only: when the same bus reaches the stop where the rider gets off, and the headway at the time.
+  estimatedArrivalTime?: string
+  headwayMinutes?: number
 }
 
 export interface RouteSegment {

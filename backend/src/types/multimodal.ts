@@ -34,6 +34,14 @@ export interface TransitDetails {
   // Bus Stand") — what the rider should look for on the bus's own headboard,
   // since the same physical stop serves both directions. Buses only.
   towards?: string
+  // Buses only: the route this leg rides (BUS_ROUTES id), so the timetable can be looked up.
+  routeId?: string
+  // Buses only, set with estimatedBoardingTime: when the same bus reaches the stop where the rider
+  // gets off ("9:31 AM"), from the route's timetable.
+  estimatedArrivalTime?: string
+  // Buses only: minutes between buses at the time of travel (shorter in the weekday peaks). Set with
+  // estimatedBoardingTime; waitMinutes is left as the conservative figure the route totals use.
+  headwayMinutes?: number
 }
 
 export interface RouteSegment {

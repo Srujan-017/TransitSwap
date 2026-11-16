@@ -100,6 +100,12 @@ function SegmentRow({ seg, profile, crowd }: { seg: RouteSegment; profile?: stri
             `Runs every ~${seg.transitDetails.waitMinutes} min (set a departure time for a boarding estimate)`
           )}
         </p>
+        {seg.mode === "bus" && (
+          <p className="text-xs text-white/90 pl-[2.9rem]">
+            Get off at {seg.to.name} after {seg.transitDetails.stopCount === 1 ? "1 stop" : `${seg.transitDetails.stopCount} stops`}
+            {seg.transitDetails.estimatedArrivalTime ? <> · arrives ~{seg.transitDetails.estimatedArrivalTime}</> : null}
+          </p>
+        )}
         {seg.transitDetails.stops.length > 2 && (
           <div className="pl-[2.9rem] pt-0.5">
             <div className="flex flex-wrap gap-x-2 gap-y-0.5">

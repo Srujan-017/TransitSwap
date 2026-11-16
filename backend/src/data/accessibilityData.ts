@@ -82,7 +82,7 @@ function busRecord(
 }
 
 /**
- * DEMO_ACCESSIBILITY_DATA — 65 synthetic station/stop records (41 metro + 24
+ * DEMO_ACCESSIBILITY_DATA — 91 synthetic station/stop records (41 metro + 50
  * bus), every one of transitData.ts's stations/stops, with deliberate
  * variety:
  *
@@ -317,4 +317,53 @@ export const DEMO_ACCESSIBILITY_DATA: AccessibilityRecord[] = [
   busRecord("b-22", { notes: "Vijayanagar Bus Stop — ramp available, partially accessible." }),
   busRecord("b-23", { notes: "Mysuru Road Bus Stop — ramp available, partially accessible." }),
   busRecord("b-24", { notes: "Whitefield Bus Stop — ramp available, partially accessible." }),
+
+  // Added in feature-upgrade phase 4 (the larger bus network).
+  busRecord("b-25", { notes: "Nagawara Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-26", { notes: "Kalyan Nagar Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-27", { notes: "Bellandur Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-28", { notes: "HAL Airport Road Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-29", { notes: "Hoodi Circle Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-30", { notes: "Baiyappanahalli Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-31", { notes: "Ulsoor Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-32", { notes: "MG Road Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-33", { notes: "Mekhri Circle Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-34", {
+    status: "unknown",
+    hasRamp: null,
+    wheelchairAccessible: null,
+    stepFreeEntrance: null,
+    notes: "Yelahanka Bus Stand — accessibility details not yet recorded in the demo dataset.",
+  }),
+  busRecord("b-35", { notes: "Madiwala Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-36", { notes: "Bommanahalli Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-37", { notes: "Lalbagh Main Gate Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-38", { notes: "Dairy Circle Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-39", { notes: "City Market Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-40", { notes: "Kengeri Bus Stand — ramp available, partially accessible." }),
+  busRecord("b-41", { notes: "JP Nagar Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-42", { notes: "Konanakunte Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-43", { notes: "Jayadeva Hospital Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-44", { notes: "Arekere Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-45", {
+    status: "not_accessible",
+    hasRamp: false,
+    stairCount: 8,
+    wheelchairAccessible: false,
+    stepFreeEntrance: false,
+    notes: "Gottigere Bus Stop — raised kerb and steps, no ramp (demo data: not accessible).",
+  }),
+  busRecord("b-46", { notes: "Jalahalli Cross Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-47", {
+    hasLift: true,
+    hasEscalator: true,
+    status: "accessible",
+    accessibleToilet: true,
+    tactilePaving: true,
+    stepFreePlatform: true,
+    notes: "Kempegowda Airport Bus Station — fully accessible terminal bay.",
+  }),
+  busRecord("b-48", { notes: "BTM Layout Bus Stop — ramp available, partially accessible." }),
+  busRecord("b-49", { notes: "Kadugodi Bus Stand — ramp available, partially accessible." }),
+  busRecord("b-50", { notes: "Bettahalasur Cross Bus Stop — ramp available, partially accessible." }),
 ]

@@ -1,5 +1,5 @@
 import { Clock, Footprints, ArrowRight, IndianRupee, ShieldCheck, CloudRain, Users } from "lucide-react"
-import type { MultimodalRoute, MultimodalMode } from "../../types/multimodal"
+import type { MultimodalRoute, MultimodalMode, RouteSegment, LegCrowd } from "../../types/multimodal"
 import { formatDuration, formatDistance } from "../../utils/formatters"
 
 interface Props {
@@ -37,6 +37,56 @@ function crowdClass(level?: string) {
   if (level === "LOW") return "text-emerald-700 bg-emerald-50"
   if (level === "HIGH") return "text-red-700 bg-red-50"
   return "text-amber-700 bg-amber-50"
+}
+
+const CROWD_CHIP: Record<string, string> = {
+  LOW: "bg-emerald-100 text-emerald-800",
+  MEDIUM: "bg-amber-100 text-amber-800",
+  HIGH: "bg-red-100 text-red-800",
+}
+
+// One bus leg at a glance: its number, direction, where and when to board, the next buses, where to
+// get off and when the bus gets there, and how crowded it is. Times come from the route's (synthetic)
+// timetable and only appear once a departure time has been chosen.
+function BusLeg({ seg, crowd }: { seg: RouteSegment; crowd?: LegCrowd }) {
+  const d = seg.transitDetails
+  if (!d) return null
+  const stops = d.stopCount === 1 ? "1 stop" : `${d.stopCount} stops`
+  return (
+    <div className="flex items-start gap-3 rounded-2xl bg-green-50 px-3 py-2.5">
+      <span
+        className="mt-0.5 inline-flex h-8 min-w-[2.75rem] items-center justify-center rounded-lg bg-green-700 px-2 text-sm font-bold text-white"
+        aria-label={`Bus number ${d.routeNumber}`}
+      >
+        {d.routeNumber}
+      </span>
+      <div className="min-w-0 flex-1 space-y-0.5 text-xs text-navy-700">
+        <p className="font-semibold text-navy-900">
+          {d.towards ? `Towards ${d.towards}` : d.lineName}
+          {crowd?.level && (
+            <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${CROWD_CHIP[crowd.level]}`}>
+              Crowd: {crowd.level}
+            </span>
+          )}
+        </p>
+        <p>
+          Board at <span className="font-medium">{seg.from.name}</span>
+          {d.estimatedBoardingTime ? (
+            <>
+              {" "}at ~{d.estimatedBoardingTime}
+              {d.upcomingBoardingTimes && d.upcomingBoardingTimes.length > 0 && <> · next {d.upcomingBoardingTimes.map((t) => `~${t}`).join(", ")}</>}
+            </>
+          ) : (
+            <> · a bus every ~{d.waitMinutes} min</>
+          )}
+        </p>
+        <p>
+          Get off at <span className="font-medium">{seg.to.name}</span> after {stops}
+          {d.estimatedArrivalTime && <> · arrives ~{d.estimatedArrivalTime}</>}
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export default function RouteCard({ route, selected, onSelect, index }: Props) {
@@ -79,6 +129,7 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
           <div key={seg.id} className="flex items-center gap-1">
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${MODE_BG[seg.mode]}`}>
               {MODE_LABEL[seg.mode]}
+              {seg.mode === "bus" && seg.transitDetails?.routeNumber ? ` ${seg.transitDetails.routeNumber}` : ""}
             </span>
             {i < route.segments.length - 1 && <ArrowRight className="w-3 h-3 text-navy-300 flex-shrink-0" />}
           </div>
@@ -103,6 +154,14 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
           />
         ))}
       </div>
+
+      {route.segments.some((seg) => seg.mode === "bus") && (
+        <div className="mb-3 space-y-2">
+          {route.segments.filter((seg) => seg.mode === "bus").map((seg) => (
+            <BusLeg key={seg.id} seg={seg} crowd={route.crowd?.legs?.find((leg) => leg.segmentId === seg.id)} />
+          ))}
+        </div>
+      )}
 
       <div className="flex items-baseline gap-2 mb-2">
         <Clock className="w-4 h-4 text-brand-500 flex-shrink-0" />

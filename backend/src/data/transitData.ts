@@ -45,7 +45,14 @@ export interface BusRoute {
   name: string
   number: string // the route number riders look for on the bus itself (separate from the descriptive `name`)
   stops: string[] // ordered IDs
+  // Minutes between buses off-peak (and the figure used for the boarding wait in route totals).
   frequencyMinutes: number
+  // Minutes between buses on weekday mornings and evenings (07:00-10:00, 17:00-20:00). Default 60% of frequencyMinutes.
+  peakFrequencyMinutes?: number
+  // First and last departure from the route's first stop, "HH:MM" (the other direction mirrors them
+  // from the last stop). Default 05:30 and 22:30. Synthetic timetable — not drawn from BMTC.
+  firstBus?: string
+  lastBus?: string
 }
 
 export interface FareConfig {
@@ -177,6 +184,35 @@ export const BUS_STOPS: BusStop[] = [
   { id: "b-22", name: "Vijayanagar Bus Stop",        latitude: 12.9715, longitude: 77.5365, routes: ["R10"]          },
   { id: "b-23", name: "Mysuru Road Bus Stop",        latitude: 12.9424, longitude: 77.5085, routes: ["R10"]          },
   { id: "b-24", name: "Whitefield Bus Stop",         latitude: 12.9692, longitude: 77.7496, routes: ["R10","R7"]      },
+  // ── Added in feature-upgrade phase 4: the main corridors (ORR, Old Madras Road, Bellary Road,
+  //    Hosur Road, Mysuru Road, Kanakapura Road, Bannerghatta Road, Tumkur Road, the airport road).
+  //    Names are real localities; coordinates are approximate and the stops themselves are synthetic.
+  { id: "b-25", name: "Nagawara Bus Stop",           latitude: 13.0450, longitude: 77.6160, routes: [] },
+  { id: "b-26", name: "Kalyan Nagar Bus Stop",       latitude: 13.0230, longitude: 77.6410, routes: [] },
+  { id: "b-27", name: "Bellandur Bus Stop",          latitude: 12.9260, longitude: 77.6760, routes: [] },
+  { id: "b-28", name: "HAL Airport Road Bus Stop",   latitude: 12.9590, longitude: 77.6680, routes: [] },
+  { id: "b-29", name: "Hoodi Circle Bus Stop",       latitude: 12.9920, longitude: 77.7150, routes: [] },
+  { id: "b-30", name: "Baiyappanahalli Bus Stop",    latitude: 12.9910, longitude: 77.6540, routes: [] },
+  { id: "b-31", name: "Ulsoor Bus Stop",             latitude: 12.9830, longitude: 77.6230, routes: [] },
+  { id: "b-32", name: "MG Road Bus Stop",            latitude: 12.9755, longitude: 77.6080, routes: [] },
+  { id: "b-33", name: "Mekhri Circle Bus Stop",      latitude: 13.0140, longitude: 77.5820, routes: [] },
+  { id: "b-34", name: "Yelahanka Bus Stand",         latitude: 13.1007, longitude: 77.5963, routes: [] },
+  { id: "b-35", name: "Madiwala Bus Stop",           latitude: 12.9230, longitude: 77.6180, routes: [] },
+  { id: "b-36", name: "Bommanahalli Bus Stop",       latitude: 12.9010, longitude: 77.6240, routes: [] },
+  { id: "b-37", name: "Lalbagh Main Gate Bus Stop",  latitude: 12.9500, longitude: 77.5840, routes: [] },
+  { id: "b-38", name: "Dairy Circle Bus Stop",       latitude: 12.9440, longitude: 77.6010, routes: [] },
+  { id: "b-39", name: "City Market Bus Stop",        latitude: 12.9630, longitude: 77.5760, routes: [] },
+  { id: "b-40", name: "Kengeri Bus Stand",           latitude: 12.9170, longitude: 77.4830, routes: [] },
+  { id: "b-41", name: "JP Nagar Bus Stop",           latitude: 12.9080, longitude: 77.5850, routes: [] },
+  { id: "b-42", name: "Konanakunte Bus Stop",        latitude: 12.8860, longitude: 77.5710, routes: [] },
+  { id: "b-43", name: "Jayadeva Hospital Bus Stop",  latitude: 12.9170, longitude: 77.5990, routes: [] },
+  { id: "b-44", name: "Arekere Bus Stop",            latitude: 12.8890, longitude: 77.5990, routes: [] },
+  { id: "b-45", name: "Gottigere Bus Stop",          latitude: 12.8570, longitude: 77.5780, routes: [] },
+  { id: "b-46", name: "Jalahalli Cross Bus Stop",    latitude: 13.0490, longitude: 77.5200, routes: [] },
+  { id: "b-47", name: "Kempegowda Airport Bus Station", latitude: 13.1989, longitude: 77.7068, routes: [] },
+  { id: "b-48", name: "BTM Layout Bus Stop",         latitude: 12.9170, longitude: 77.6100, routes: [] },
+  { id: "b-49", name: "Kadugodi Bus Stand",          latitude: 12.9960, longitude: 77.7600, routes: [] },
+  { id: "b-50", name: "Bettahalasur Cross Bus Stop", latitude: 13.1480, longitude: 77.6210, routes: [] },
 ]
 
 // ── Bus routes ────────────────────────────────────────────────────────────────
@@ -186,17 +222,34 @@ export const BUS_STOPS: BusStop[] = [
 // Sarjapur Road, Bannerghatta Road, Kanakapura Road) this dataset draws on.
 
 export const BUS_ROUTES: BusRoute[] = [
-  { id: "R1", name: "1 — Kempegowda Bus Station ↔ Shivajinagar (via MG Road)", number: "1", stops: ["b-03","b-02","b-01"], frequencyMinutes: 10 },
-  { id: "R2", name: "2 — Kempegowda Bus Station ↔ Jayanagar 4th Block",        number: "2", stops: ["b-03","b-04","b-05","b-11","b-12"], frequencyMinutes: 8 },
-  { id: "R3", name: "3 — Shantinagar ↔ Domlur (via Indiranagar)",              number: "3", stops: ["b-04","b-14","b-06"], frequencyMinutes: 12 },
-  { id: "R4", name: "4 — Shivajinagar ↔ Hebbal",                              number: "4", stops: ["b-01","b-15"], frequencyMinutes: 15 },
-  { id: "R5", name: "5 — Koramangala ↔ Marathahalli (Sarjapur Road corridor)", number: "5", stops: ["b-05","b-19","b-21","b-13"], frequencyMinutes: 10 },
-  { id: "R6", name: "6 — Yeshwanthpur ↔ Malleshwaram (via Peenya, Rajajinagar)", number: "6", stops: ["b-07","b-08","b-09","b-10"], frequencyMinutes: 9 },
-  { id: "R7", name: "7 — Hebbal ↔ Whitefield (Old Madras Road corridor)",      number: "7", stops: ["b-15","b-16","b-24"], frequencyMinutes: 14 },
-  { id: "R8", name: "8 — Silk Board ↔ Electronic City (Hosur Road corridor, Big10)", number: "8", stops: ["b-21","b-19","b-20"], frequencyMinutes: 7 },
-  { id: "R9", name: "9 — Banashankari ↔ Jayanagar 4th Block (Kanakapura Road corridor, Big10)", number: "9", stops: ["b-17","b-18","b-12"], frequencyMinutes: 11 },
-  { id: "R10", name: "10 — Mysuru Road ↔ Whitefield (via Vijayanagar)",        number: "10", stops: ["b-23","b-22","b-24"], frequencyMinutes: 16 },
+  { id: "R1", name: "201 — Kempegowda Bus Station ↔ Shivajinagar (via MG Road)", number: "201", stops: ["b-03","b-02","b-01"], frequencyMinutes: 10 },
+  { id: "R2", name: "210A — Kempegowda Bus Station ↔ Jayanagar 4th Block",        number: "210A", stops: ["b-03","b-04","b-05","b-11","b-12"], frequencyMinutes: 8 },
+  { id: "R3", name: "314 — Shantinagar ↔ Domlur (via Indiranagar)",              number: "314", stops: ["b-04","b-14","b-06"], frequencyMinutes: 12 },
+  { id: "R4", name: "273 — Shivajinagar ↔ Hebbal",                              number: "273", stops: ["b-01","b-15"], frequencyMinutes: 15 },
+  { id: "R5", name: "500K — Koramangala ↔ Marathahalli (Sarjapur Road corridor)", number: "500K", stops: ["b-05","b-19","b-21","b-13"], frequencyMinutes: 10 },
+  { id: "R6", name: "260 — Yeshwanthpur ↔ Malleshwaram (via Peenya, Rajajinagar)", number: "260", stops: ["b-07","b-08","b-09","b-10"], frequencyMinutes: 9 },
+  { id: "R7", name: "301 — Hebbal ↔ Whitefield (Old Madras Road corridor)",      number: "301", stops: ["b-15","b-16","b-24"], frequencyMinutes: 14 },
+  { id: "R8", name: "342 — Silk Board ↔ Electronic City (Hosur Road corridor, Big10)", number: "342", stops: ["b-21","b-19","b-20"], frequencyMinutes: 7 },
+  { id: "R9", name: "G-9 — Banashankari ↔ Jayanagar 4th Block (Kanakapura Road corridor, Big10)", number: "G-9", stops: ["b-17","b-18","b-12"], frequencyMinutes: 11 },
+  { id: "R10", name: "235 — Mysuru Road ↔ Whitefield (limited stop, via Vijayanagar, Majestic, MG Road, KR Puram)",        number: "235", stops: ["b-23","b-22","b-39","b-03","b-32","b-30","b-16","b-24"], frequencyMinutes: 16 },
+  // ── Added in feature-upgrade phase 4. Route numbers are BMTC-style but invented; stops, timings
+  //    and frequencies are synthetic.
+  { id: "R11", name: "500D — Hebbal ↔ Silk Board (Outer Ring Road)", number: "500D", stops: ["b-15","b-25","b-26","b-16","b-13","b-27","b-21"], frequencyMinutes: 10, peakFrequencyMinutes: 6 },
+  { id: "R12", name: "335E — Kadugodi ↔ Kempegowda Bus Station (Old Madras Road)", number: "335E", stops: ["b-49","b-24","b-29","b-16","b-30","b-31","b-32","b-02","b-03"], frequencyMinutes: 12, peakFrequencyMinutes: 7 },
+  { id: "R13", name: "290 — Yelahanka ↔ Shivajinagar (Bellary Road)", number: "290", stops: ["b-34","b-15","b-33","b-01"], frequencyMinutes: 15, peakFrequencyMinutes: 9 },
+  { id: "R14", name: "356 — Kempegowda Bus Station ↔ Electronic City (Hosur Road)", number: "356", stops: ["b-03","b-39","b-37","b-38","b-48","b-35","b-21","b-36","b-20"], frequencyMinutes: 8, peakFrequencyMinutes: 5 },
+  { id: "R15", name: "225 — Kempegowda Bus Station ↔ Kengeri (Mysuru Road)", number: "225", stops: ["b-03","b-39","b-22","b-23","b-40"], frequencyMinutes: 12, peakFrequencyMinutes: 8 },
+  { id: "R16", name: "KIA-5 — Kempegowda Bus Station ↔ Airport (via Hebbal)", number: "KIA-5", stops: ["b-03","b-01","b-15","b-34","b-50","b-47"], frequencyMinutes: 30, peakFrequencyMinutes: 20, firstBus: "04:30", lastBus: "23:30" },
+  { id: "R17", name: "G-17 — Kempegowda Bus Station ↔ Konanakunte (Kanakapura Road)", number: "G-17", stops: ["b-03","b-39","b-18","b-12","b-41","b-42"], frequencyMinutes: 10, peakFrequencyMinutes: 6 },
+  { id: "R18", name: "365 — Jayanagar 4th Block ↔ Gottigere (Bannerghatta Road)", number: "365", stops: ["b-12","b-43","b-44","b-45"], frequencyMinutes: 12, peakFrequencyMinutes: 8 },
+  { id: "R19", name: "258 — Kempegowda Bus Station ↔ Jalahalli Cross (Tumkur Road)", number: "258", stops: ["b-03","b-07","b-08","b-46"], frequencyMinutes: 9, peakFrequencyMinutes: 6 },
+  { id: "R20", name: "500P — Shivajinagar ↔ Marathahalli (Old Airport Road)", number: "500P", stops: ["b-01","b-32","b-14","b-06","b-28","b-13"], frequencyMinutes: 10, peakFrequencyMinutes: 6 },
 ]
+
+// Every stop lists the routes that serve it, derived from the routes themselves so the two cannot drift apart.
+for (const stop of BUS_STOPS) {
+  stop.routes = BUS_ROUTES.filter((route) => route.stops.includes(stop.id)).map((route) => route.id)
+}
 
 // ── Fare configuration ────────────────────────────────────────────────────────
 // Metro fare approximates Namma Metro's real distance-slab structure

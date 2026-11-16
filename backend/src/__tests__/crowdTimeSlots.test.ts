@@ -172,11 +172,11 @@ async function run() {
   console.log("   ✅ per-leg, time-aware, worst-leg crowd\n")
 
   console.log("1️⃣1️⃣ Bus crowd is modelled per route and hour...")
-  const r5 = BUS_ROUTES.find((r) => r.number === "5")!
-  const peakBus = await crowdService.routeSummary(routeOf(["bus", "Koramangala Bus Stop", "HSR Layout Bus Stop", 20, "5"]), weekday(8, 30))
+  const r5 = BUS_ROUTES.find((r) => r.id === "R5")!
+  const peakBus = await crowdService.routeSummary(routeOf(["bus", "Koramangala Bus Stop", "HSR Layout Bus Stop", 20, r5.number]), weekday(8, 30))
   assert(peakBus.legs?.[0].onboardLevel === busRouteCrowdLevel(r5.id, "weekday", 8), "bus leg carries the on-board level of its route at that hour")
-  assert(peakBus.legs?.[0].label === "Bus 5", "bus leg is labelled with its route number")
-  const nightBus = await crowdService.routeSummary(routeOf(["bus", "Koramangala Bus Stop", "HSR Layout Bus Stop", 20, "5"]), weekday(3, 0))
+  assert(peakBus.legs?.[0].label === `Bus ${r5.number}`, "bus leg is labelled with its route number")
+  const nightBus = await crowdService.routeSummary(routeOf(["bus", "Koramangala Bus Stop", "HSR Layout Bus Stop", 20, r5.number]), weekday(3, 0))
   assert(nightBus.legs?.[0].onboardLevel === "LOW" && nightBus.level === "LOW", "the same bus at 03:00 is LOW")
   const levelsAcrossDay = new Set(Array.from({ length: 24 }, (_, h) => busRouteCrowdLevel(r5.id, "weekday", h)))
   assert(levelsAcrossDay.size >= 2, "a bus route's crowd changes through the day")

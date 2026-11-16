@@ -53,7 +53,9 @@ const osrmLikeProvider: RoadLegProvider = {
 // PHASE_6_VERIFICATION.md).
 const kempegowdaBusStation = { name: "Kempegowda Bus Station", latitude: 12.9770, longitude: 77.5705 }
 const shivajinagarBusStand = { name: "Shivajinagar Bus Stand", latitude: 12.9868, longitude: 77.6047 }
-const hebbalBusStop = { name: "Hebbal Bus Stop", latitude: 13.0355, longitude: 77.5971 }
+// No bus route runs between this stop and Kempegowda Bus Station (it was Hebbal until the airport bus
+// KIA-5 joined the two in feature-upgrade phase 4).
+const unconnectedBusStop = { name: "Gottigere Bus Stop", latitude: 12.857, longitude: 77.578 }
 // Madavara (Green Line's northern end) <-> Whitefield (Purple Line's eastern
 // end): no single line connects them, so this exercises the Phase 5
 // generalized stationsOnPath() interchange (via Majestic, Green<->Purple).
@@ -192,7 +194,9 @@ async function run() {
     assertNoDominatedRoute(routes)
 
     const directBus = findByModes(routes, "bus").segments.find((segment) => segment.mode === "bus")!
-    assert.equal(directBus.transitDetails?.lineName, "1 — Kempegowda Bus Station ↔ Shivajinagar (via MG Road)")
+    assert.equal(directBus.transitDetails?.lineName, "201 — Kempegowda Bus Station ↔ Shivajinagar (via MG Road)")
+    assert.equal(directBus.transitDetails?.routeNumber, "201")
+    assert.equal(directBus.transitDetails?.routeId, "R1")
     assert.deepEqual(directBus.transitDetails?.stops, [
       "Kempegowda Bus Station",
       "Cubbon Park Bus Stop",
@@ -203,7 +207,7 @@ async function run() {
     assert.equal(metro.transitDetails?.lineName, "Purple Line")
     assert.ok(metro.transitDetails?.stops.includes("Cubbon Park Metro"))
 
-    const unrelatedBusRoutes = await multimodalService.generateRoutes({ origin: kempegowdaBusStation, destination: hebbalBusStop })
+    const unrelatedBusRoutes = await multimodalService.generateRoutes({ origin: kempegowdaBusStation, destination: unconnectedBusStop })
     assert.ok(
       !unrelatedBusRoutes.some((route) => modes(route) === "bus"),
       "unrelated bus stops must not create a direct generic bus route",
