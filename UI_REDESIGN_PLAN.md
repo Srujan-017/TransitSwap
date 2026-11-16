@@ -1,6 +1,6 @@
 # TransitSwap — UI & Design Redesign: Master Plan
 
-**Status:** plan written 16 Nov 2026 · Phases 0–5 done; Phase 6 next · **Deadline:** 19 Nov 2026
+**Status:** plan written 16 Nov 2026 · Phases 0–6 done; Phase 7 next · **Deadline:** 19 Nov 2026
 **Rule above all others:** the redesign changes how the app *looks and feels*, never what it *does*. Every feature from the completion plan and the feature upgrade (profiles, buses, weather, crowd, live navigation, saving, history, feedback, research, admin) must work exactly as it does now after every single phase.
 
 ---
@@ -472,7 +472,7 @@ This is tight. To keep the deadline safe:
 | 3 App shell | ✅ done | see git log | Compact phone top bar + 5-tab bottom bar (never shown together with the desktop links), account menu with Escape/focus return, skip link, footer, page fade-in, `PageHeader` in the kit. Tests 180 (+20); end-to-end passes; audit 51 screens none worse. Record: `docs/ui-redesign/PHASE_3_APP_SHELL.md` |
 | 4 Landing and auth | ✅ done | see git log | Landing rebuilt: visible hero photo with a local text glow, 6 photo feature tiles describing what the app really does, profile rules in plain words, "1,680 checks / 0 violations", honest tech list (removed phase labels, mock cards, wrong Google Maps/OpenWeatherMap claim); split-screen sign-in/sign-up. Tests 206 (+26); end-to-end passes; audit 51 screens none worse. Record: `docs/ui-redesign/PHASE_4_LANDING_AND_AUTH.md` |
 | 5 Plan Trip A: layout and search | ✅ done | see git log | Map-first layout (desktop panel + full-height map; phone bottom sheet with 3 heights, one element), route card, Leave now/Depart at, icon chips + More sheet, Demo options disclosure, sticky Find Routes bar, skeleton loading, metro lines in their own colour, grey alternative routes, OSM tiles (CARTO Voyager only with a key, per CARTO terms). Contract changes: weather test opens Demo options first; e2e save step waits for the real message (stricter). Tests 239 (+33); e2e passes 4x; audit 51 screens none worse. Record: `docs/ui-redesign/PHASE_5_PLAN_TRIP_LAYOUT.md` |
-| 6 Plan Trip B: results and details | ⏳ | | |
+| 6 Plan Trip B: results and details | ✅ done | see git log | Citymapper-style cards (big duration, "Arrive by" only when known, leg chips, journey bar in the map colours, star on best), actions (green Start Journey) directly under the chosen card, vertical-rail timeline with no white-on-colour rows, line changes, folded stops, one-column info panels, leading emoji dropped from backend reasons. All 29 existing results tests unmodified and passing. Audit extended with a bus trip and a wheelchair-in-rain trip (6 new screens, 0 violations). Tests 263 (+24); e2e passes; 57 screens none worse. Record: `docs/ui-redesign/PHASE_6_ROUTE_RESULTS.md` |
 | 7 Live navigation | ⏳ | | |
 | 8 Dashboard, Saved, History | ⏳ | | |
 | 9 Profile, Research, Admin, 404 | ⏳ | | |

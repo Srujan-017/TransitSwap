@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { ChevronDown, ChevronUp, FlaskConical, Map as MapIcon } from "lucide-react"
+import { ChevronDown, ChevronUp, FlaskConical, Map as MapIcon, Repeat2 } from "lucide-react"
 import ModeIcon from "../ui/ModeIcon"
+import LineBadge from "../ui/LineBadge"
 import type { MultimodalRoute, MultimodalMode, RouteSegment, LegCrowd } from "../../types/multimodal"
 import { formatDuration, formatDistance } from "../../utils/formatters"
 
@@ -22,33 +23,26 @@ function displayInstruction(instruction: string, mode: MultimodalMode, profile?:
   return instruction
 }
 
-const MODE_COLOR: Record<MultimodalMode, string> = {
-  walking: "border-slate-400 bg-slate-50",
-  metro:   "border-brand-500 bg-brand-50",
-  bus:     "border-green-500 bg-green-50",
-  auto:    "border-orange-500 bg-orange-50",
-}
-
-const MODE_DOT: Record<MultimodalMode, string> = {
-  walking: "bg-slate-400",
-  metro:   "bg-brand-500",
-  bus:     "bg-green-500",
-  auto:    "bg-orange-500",
+// The colour of a leg on the rail: the same colours the map and the route card use.
+function legColour(seg: RouteSegment): string {
+  if (seg.mode === "metro") return seg.transitDetails?.lineColor || "#1f5bd8"
+  if (seg.mode === "bus") return "#0f766e"
+  if (seg.mode === "auto") return "#e0a500"
+  return "#94a3b8"
 }
 
 const CROWD_CHIP: Record<string, string> = {
-  LOW: "bg-emerald-100 text-emerald-800",
+  LOW: "bg-go-100 text-go-800",
   MEDIUM: "bg-amber-100 text-amber-800",
   HIGH: "bg-red-100 text-red-800",
 }
 
 // Crowd on a metro/bus leg. The level is always spelled out ("Crowd: HIGH"), never colour alone.
-function CrowdChip({ crowd, onColor = false }: { crowd?: LegCrowd; onColor?: boolean }) {
+function CrowdChip({ crowd }: { crowd?: LegCrowd }) {
   if (!crowd || !crowd.level) return null
-  const tone = onColor ? "bg-white text-navy-900" : CROWD_CHIP[crowd.level]
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${CROWD_CHIP[crowd.level]}`}
       title={`Boarding ${crowd.boardLevel ?? "unknown"}, getting off ${crowd.alightLevel ?? "unknown"}${crowd.onboardLevel ? `, on board ${crowd.onboardLevel}` : ""} (demo data)`}
     >
       Crowd: {crowd.level}
@@ -56,167 +50,162 @@ function CrowdChip({ crowd, onColor = false }: { crowd?: LegCrowd; onColor?: boo
   )
 }
 
+// When to board: the estimated time and the next ones if a departure time was chosen; otherwise how often it runs.
+function BoardingLine({ seg }: { seg: RouteSegment }) {
+  const d = seg.transitDetails
+  if (!d) return null
+  return (
+    <p className="text-xs text-navy-600">
+      {d.estimatedBoardingTime ? (
+        <>
+          Board by ~{d.estimatedBoardingTime}
+          {d.upcomingBoardingTimes && d.upcomingBoardingTimes.length > 0 && <> · next: {d.upcomingBoardingTimes.map((t) => `~${t}`).join(", ")}</>}
+        </>
+      ) : (
+        `Runs every ~${d.waitMinutes} min (set a departure time for a boarding estimate)`
+      )}
+    </p>
+  )
+}
+
+// The stops of a leg, folded away until asked for.
+function StopsList({ seg }: { seg: RouteSegment }) {
+  const stops = seg.transitDetails?.stops ?? []
+  if (stops.length <= 2) return null
+  return (
+    <details className="group pt-0.5">
+      <summary className="cursor-pointer text-xs font-medium text-brand-700 hover:text-brand-800">All {stops.length} stops</summary>
+      <ol className="mt-1.5 space-y-1 border-l-2 pl-3" style={{ borderColor: legColour(seg) }}>
+        {stops.map((stop) => (
+          <li key={stop} className="text-xs text-navy-600">{stop}</li>
+        ))}
+      </ol>
+    </details>
+  )
+}
+
 function SegmentRow({ seg, profile, crowd }: { seg: RouteSegment; profile?: string; crowd?: LegCrowd }) {
   const durationMin = Math.ceil(seg.durationSeconds / 60)
-  const isWheelchairWalk = seg.mode === "walking" && profile === "wheelchair"
-  const isTransitDeparture = (seg.mode === "bus" || seg.mode === "metro") && seg.transitDetails?.routeNumber
+  const d = seg.transitDetails
+  const isNumberedTransit = (seg.mode === "bus" || seg.mode === "metro") && d?.routeNumber
 
-  // Bus/metro legs with a real route number get the bold, fully-colored
-  // "departures board" treatment (like a real transit app's route-colored
-  // row) using the line's own real color; everything else keeps the
-  // lighter tinted-card style.
-  if (isTransitDeparture && seg.transitDetails) {
-    const lineColor = seg.transitDetails.lineColor
+  // A bus or metro leg with a route number: its badge and direction up front (a real transit app's departure row).
+  if (isNumberedTransit && d) {
     return (
-      <div className="rounded-2xl px-4 py-3 space-y-1.5 text-white" style={{ backgroundColor: lineColor }}>
+      <div className="space-y-1.5 rounded-panel border border-navy-100 bg-white px-4 py-3 shadow-card">
         <div className="flex items-center gap-3">
-          <span className="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 rounded-xl text-base font-display font-bold bg-white/20 flex-shrink-0">
-            {seg.transitDetails.routeNumber}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold leading-tight truncate">
-              {seg.mode === "bus" && seg.transitDetails.towards ? `Towards ${seg.transitDetails.towards}` : seg.transitDetails.lineName}
-            </p>
-            <p className="text-[11px] text-white/80">{seg.from.name} → {seg.to.name}</p>
-          </div>
-          <span className="text-xs font-semibold text-white/90 whitespace-nowrap flex-shrink-0">{formatDuration(durationMin)}</span>
-        </div>
-        {crowd?.level && (
-          <div className="pl-[2.9rem]"><CrowdChip crowd={crowd} onColor /></div>
-        )}
-        <p className="text-xs text-white/90 pl-[2.9rem]">
-          {seg.transitDetails.estimatedBoardingTime ? (
-            <>
-              Board by ~{seg.transitDetails.estimatedBoardingTime}
-              {seg.transitDetails.upcomingBoardingTimes && seg.transitDetails.upcomingBoardingTimes.length > 0 && (
-                <> · next: {seg.transitDetails.upcomingBoardingTimes.map((t) => `~${t}`).join(", ")}</>
-              )}
-            </>
+          {seg.mode === "bus" ? (
+            <LineBadge mode="bus" label={d.routeNumber} srLabel={`Bus number ${d.routeNumber}`} className="text-sm" />
           ) : (
-            `Runs every ~${seg.transitDetails.waitMinutes} min (set a departure time for a boarding estimate)`
+            <LineBadge mode="metro" label={d.routeNumber} color={d.lineColor} className="text-sm" />
           )}
-        </p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold leading-tight text-navy-900">
+              {seg.mode === "bus" && d.towards ? `Towards ${d.towards}` : d.lineName}
+            </p>
+            <p className="text-[11px] text-navy-600">{seg.from.name} → {seg.to.name}</p>
+          </div>
+          <span className="flex-shrink-0 whitespace-nowrap text-xs font-semibold text-navy-700">{formatDuration(durationMin)}</span>
+        </div>
+        {crowd?.level && <div><CrowdChip crowd={crowd} /></div>}
+        <BoardingLine seg={seg} />
         {seg.mode === "bus" && (
-          <p className="text-xs text-white/90 pl-[2.9rem]">
-            Get off at {seg.to.name} after {seg.transitDetails.stopCount === 1 ? "1 stop" : `${seg.transitDetails.stopCount} stops`}
-            {seg.transitDetails.estimatedArrivalTime ? <> · arrives ~{seg.transitDetails.estimatedArrivalTime}</> : null}
+          <p className="text-xs text-navy-600">
+            Get off at {seg.to.name} after {d.stopCount === 1 ? "1 stop" : `${d.stopCount} stops`}
+            {d.estimatedArrivalTime ? <> · arrives ~{d.estimatedArrivalTime}</> : null}
           </p>
         )}
-        {seg.transitDetails.stops.length > 2 && (
-          <div className="pl-[2.9rem] pt-0.5">
-            <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-              {seg.transitDetails.stops.map((stop) => (
-                <span key={stop} className="text-[11px] text-white/75 flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 rounded-full bg-white/60" />
-                  {stop}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+        <StopsList seg={seg} />
       </div>
     )
   }
 
   return (
-    <div className={`rounded-xl border-l-4 px-4 py-3 space-y-1 ${MODE_COLOR[seg.mode]}`}>
+    <div className="space-y-1 rounded-panel border border-navy-100 bg-white px-4 py-3 shadow-card">
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <ModeIcon mode={seg.mode} wheelchair={isWheelchairWalk} className="w-5 h-5 text-navy-700 flex-shrink-0" />
-          <p className="text-sm font-semibold text-navy-800">{displayInstruction(seg.instruction, seg.mode, profile)}</p>
-        </div>
-        <span className="text-xs text-navy-500 whitespace-nowrap flex-shrink-0">
-          {formatDuration(durationMin)}
-        </span>
+        <p className="text-sm font-semibold text-navy-800">{displayInstruction(seg.instruction, seg.mode, profile)}</p>
+        <span className="flex-shrink-0 whitespace-nowrap text-xs text-navy-600">{formatDuration(durationMin)}</span>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-navy-500 pl-7">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-navy-600">
         <span>{formatDistance(seg.distanceMeters)}</span>
         {seg.estimatedFare > 0 && <span>₹{seg.estimatedFare} est.</span>}
-        {seg.transitDetails && (
+        {d && (
           // The line's own colour is a dot, not the text colour: yellow and green lines fail 4.5:1 as text on these cards.
           <span className="inline-flex items-center gap-1.5 font-medium text-navy-700">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: seg.transitDetails.lineColor }} aria-hidden="true" />
-            {seg.transitDetails.lineName}
+            <span className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/10" style={{ backgroundColor: d.lineColor }} aria-hidden="true" />
+            {d.lineName}
           </span>
         )}
         <CrowdChip crowd={crowd} />
       </div>
 
-      {seg.transitDetails && (seg.mode === "bus" || seg.mode === "metro") && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-7 pt-0.5">
-          <span className="text-xs text-navy-500 basis-full">
-            {seg.transitDetails.estimatedBoardingTime ? (
-              <>
-                Board by ~{seg.transitDetails.estimatedBoardingTime}
-                {seg.transitDetails.upcomingBoardingTimes && seg.transitDetails.upcomingBoardingTimes.length > 0 && (
-                  <> · next: {seg.transitDetails.upcomingBoardingTimes.map((t) => `~${t}`).join(", ")}</>
-                )}
-              </>
-            ) : (
-              `Runs every ~${seg.transitDetails.waitMinutes} min (set a departure time for a boarding estimate)`
-            )}
-          </span>
-        </div>
+      {d && (seg.mode === "bus" || seg.mode === "metro") && <BoardingLine seg={seg} />}
+
+      {d?.lineChanges && d.lineChanges.length > 0 && (
+        <ul className="space-y-0.5">
+          {d.lineChanges.map((c) => (
+            <li key={`${c.station}-${c.toLine}`} className="flex items-center gap-1.5 text-xs font-medium text-navy-700">
+              <Repeat2 className="h-3.5 w-3.5 text-navy-500" aria-hidden="true" />
+              Change to the {c.toLine} at {c.station}
+            </li>
+          ))}
+        </ul>
       )}
 
-      {seg.transitDetails && seg.transitDetails.stops.length > 2 && (
-        <div className="pl-7 pt-1">
-          <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-            {seg.transitDetails.stops.map((stop) => (
-              <span key={stop} className="text-xs text-navy-400 flex items-center gap-1">
-                <span className={`inline-block w-1.5 h-1.5 rounded-full ${MODE_DOT[seg.mode]}`} />
-                {stop}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <StopsList seg={seg} />
     </div>
   )
 }
 
+/**
+ * The journey leg by leg, on a vertical rail: each leg has a dot with its mode icon on the colour the map draws it in, the
+ * rail runs on to the next leg, and every leg is a white card. Folded away until asked for, because the route card above
+ * already says the whole story in one glance.
+ */
 export default function SegmentTimeline({ route, profile }: Props) {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] overflow-hidden">
+    <div className="overflow-hidden rounded-panel border border-navy-100 bg-white shadow-card">
       <button
         type="button"
+        aria-expanded={expanded}
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-navy-50 transition-colors"
+        className="flex min-h-14 w-full items-center justify-between px-5 py-4 transition-colors hover:bg-navy-50"
       >
         <div className="flex items-center gap-2.5">
-          <MapIcon className="w-5 h-5 text-navy-600" aria-hidden="true" />
-          <span className="font-display font-semibold text-navy-800 text-sm">
-            Step-by-step journey
-          </span>
-          <span className="text-xs text-navy-400 bg-navy-100 px-2 py-0.5 rounded-full">
-            {route.segments.length} segments
-          </span>
+          <MapIcon className="h-5 w-5 text-navy-600" aria-hidden="true" />
+          <span className="font-display text-sm font-semibold text-navy-800">Step-by-step journey</span>
+          <span className="rounded-full bg-navy-100 px-2 py-0.5 text-xs text-navy-600">{route.segments.length} segments</span>
         </div>
-        {expanded ? (
-          <ChevronUp className="w-4 h-4 text-navy-400" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-navy-400" />
-        )}
+        {expanded ? <ChevronUp className="h-4 w-4 text-navy-500" aria-hidden="true" /> : <ChevronDown className="h-4 w-4 text-navy-500" aria-hidden="true" />}
       </button>
 
       {expanded && (
-        <div className="border-t border-navy-100 px-4 pb-4 pt-3 space-y-2.5">
-          <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-            <FlaskConical className="w-3.5 h-3.5 flex-shrink-0" />
+        <div className="space-y-3 border-t border-navy-100 bg-navy-50/60 px-4 pb-4 pt-3">
+          <div className="flex items-center gap-2 rounded-control border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <FlaskConical className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
             Demo transit data — schedules, fares and routes are approximate.
           </div>
 
-          {route.segments.map((seg, i) => (
-            <div key={seg.id} className="relative">
-              {i < route.segments.length - 1 && (
-                <div className="absolute left-[22px] top-full w-0.5 h-2 bg-navy-200 z-10" />
-              )}
-              <SegmentRow seg={seg} profile={profile} crowd={route.crowd?.legs?.find((leg) => leg.segmentId === seg.id)} />
-            </div>
-          ))}
+          <ol className="space-y-3">
+            {route.segments.map((seg, i) => (
+              <li key={seg.id} className="relative pl-10">
+                <span
+                  aria-hidden="true"
+                  className="absolute left-0 top-3 flex h-7 w-7 items-center justify-center rounded-full border-2 bg-white text-navy-800"
+                  style={{ borderColor: legColour(seg) }}
+                >
+                  <ModeIcon mode={seg.mode} wheelchair={seg.mode === "walking" && profile === "wheelchair"} className="h-3.5 w-3.5" />
+                </span>
+                {i < route.segments.length - 1 && (
+                  <span aria-hidden="true" className="absolute bottom-[-0.75rem] left-[13px] top-10 w-0.5" style={{ backgroundColor: legColour(seg) }} />
+                )}
+                <SegmentRow seg={seg} profile={profile} crowd={route.crowd?.legs?.find((leg) => leg.segmentId === seg.id)} />
+              </li>
+            ))}
+          </ol>
         </div>
       )}
     </div>

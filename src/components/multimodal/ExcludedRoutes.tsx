@@ -26,9 +26,9 @@ function ExcludedList({ routes }: { routes: ExcludedRoute[] }) {
       {routes.map((route, index) => {
         const { label, Icon, chip } = REASON_META[route.reasonType] ?? REASON_META.station
         return (
-          <li key={`${route.summary}-${index}`} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+          <li key={`${route.summary}-${index}`} className="rounded-panel border border-navy-100 bg-white px-4 py-3 shadow-card">
             <p className="text-sm font-medium text-navy-800">{route.summary}</p>
-            <p className="mt-0.5 text-xs text-navy-500">
+            <p className="mt-0.5 text-xs text-navy-600">
               {route.durationMinutes} min · {route.walkingMeters} m walking/rolling
             </p>
             <p className="mt-2 flex flex-wrap items-start gap-2 text-xs text-navy-600">
@@ -71,7 +71,7 @@ export default function ExcludedRoutes({ routes, profileLabel, variant }: Props)
   }
 
   return (
-    <details className="group rounded-3xl bg-navy-50/60 px-5 py-3">
+    <details className="group rounded-panel bg-navy-100/60 px-5 py-3">
       <summary className="cursor-pointer text-sm font-medium text-navy-700">
         {routes.length} other route{routes.length === 1 ? " was" : "s were"} excluded for your {profileLabel} profile —
         see why

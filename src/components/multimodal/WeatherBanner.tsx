@@ -30,7 +30,7 @@ export default function WeatherBanner({ weather }: Props) {
 
   if (!weather.available) {
     return (
-      <p role="status" className="rounded-2xl bg-navy-50 px-3 py-2 text-xs text-navy-600">
+      <p role="status" className="rounded-panel bg-navy-100/70 px-3 py-2 text-xs text-navy-700">
         {weather.headline}
       </p>
     )
@@ -38,7 +38,7 @@ export default function WeatherBanner({ weather }: Props) {
 
   if (!weather.bad) {
     return (
-      <p role="status" className="flex items-center gap-2 rounded-2xl bg-navy-50 px-3 py-2 text-xs text-navy-700">
+      <p role="status" className="flex items-center gap-2 rounded-panel bg-navy-100/70 px-3 py-2 text-xs text-navy-700">
         <Icon weather={weather} />
         <span>
           {weather.condition}, {weather.temperatureC}°C <span className="text-navy-500">· {sourceLabel(weather)}</span>
@@ -48,7 +48,7 @@ export default function WeatherBanner({ weather }: Props) {
   }
 
   return (
-    <section role="status" aria-label="Weather" className="space-y-1 rounded-3xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950">
+    <section role="status" aria-label="Weather" className="space-y-1 rounded-panel border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950">
       <p className="flex items-center gap-2 text-sm font-bold">
         <Icon weather={weather} />
         {weather.headline}

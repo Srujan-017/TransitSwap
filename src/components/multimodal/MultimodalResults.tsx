@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react"
 import {
-  CloudSun, Database, FlaskConical, MapPin, Navigation, Save, Bookmark,
+  CloudSun, Database, Navigation, Save, Bookmark,
   ShieldAlert, ShieldCheck, Users, Activity, Clock, Sparkles, AlertCircle, Compass, Bus,
-  Armchair, User,
+  Armchair, User, Check,
 } from "lucide-react"
 import RouteCard from "./RouteCard"
 import SegmentTimeline from "./SegmentTimeline"
@@ -11,8 +11,8 @@ import Button from "../ui/Button"
 import Badge from "../ui/Badge"
 import type { MultimodalRoute, RouteSegment, CrowdLevel, WeatherReport } from "../../types/multimodal"
 import type { GeoLocation } from "../../types/map"
-import { formatDuration, formatDistance } from "../../utils/formatters"
 import { intelligenceService } from "../../services/intelligenceService"
+import { stripLeadingEmoji } from "../../utils/text"
 
 interface Props {
   routes: MultimodalRoute[]
@@ -59,6 +59,9 @@ function sourceLabel(source?: string) {
   if (source === "NOT_APPLICABLE") return "No metro or bus leg"
   return "Unavailable"
 }
+
+// A white panel, the same on every information card below the routes.
+const PANEL = "rounded-panel border border-navy-100 bg-white p-4 shadow-card"
 
 export default function MultimodalResults({
   routes,
@@ -152,117 +155,87 @@ export default function MultimodalResults({
     }
   }
 
+  // What you can do with the chosen route: start it (the one green button), or keep it. It sits directly under the chosen
+  // card, so the choice and its actions are never far apart however many options there are.
+  const actions = (
+    <div className="space-y-2.5 rounded-panel border border-brand-100 bg-brand-50/60 p-3">
+      {selected.transitDnaScore !== undefined && (
+        <Badge variant="brand" className="font-bold">
+          TransitDNA Match: {selected.transitDnaScore}%
+        </Badge>
+      )}
+      {onStartNavigation && (
+        <Button variant="go" size="lg" fullWidth onClick={() => onStartNavigation(selected)} icon={<Navigation className="h-4 w-4" />}>
+          Start Journey
+        </Button>
+      )}
+      <div className="flex gap-2 [&>*]:flex-1">
+        {onSaveRoute && (
+          <Button variant="outline" onClick={() => void onSaveRoute(selected)} loading={saveRouteStatus === "saving"} icon={<Bookmark className="h-3.5 w-3.5" />}>
+            Save Route
+          </Button>
+        )}
+        {onSaveJourney && (
+          <Button onClick={() => void onSaveJourney(selected)} loading={saveStatus === "saving"} icon={<Save className="h-3.5 w-3.5" />}>
+            Save Journey
+          </Button>
+        )}
+      </div>
+      {saveMessage && (
+        <p role="status" className={`text-xs font-medium ${saveStatus === "error" ? "text-red-800" : "text-go-800"}`}>{saveMessage}</p>
+      )}
+      {saveRouteMessage && (
+        <p role="status" className={`text-xs font-medium ${saveRouteStatus === "error" ? "text-red-800" : "text-go-800"}`}>{saveRouteMessage}</p>
+      )}
+    </div>
+  )
+
+  // One option: its card, and (when it is the chosen one) the actions right under it.
+  const renderOption = (route: MultimodalRoute, i: number) => (
+    <div key={route.id} className="space-y-3">
+      <RouteCard route={route} selected={i === selectedIndex} onSelect={() => onSelectRoute(i)} index={i} />
+      {i === selectedIndex && actions}
+    </div>
+  )
+
   return (
     <div className="space-y-4">
       <WeatherBanner weather={weatherReport} />
 
-      {/* Route Journey Summary Header */}
-      <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-3">
-        <div className="flex items-center gap-2 bg-amber-50 rounded-2xl px-3 py-2">
-          <FlaskConical className="w-4 h-4 text-amber-600 flex-shrink-0" />
-          <p className="text-xs text-amber-700 font-medium">
-            TransitSwap Intelligence Engine active. Evaluated multimodal routes with weather, accessibility, Monte Carlo connection risk, and TransitDNA scoring.
-          </p>
-        </div>
-
-        {busAlternativeNote && (
-          <div className="flex items-start gap-2 bg-brand-50 rounded-2xl px-3 py-2">
-            <Bus className="w-4 h-4 text-brand-600 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-brand-700 font-medium">{busAlternativeNote}</p>
-          </div>
-        )}
-
-        <div className="flex items-start gap-3">
-          <div className="mt-1 w-2.5 h-2.5 rounded-full bg-brand-500 ring-2 ring-brand-200 flex-shrink-0" />
-          <div className="min-w-0">
-            <p className="text-xs text-navy-500 font-semibold uppercase tracking-wide">From</p>
-            <p className="text-sm font-medium text-navy-800 truncate">{origin.name}</p>
-          </div>
-        </div>
-        <div className="ml-[5px] border-l-2 border-dashed border-navy-200 h-3" />
-        <div className="flex items-start gap-3">
-          <MapPin className="w-4 h-4 text-danger mt-0.5 flex-shrink-0" />
-          <div className="min-w-0">
-            <p className="text-xs text-navy-500 font-semibold uppercase tracking-wide">To</p>
-            <p className="text-sm font-medium text-navy-800 truncate">{destination.name}</p>
-          </div>
-        </div>
-
-        <div className="pt-2 border-t border-navy-100 flex flex-wrap items-center justify-between gap-3 text-sm">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="font-bold text-brand-700 text-lg">{formatDuration(Math.round(selected.totalDurationSeconds / 60))}</div>
-            <div className="font-bold text-green-700 text-base">Rs {selected.totalFare} est.</div>
-            <div className="text-xs text-navy-500 font-medium">
-              Walk {formatDistance(selected.totalWalkingMeters)} · {selected.transferCount} transfer{selected.transferCount !== 1 ? "s" : ""}
-            </div>
-            {selected.transitDnaScore !== undefined && (
-              <Badge variant="brand" className="font-bold">
-                TransitDNA Match: {selected.transitDnaScore}%
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {onStartNavigation && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => onStartNavigation(selected)}
-                icon={<Navigation className="w-3.5 h-3.5" />}
-              >
-                Start Journey
-              </Button>
-            )}
-            {onSaveRoute && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void onSaveRoute(selected)}
-                loading={saveRouteStatus === "saving"}
-                icon={<Bookmark className="w-3.5 h-3.5" />}
-              >
-                Save Route
-              </Button>
-            )}
-            {onSaveJourney && (
-              <Button
-                size="sm"
-                onClick={() => void onSaveJourney(selected)}
-                loading={saveStatus === "saving"}
-                icon={<Save className="w-3.5 h-3.5" />}
-              >
-                Save Journey
-              </Button>
-            )}
-          </div>
-        </div>
-        {saveMessage && (
-          <p className={`text-xs ${saveStatus === "error" ? "text-danger" : "text-emerald-700"}`}>{saveMessage}</p>
-        )}
-        {saveRouteMessage && (
-          <p className={`text-xs ${saveRouteStatus === "error" ? "text-danger" : "text-emerald-700"}`}>{saveRouteMessage}</p>
-        )}
+      {/* Where from and to, and a reminder that the data is a demonstration */}
+      <div className="flex items-center justify-between gap-3 px-1 text-xs text-navy-600">
+        <p className="min-w-0 truncate">
+          <span className="font-semibold text-navy-800">{origin.name}</span> → <span className="font-semibold text-navy-800">{destination.name}</span>
+        </p>
+        <Badge variant="warning" dot className="flex-shrink-0">Demo data</Badge>
       </div>
+
+      {busAlternativeNote && (
+        <div className="flex items-start gap-2 rounded-panel bg-brand-50 px-3 py-2.5">
+          <Bus className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-700" aria-hidden="true" />
+          <p className="text-xs font-medium text-brand-800">{busAlternativeNote}</p>
+        </div>
+      )}
 
       {/* Accessibility profiles: why this route suits the rider (decided by the profile's own rules) */}
       {selected.profileFit && (
-        <section aria-label="Why this route suits you" className="rounded-3xl border border-teal-200 bg-teal-50 p-4 space-y-2">
-          <div className="flex items-center gap-2 text-sm font-bold text-teal-900">
-            <Sparkles className="w-4 h-4 text-teal-700" aria-hidden="true" />
+        <section aria-label="Why this route suits you" className="space-y-2 rounded-panel border border-go-200 bg-go-50 p-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-go-900">
+            <Sparkles className="h-4 w-4 text-go-700" aria-hidden="true" />
             {selected.profileFit.headline}
           </div>
           <ul className="space-y-1">
             {selected.profileFit.reasons.map((reason) => (
-              <li key={reason} className="text-xs font-medium text-teal-900 flex items-start gap-1.5">
-                <span aria-hidden="true">✓</span>
-                <span>{reason}</span>
+              <li key={reason} className="flex items-start gap-1.5 text-xs font-medium text-go-900">
+                <Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-go-700" aria-hidden="true" />
+                <span>{stripLeadingEmoji(reason)}</span>
               </li>
             ))}
           </ul>
           {selected.profileFit.tips.length > 0 && (
-            <ul className="space-y-1 border-t border-teal-200 pt-2">
+            <ul className="space-y-1 border-t border-go-200 pt-2">
               {selected.profileFit.tips.map((tip) => (
-                <li key={tip} className="text-[11px] text-teal-800">Tip: {tip}</li>
+                <li key={tip} className="text-[11px] text-go-800">Tip: {tip}</li>
               ))}
             </ul>
           )}
@@ -271,15 +244,15 @@ export default function MultimodalResults({
 
       {/* Why Recommended Explainable Box */}
       {!selected.profileFit && selected.whyRecommended && selected.whyRecommended.length > 0 && (
-        <div className="bg-gradient-to-r from-brand-50 via-brand-50 to-indigo-50 rounded-3xl p-4 space-y-2">
+        <div className="space-y-2 rounded-panel bg-brand-50 p-4">
           <div className="flex items-center gap-2 text-sm font-bold text-brand-900">
-            <Sparkles className="w-4 h-4 text-brand-600" />
+            <Sparkles className="h-4 w-4 text-brand-700" aria-hidden="true" />
             Why TransitSwap Recommends This Route
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+          <div className="space-y-1.5 pt-1">
             {selected.whyRecommended.map((reason, idx) => (
-              <p key={idx} className="text-xs font-medium text-brand-800 flex items-start gap-1.5">
-                <span>{reason}</span>
+              <p key={idx} className="flex items-start gap-1.5 text-xs font-medium text-brand-800">
+                <span>{stripLeadingEmoji(reason)}</span>
               </p>
             ))}
           </div>
@@ -289,15 +262,13 @@ export default function MultimodalResults({
       {/* Accessibility profiles: the best route up front, the other suitable options tucked away */}
       {routes.length > 1 && routes[0].profileFit && (
         <div className="space-y-3">
-          <RouteCard route={routes[0]} selected={selectedIndex === 0} onSelect={() => onSelectRoute(0)} index={0} />
-          <details className="rounded-3xl bg-navy-50/60 px-5 py-3" open={selectedIndex > 0 ? true : undefined}>
+          {renderOption(routes[0], 0)}
+          <details className="rounded-panel bg-navy-100/60 px-5 py-3" open={selectedIndex > 0 ? true : undefined}>
             <summary className="cursor-pointer text-sm font-medium text-navy-700">
               Show other suitable options ({routes.length - 1})
             </summary>
             <div className="mt-3 space-y-3">
-              {routes.slice(1).map((route, i) => (
-                <RouteCard key={route.id} route={route} selected={i + 1 === selectedIndex} onSelect={() => onSelectRoute(i + 1)} index={i + 1} />
-              ))}
+              {routes.slice(1).map((route, i) => renderOption(route, i + 1))}
             </div>
           </details>
         </div>
@@ -306,24 +277,25 @@ export default function MultimodalResults({
       {/* Available Routes List */}
       {routes.length > 1 && !routes[0].profileFit && (
         <div>
-          <p className="text-xs font-semibold text-navy-500 uppercase tracking-wider mb-2 px-1">Candidate Journeys Ranked by Preference</p>
+          <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-navy-500">Candidate Journeys Ranked by Preference</p>
           <div className="space-y-3">
-            {routes.map((route, i) => (
-              <RouteCard key={route.id} route={route} selected={i === selectedIndex} onSelect={() => onSelectRoute(i)} index={i} />
-            ))}
+            {routes.map((route, i) => renderOption(route, i))}
           </div>
         </div>
       )}
 
-      {routes.length === 1 && <RouteCard route={selected} selected={true} onSelect={() => {}} index={0} />}
+      {routes.length === 1 && renderOption(routes[0], 0)}
 
-      {/* Reliability & Predictive Intelligence Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Segment Details Timeline */}
+      <SegmentTimeline route={selected} profile={selected.accessibility?.profile} />
+
+      {/* Reliability & Predictive Intelligence */}
+      <div className="grid grid-cols-1 gap-3">
         {/* Confidence Interval Card */}
-        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
-          <div className="flex items-center justify-between">
+        <div className={`${PANEL} space-y-2`}>
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-              <Clock className="w-4 h-4 text-indigo-600" /> Arrival Confidence Interval
+              <Clock className="h-4 w-4 text-brand-700" aria-hidden="true" /> Arrival Confidence Interval
             </div>
             <Badge variant="info">
               {!selected.confidenceInterval
@@ -333,21 +305,21 @@ export default function MultimodalResults({
                 : `${selected.confidenceInterval.confidenceLevelPercent}% Confidence`}
             </Badge>
           </div>
-          <p className="text-lg font-display font-bold text-navy-900">
+          <p className="font-display text-lg font-bold text-navy-900">
             {selected.confidenceInterval
               ? `${selected.confidenceInterval.expectedArrivalMin} – ${selected.confidenceInterval.expectedArrivalMax}`
               : "Arrival estimate unavailable"}
           </p>
-          <p className="text-xs text-navy-500">
+          <p className="text-xs text-navy-600">
             {selected.confidenceInterval?.explanation ?? "Estimated arrival window based on historical segment variance."}
           </p>
         </div>
 
         {/* Missed Connection Risk Card */}
-        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
-          <div className="flex items-center justify-between">
+        <div className={`${PANEL} space-y-2`}>
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-              <Activity className="w-4 h-4 text-amber-600" /> Missed Connection Risk (Monte Carlo)
+              <Activity className="h-4 w-4 text-amber-700" aria-hidden="true" /> Missed Connection Risk (Monte Carlo)
             </div>
             <Badge variant={selected.missedConnectionRisk?.riskLevel === "HIGH" ? "danger" : selected.missedConnectionRisk?.riskLevel === "MEDIUM" ? "warning" : "success"}>
               {selected.missedConnectionRisk?.overallRiskPercent ?? 0}% Risk
@@ -358,9 +330,9 @@ export default function MultimodalResults({
           </p>
 
           {selected.missedConnectionRisk?.transfers && selected.missedConnectionRisk.transfers.length > 0 && (
-            <div className="space-y-1 pt-1 border-t border-navy-100">
+            <div className="space-y-1 border-t border-navy-100 pt-1">
               {selected.missedConnectionRisk.transfers.map((t, idx) => (
-                <div key={idx} className="flex items-center justify-between text-[11px] text-navy-600">
+                <div key={idx} className="flex items-center justify-between gap-2 text-[11px] text-navy-600">
                   <span>Transfer at {t.transferStation} ({t.fromSegmentMode} → {t.toSegmentMode}):</span>
                   <span className="font-semibold">{t.estimatedRiskPercent}% risk</span>
                 </div>
@@ -372,63 +344,63 @@ export default function MultimodalResults({
 
       {/* Smart Departure Suggestion */}
       {selected.departureSuggestion ? (
-        <div className="bg-brand-50 rounded-3xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-brand-600 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-panel bg-brand-50 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-brand-700" aria-hidden="true" />
           <div className="space-y-0.5">
             <p className="text-xs font-bold text-brand-900">Smart Departure Recommendation</p>
             <p className="text-xs text-brand-800">
               Recommended departure: <span className="font-bold">{selected.departureSuggestion.suggestedDepartureTime}</span> (Expected arrival ~{selected.departureSuggestion.expectedArrival}).
             </p>
-            <p className="text-[11px] text-brand-700">{selected.departureSuggestion.reason}</p>
+            <p className="text-[11px] text-brand-800">{selected.departureSuggestion.reason}</p>
             {selected.departureSuggestion.reliabilityGainPercent > 0 && (
-              <p className="text-[11px] text-brand-700">
+              <p className="text-[11px] text-brand-800">
                 Estimated missed-connection risk improvement: {selected.departureSuggestion.reliabilityGainPercent}%
               </p>
             )}
           </div>
         </div>
       ) : (
-        <div className="bg-navy-50 rounded-3xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-navy-400 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-navy-500">
+        <div className="flex items-start gap-3 rounded-panel bg-navy-100/60 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-navy-500" aria-hidden="true" />
+          <p className="text-xs text-navy-600">
             Select a departure time to calculate a smart departure recommendation.
           </p>
         </div>
       )}
 
-      {/* Weather, Accessibility, Crowd Context Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
+      {/* Weather, Accessibility, Crowd Context */}
+      <div className="grid grid-cols-1 gap-3">
+        <div className={`${PANEL} space-y-2`}>
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <CloudSun className="w-4 h-4 text-brand-600" /> Weather Context
+            <CloudSun className="h-4 w-4 text-brand-700" aria-hidden="true" /> Weather Context
           </div>
           {weather ? (
             <>
-              <p className="text-xl font-display font-bold text-navy-900">{weather.temperatureC}°C</p>
-              <p className="text-xs text-navy-500">{weather.condition} · wind {weather.windKph} km/h · rain {weather.rainMm} mm</p>
+              <p className="font-display text-xl font-bold text-navy-900">{weather.temperatureC}°C</p>
+              <p className="text-xs text-navy-600">{weather.condition} · wind {weather.windKph} km/h · rain {weather.rainMm} mm</p>
               <Badge variant={selected.weatherImpact?.level === "high" ? "danger" : selected.weatherImpact?.level === "medium" ? "warning" : "success"}>
                 {selected.weatherImpact?.summary}
               </Badge>
-              <p className="text-[11px] text-navy-400">{weather.source}</p>
+              <p className="text-[11px] text-navy-500">{weather.source}</p>
             </>
           ) : (
-            <p className="text-xs text-navy-500">Weather information temporarily unavailable.</p>
+            <p className="text-xs text-navy-600">Weather information temporarily unavailable.</p>
           )}
         </div>
 
-        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
+        <div className={`${PANEL} space-y-2`}>
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <ShieldCheck className="w-4 h-4 text-brand-600" /> Accessibility Check
+            <ShieldCheck className="h-4 w-4 text-brand-700" aria-hidden="true" /> Accessibility Check
           </div>
           <Badge variant={selected.accessibility?.status === "accessible" ? "success" : selected.accessibility?.status === "not_accessible" ? "danger" : "warning"}>
             {selected.accessibility?.status.replace("_", " ") ?? "unknown"}
           </Badge>
-          <p className="text-xs text-navy-500">{selected.accessibility?.summary}</p>
+          <p className="text-xs text-navy-600">{selected.accessibility?.summary}</p>
           {selected.accessibility && selected.accessibility.warnings.length > 0 && (
-            <ul className="space-y-1 bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-2">
+            <ul className="space-y-1 rounded-control border border-amber-200 bg-amber-50 px-2.5 py-2">
               {selected.accessibility.warnings.map((warning, i) => (
-                <li key={i} className="text-[11px] text-amber-800 flex items-start gap-1.5">
-                  <AlertCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                <li key={i} className="flex items-start gap-1.5 text-[11px] text-amber-800">
+                  <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" aria-hidden="true" />
                   <span>{warning}</span>
                 </li>
               ))}
@@ -436,32 +408,32 @@ export default function MultimodalResults({
           )}
           <div className="space-y-1">
             {checkedStations.slice(0, 3).map((station) => (
-              <p key={station.stationId} className="text-[11px] text-navy-500">
+              <p key={station.stationId} className="text-[11px] text-navy-600">
                 {station.stationName}: {station.status.replace("_", " ")}
               </p>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
+        <div className={`${PANEL} space-y-2`}>
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <Users className="w-4 h-4 text-amber-600" /> Crowd on this route
+            <Users className="h-4 w-4 text-amber-700" aria-hidden="true" /> Crowd on this route
           </div>
           <Badge variant={selected.crowd?.level === "LOW" ? "success" : selected.crowd?.level === "HIGH" ? "danger" : "warning"}>
             {selected.crowd?.level ?? "Unavailable"}
           </Badge>
-          <p className="text-xs text-navy-500">{selected.crowd?.summary}</p>
-          <p className="text-[11px] text-navy-400">{sourceLabel(selected.crowd?.source)}</p>
+          <p className="text-xs text-navy-600">{selected.crowd?.summary}</p>
+          <p className="text-[11px] text-navy-500">{sourceLabel(selected.crowd?.source)}</p>
           <div className="space-y-1">
             {selected.crowd?.legs && selected.crowd.legs.length > 0
               ? selected.crowd.legs.map((leg) => (
-                  <p key={leg.segmentId} className="text-[11px] text-navy-500">
+                  <p key={leg.segmentId} className="text-[11px] text-navy-600">
                     <span className="font-semibold text-navy-700">{leg.label}</span> {leg.from} → {leg.to}:{" "}
                     <span className="font-semibold">{leg.level ?? "unknown"}</span>
                   </p>
                 ))
               : crowdStations.slice(0, 2).map((station) => (
-                  <p key={station.stationId} className="text-[11px] text-navy-500">
+                  <p key={station.stationId} className="text-[11px] text-navy-600">
                     {station.stationName}: {station.crowdLevel ?? "unknown"} ({sourceLabel(station.source)})
                   </p>
                 ))}
@@ -471,23 +443,23 @@ export default function MultimodalResults({
 
       {/* Last-Mile Connectivity Section */}
       {selected.lastMileOptions && selected.lastMileOptions.length > 0 && (
-        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-2">
+        <div className={`${PANEL} space-y-2`}>
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <Compass className="w-4 h-4 text-brand-600" /> Last-Mile Connectivity Options
+            <Compass className="h-4 w-4 text-brand-700" aria-hidden="true" /> Last-Mile Connectivity Options
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+          <div className="grid grid-cols-1 gap-2 pt-1">
             {selected.lastMileOptions.map((opt, idx) => (
               <div
                 key={idx}
-                className={`p-3 rounded-xl border ${
-                  opt.isRecommended ? "border-brand-300 bg-brand-50" : "border-navy-200 bg-navy-50/50"
+                className={`rounded-control border p-3 ${
+                  opt.isRecommended ? "border-brand-300 bg-brand-50" : "border-navy-200 bg-navy-50/60"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
+                <div className="mb-1 flex items-center justify-between">
                   <span className="text-xs font-bold uppercase text-navy-800">{opt.mode}</span>
                   {opt.isRecommended && <Badge variant="brand">Recommended</Badge>}
                 </div>
-                <p className="text-xs text-navy-600 font-medium">{opt.instruction}</p>
+                <p className="text-xs font-medium text-navy-700">{opt.instruction}</p>
               </div>
             ))}
           </div>
@@ -496,29 +468,29 @@ export default function MultimodalResults({
 
       {/* User Reporting Section */}
       {reportStation && (
-        <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-3">
+        <div className={`${PANEL} space-y-3`}>
           <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <Database className="w-4 h-4 text-navy-500" /> Submit User Feedback / Crowd Report for {reportStation.from.name}
+            <Database className="h-4 w-4 text-navy-500" aria-hidden="true" /> Submit User Feedback / Crowd Report for {reportStation.from.name}
           </div>
           {reportStationId ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+            <div className="grid grid-cols-1 items-start gap-4">
               <div className="space-y-2">
-                <p id="crowd-report-label" className="text-xs font-semibold text-navy-500">How crowded is it?</p>
+                <p id="crowd-report-label" className="text-xs font-semibold text-navy-600">How crowded is it?</p>
                 <div role="group" aria-labelledby="crowd-report-label" className="grid grid-cols-3 gap-1.5">
                   {CROWD_OPTIONS.map((opt) => {
                     const Icon = opt.icon
-                    const selected = crowdLevel === opt.value
+                    const isChosen = crowdLevel === opt.value
                     return (
                       <button
                         key={opt.value}
                         type="button"
-                        aria-pressed={selected}
+                        aria-pressed={isChosen}
                         onClick={() => setCrowdLevel(opt.value)}
-                        className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-center transition-all ${
-                          selected ? "bg-brand-500 text-white shadow-card" : "bg-navy-50 text-navy-600 hover:bg-navy-100"
+                        className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-control px-2 py-2.5 text-center transition-colors ${
+                          isChosen ? "bg-brand-500 text-white shadow-card" : "bg-navy-100 text-navy-700 hover:bg-navy-200"
                         }`}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className="h-4 w-4" aria-hidden="true" />
                         <span className="text-[10px] font-semibold leading-tight">{opt.label}</span>
                       </button>
                     )
@@ -527,14 +499,14 @@ export default function MultimodalResults({
                 <Button size="sm" variant="outline" fullWidth onClick={() => void submitCrowdReport()}>Report</Button>
               </div>
               <div className="space-y-2">
-                <label htmlFor="accessibility-issue" className="block text-xs font-semibold text-navy-500">
+                <label htmlFor="accessibility-issue" className="block text-xs font-semibold text-navy-600">
                   Report an accessibility issue
                 </label>
                 <select
                   id="accessibility-issue"
                   value={accessibilityIssue}
                   onChange={(event) => setAccessibilityIssue(event.target.value)}
-                  className="w-full rounded-xl border border-navy-200 bg-navy-50 px-3 py-2 text-sm"
+                  className="min-h-11 w-full rounded-control border border-navy-200 bg-white px-3 py-2 text-sm text-navy-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25"
                 >
                   <option value="lift_unavailable">Lift unavailable</option>
                   <option value="ramp_blocked">Ramp blocked</option>
@@ -542,27 +514,24 @@ export default function MultimodalResults({
                   <option value="stairs_issue">Stairs issue</option>
                   <option value="other">Other issue</option>
                 </select>
-                <Button size="sm" variant="outline" fullWidth icon={<ShieldAlert className="w-3.5 h-3.5" />} onClick={() => void submitAccessibilityReport()}>
+                <Button size="sm" variant="outline" fullWidth icon={<ShieldAlert className="h-3.5 w-3.5" />} onClick={() => void submitAccessibilityReport()}>
                   Report issue
                 </Button>
               </div>
             </div>
           ) : (
-            <p className="text-xs text-navy-500">
+            <p className="text-xs text-navy-600">
               This station is currently using demo station context. Reports are saved locally for evaluation.
             </p>
           )}
-          {reportMessage && <p className="text-xs text-emerald-700 font-medium">{reportMessage}</p>}
-          {reportError && <p className="text-xs text-danger font-medium">{reportError}</p>}
+          {reportMessage && <p className="text-xs font-medium text-go-800">{reportMessage}</p>}
+          {reportError && <p className="text-xs font-medium text-red-800">{reportError}</p>}
         </div>
       )}
 
-      {/* Segment Details Timeline */}
-      <SegmentTimeline route={selected} profile={selected.accessibility?.profile} />
-
-      <p className="text-xs text-navy-400 text-center flex items-center justify-center gap-1.5 pt-2">
-        <Navigation className="w-3.5 h-3.5 text-brand-500" />
-        TransitSwap Intelligence Engine active: Multimodal routing, TransitDNA, Weather, Accessibility, Monte Carlo transfer risk, & Confidence Intervals.
+      <p className="flex items-center justify-center gap-1.5 pt-2 text-center text-xs text-navy-500">
+        <Navigation className="h-3.5 w-3.5 flex-shrink-0 text-brand-600" aria-hidden="true" />
+        TransitSwap Intelligence Engine active: Multimodal routing, TransitDNA, Weather, Accessibility, Monte Carlo transfer risk, &amp; Confidence Intervals.
       </p>
     </div>
   )

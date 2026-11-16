@@ -34,6 +34,9 @@ const VIEWPORTS = ALL_VIEWPORTS.filter((v) => WANTED.includes(v.name))
 const STATIONS = {
   whitefield: { name: "Whitefield Metro Station", address: "Whitefield, Bengaluru, Karnataka, India", latitude: 12.9698, longitude: 77.75 },
   baiyappanahalli: { name: "Baiyappanahalli Metro Station", address: "Baiyappanahalli, Bengaluru, Karnataka, India", latitude: 12.9906, longitude: 77.653 },
+  // A trip with bus options (Silk Board to Majestic), used by the "bus" and "wheelchair in rain" results screens.
+  silkBoard: { name: "Silk Board Junction", address: "Silk Board, Bengaluru, Karnataka, India", latitude: 12.9172, longitude: 77.6232 },
+  majestic: { name: "Majestic Kempegowda Bus Station", address: "Majestic, Bengaluru, Karnataka, India", latitude: 12.9767, longitude: 77.5713 },
 }
 
 type Finding = { screen: string; viewport: string; violations: Array<{ id: string; impact: string | null; nodes: number; targets?: string[]; detail?: string }>; overflowX: boolean; error?: string }
@@ -47,7 +50,31 @@ async function settle(page: Page) {
 
 // `reveal`: scroll down the whole page first, so sections that fade in only once scrolled into view (the Landing page)
 // are visible in the screenshot and in the accessibility scan, not just the part above the fold.
-async function capture(page: Page, vp: string, screen: string, reveal = false) {
+// `expandPlanner`: the journey panel scrolls inside itself, so a screenshot would show only its first screen. For the results
+// screens, the panel (and the page around it) is stretched to its full height first, so the whole list is captured.
+async function capture(page: Page, vp: string, screen: string, reveal = false, expandPlanner = false) {
+  if (expandPlanner) {
+    // The original styles are kept and put back after the capture, so the test can carry on using the page normally
+    // (a stretched panel, left in place, lets the map sit over the form and swallow the next click).
+    await page.evaluate(() => {
+      const aside = document.querySelector('aside[aria-label="Journey planner"]') as HTMLElement | null
+      if (!aside) return
+      const scroller = aside.lastElementChild as HTMLElement
+      const wrapper = aside.parentElement as HTMLElement
+      const map = wrapper.querySelector("section[aria-label=Map]") as HTMLElement
+      const els = [aside, scroller, wrapper, map]
+      ;(window as unknown as { __planner?: unknown }).__planner = { els, saved: els.map((el) => el.getAttribute("style")) }
+      scroller.style.overflow = "visible"
+      scroller.style.height = "auto"
+      aside.style.height = "auto"
+      aside.style.overflow = "visible"
+      aside.style.position = "static"
+      wrapper.style.height = "auto"
+      // On a phone the map would paint over the stretched panel; it is hidden for the picture (and put back afterwards).
+      if (window.innerWidth < 1024) map.style.display = "none"
+    })
+    await page.waitForTimeout(300)
+  }
   if (reveal) {
     const height = await page.evaluate(() => document.documentElement.scrollHeight)
     for (let y = 0; y <= height; y += 400) {
@@ -80,6 +107,12 @@ async function capture(page: Page, vp: string, screen: string, reveal = false) {
   }
   finding.overflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
   results.push(finding)
+  if (expandPlanner) {
+    await page.evaluate(() => {
+      const s = (window as unknown as { __planner?: { els: HTMLElement[]; saved: Array<string | null> } }).__planner
+      s?.els.forEach((el, i) => (s.saved[i] === null ? el.removeAttribute("style") : el.setAttribute("style", s.saved[i] as string)))
+    })
+  }
 }
 
 async function api(page: Page, pathname: string, body: unknown, token?: string) {
@@ -103,7 +136,8 @@ test("screenshots and accessibility of every screen", async ({ page }) => {
   // Place search is answered locally (the same single mocked boundary as e2e/happy-path.spec.ts).
   await page.route("**/api/geocoding/search**", async (route) => {
     const q = (new URL(route.request().url()).searchParams.get("q") ?? "").toLowerCase()
-    await route.fulfill({ json: { success: true, data: [q.includes("baiyappanahalli") ? STATIONS.baiyappanahalli : STATIONS.whitefield] } })
+    const place = q.includes("baiyappanahalli") ? STATIONS.baiyappanahalli : q.includes("silk") ? STATIONS.silkBoard : q.includes("majestic") ? STATIONS.majestic : STATIONS.whitefield
+    await route.fulfill({ json: { success: true, data: [place] } })
   })
 
   const stamp = Date.now()
@@ -159,6 +193,30 @@ test("screenshots and accessibility of every screen", async ({ page }) => {
       await capture(page, vp.name, "navigation-simulating")
       await page.getByRole("button", { name: "Exit navigation" }).click()
     }
+
+    // ── More results: a trip with buses (with a departure time, so boarding and arrival times show), and the same trip as a
+    //    wheelchair user in demo rain (a best option with reasons, the other options, the stops). The step-by-step journey is
+    //    opened in both. ──
+    await page.goto("/plan")
+    await pickPlace(page, "Search start location…", "Silk Board")
+    await pickPlace(page, "Search destination…", "Majestic")
+    await page.getByRole("button", { name: "Depart at" }).click()
+    await page.getByLabel("Date").fill("2026-11-17")
+    await page.getByLabel("Time").fill("14:30")
+    await page.getByRole("button", { name: "Find Routes" }).click()
+    await expect(page.getByText("Route 1", { exact: true })).toBeVisible({ timeout: 30_000 })
+    await page.getByRole("button", { name: /Step-by-step journey/ }).click()
+    await capture(page, vp.name, "plan-results-bus", false, true)
+
+    await page.getByRole("button", { name: "Wheelchair" }).click()
+    await page.getByRole("button", { name: /Demo options/ }).click()
+    await page.getByRole("button", { name: "Rain", exact: true }).click()
+    await page.getByRole("button", { name: "Find Routes" }).click()
+    await expect(page.getByRole("region", { name: "Why this route suits you" })).toBeVisible({ timeout: 30_000 })
+    const others = page.getByText(/Show other suitable options/)
+    if (await others.count()) await others.click()
+    await page.getByRole("button", { name: /Step-by-step journey/ }).click()
+    await capture(page, vp.name, "plan-results-wheelchair-rain", false, true)
 
     for (const [screen, url] of [["history", "/history"], ["saved-routes", "/saved-routes"], ["profile", "/profile"], ["research", "/research"]] as const) {
       await page.goto(url)
