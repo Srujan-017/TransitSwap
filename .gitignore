@@ -19,3 +19,6 @@ blob-report/
 
 # Phase 12 — Claude Code session-local tooling state (not project source)
 .claude/scheduled_tasks.lock
+
+# UI redesign — per-phase audit screenshots stay local (the "before" baseline is committed; results.json always is)
+docs/ui-redesign/phase-*/*.png
