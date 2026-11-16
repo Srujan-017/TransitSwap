@@ -125,9 +125,10 @@ describe("ActiveNavigationView", () => {
     expect(screen.getByRole("group", { name: "Simulation controls" })).toBeInTheDocument()
 
     const seen = new Set<string>()
-    for (let tick = 0; tick < 400 && !screen.queryByRole("button", { name: "Done" }); tick++) {
+    // (Plain DOM lookups in this loop: a role query on every one of up to 400 ticks is slow enough to hit the test timeout.)
+    for (let tick = 0; tick < 400 && document.querySelector('[data-icon="check"]') === null; tick++) {
       act(() => { vi.advanceTimersByTime(500) })
-      const primary = screen.queryByTestId("guidance-primary")
+      const primary = document.querySelector('[data-testid="guidance-primary"]')
       if (primary?.textContent) seen.add(primary.textContent)
     }
     expect(screen.getByText("You have arrived at Home")).toBeInTheDocument()
@@ -137,7 +138,7 @@ describe("ActiveNavigationView", () => {
     expect([...seen].some((s) => /^Ride to Home/.test(s))).toBe(true)
     fireEvent.click(screen.getByRole("button", { name: "Done" }))
     expect(onExit).toHaveBeenCalled()
-  })
+  }, 30_000)
 
   it("speed buttons change the simulation speed", () => {
     vi.useFakeTimers()

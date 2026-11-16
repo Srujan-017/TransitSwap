@@ -54,6 +54,8 @@ export const TIMES = [
   { id: "weekday 08:30", at: "2026-11-16T08:30" },
   { id: "weekday 14:30", at: "2026-11-16T14:30" },
   { id: "weekday 22:00", at: "2026-11-16T22:00" },
+  { id: "weekday 23:30", at: "2026-11-16T23:30" }, // the metro has stopped
+  { id: "saturday 11:00", at: "2026-11-14T11:00" },
 ]
 export const PROFILES = ["wheelchair", "senior", "pregnant", "stroller", "luggage", "reduced_mobility", "standard"] as const
 
@@ -72,10 +74,37 @@ const weatherArg = process.argv.indexOf("--weather")
 const WEATHER = (weatherArg >= 0 ? process.argv[weatherArg + 1] : undefined) as "clear" | "rain" | "heavy_rain" | "heat" | undefined
 const BAD_WEATHER = WEATHER === "rain" || WEATHER === "heavy_rain" || WEATHER === "heat"
 
-export function checkRoute(route: MultimodalRoute & { crowd?: { legs?: Array<{ segmentId: string; mode: string; level?: string }> } }, profile: string): string[] {
+// Facts that must hold for EVERY route, whatever the profile: it is one connected journey from the origin to the
+// destination, with sensible totals.
+export function checkIntegrity(route: MultimodalRoute, from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }): string[] {
+  const problems: string[] = []
+  const near = (a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) => haversine(a.latitude, a.longitude, b.latitude, b.longitude)
+  const segs = route.segments
+  if (segs.length === 0) return ["no segments"]
+  if (near(segs[0].from, from) > 60) problems.push("does not start at the origin")
+  if (near(segs[segs.length - 1].to, to) > 60) problems.push("does not end at the destination")
+  for (let i = 0; i < segs.length - 1; i++) if (near(segs[i].to, segs[i + 1].from) > 60) problems.push(`gap between leg ${i + 1} and ${i + 2}`)
+  if (!(route.totalDurationSeconds > 0) || !(route.totalDistanceMeters > 0) || route.totalFare < 0) problems.push("bad totals")
+  if (Math.abs(route.totalDurationSeconds - segs.reduce((n, s) => n + s.durationSeconds, 0)) > 2) problems.push("duration is not the sum of the legs")
+  return problems
+}
+
+export function checkRoute(route: MultimodalRoute & { crowd?: { legs?: Array<{ segmentId: string; mode: string; level?: string }> } }, profile: string, departureAt?: string): string[] {
   const rule = RULES[profile] ?? (BAD_WEATHER ? { maxWalkTotal: Infinity, maxWalkLeg: Infinity, bus: "any" as const, highMetro: true } : undefined)
   if (!rule) return []
   const problems: string[] = []
+  // The metro runs about 05:00-23:00: no accessibility profile is sent onto it outside those hours.
+  if (RULES[profile] && departureAt) {
+    let elapsed = 0
+    for (const seg of route.segments) {
+      if (seg.mode === "metro") {
+        const boarding = new Date(new Date(departureAt).getTime() + elapsed * 1000)
+        const minute = boarding.getHours() * 60 + boarding.getMinutes()
+        if (minute < 5 * 60 || minute >= 23 * 60) problems.push(`metro boarded at ${boarding.getHours()}:${String(boarding.getMinutes()).padStart(2, "0")}`)
+      }
+      elapsed += seg.durationSeconds
+    }
+  }
   const legs = route.crowd?.legs ?? []
   const walks = route.segments.filter((s) => s.mode === "walking")
   const total = walks.reduce((n, s) => n + s.distanceMeters, 0)
@@ -127,7 +156,14 @@ async function main() {
           cell.excluded = plan.excludedRoutes.length
           const best = plan.rankedRoutes[0] as unknown as MultimodalRoute
           cell.best = summarise(best as never)
-          cell.violations = checkRoute(best as never, profile)
+          // Every route shown (not only the best) must obey the rules and be a sound journey.
+          cell.violations = []
+          plan.rankedRoutes.forEach((route, index) => {
+            const label = index === 0 ? "" : `option ${index + 1}: `
+            for (const p of checkRoute(route as never, profile, time.at)) cell.violations.push(label + p)
+            for (const p of checkIntegrity(route as unknown as MultimodalRoute, trip.from, trip.to)) cell.violations.push(label + p)
+          })
+          if (RULES[profile] && plan.rankedRoutes.length > 3) cell.violations.push(`${plan.rankedRoutes.length} routes returned (at most 3 for an accessibility profile)`)
           if (BAD_WEATHER) {
             // The weather rule holds for every route shown, not only the best one.
             for (const other of plan.rankedRoutes.slice(1)) {

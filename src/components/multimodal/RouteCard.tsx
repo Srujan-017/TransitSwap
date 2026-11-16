@@ -19,8 +19,8 @@ const MODE_LABEL: Record<MultimodalMode, string> = {
 const MODE_BG: Record<MultimodalMode, string> = {
   walking: "bg-slate-100 text-slate-600",
   metro: "bg-blue-100 text-blue-700",
-  bus: "bg-green-100 text-green-700",
-  auto: "bg-orange-100 text-orange-700",
+  bus: "bg-green-100 text-green-800",
+  auto: "bg-orange-100 text-orange-800",
 }
 
 // Matches the solid leg colors MapView.tsx draws on the route polyline
@@ -54,10 +54,8 @@ function BusLeg({ seg, crowd }: { seg: RouteSegment; crowd?: LegCrowd }) {
   const stops = d.stopCount === 1 ? "1 stop" : `${d.stopCount} stops`
   return (
     <div className="flex items-start gap-3 rounded-2xl bg-green-50 px-3 py-2.5">
-      <span
-        className="mt-0.5 inline-flex h-8 min-w-[2.75rem] items-center justify-center rounded-lg bg-green-700 px-2 text-sm font-bold text-white"
-        aria-label={`Bus number ${d.routeNumber}`}
-      >
+      <span className="mt-0.5 inline-flex h-8 min-w-[2.75rem] items-center justify-center rounded-lg bg-green-700 px-2 text-sm font-bold text-white">
+        <span className="sr-only">Bus number </span>
         {d.routeNumber}
       </span>
       <div className="min-w-0 flex-1 space-y-0.5 text-xs text-navy-700">

@@ -104,6 +104,14 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
             <p className="mt-1 text-base font-semibold leading-snug" data-testid="guidance-primary">{guidance.primary}</p>
             {guidance.secondary && <p className="text-sm text-white/80" data-testid="guidance-secondary">{guidance.secondary}</p>}
           </div>
+          <button
+            type="button"
+            onClick={onExit}
+            aria-label="Exit navigation"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center self-start rounded-full bg-white/10 hover:bg-white/20"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
         </div>
         {session.rerouteError && <p role="alert" className="mt-2 rounded-xl bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-900">{session.rerouteError}</p>}
       </section>
@@ -190,7 +198,6 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
               ) : (
                 <Button variant="secondary" size="sm" onClick={simulation.start} icon={<Play className="h-4 w-4" />}>Simulate journey (demo)</Button>
               )}
-              <Button variant="ghost" size="sm" onClick={onExit} icon={<X className="h-4 w-4" />}>Exit navigation</Button>
             </div>
 
             {simulation.running && (
@@ -202,7 +209,7 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
                     type="button"
                     aria-pressed={simulation.speed === speed}
                     onClick={() => simulation.setSpeed(speed)}
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${simulation.speed === speed ? "bg-amber-600 text-white" : "bg-white text-amber-900 hover:bg-amber-100"}`}
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${simulation.speed === speed ? "bg-amber-800 text-white" : "bg-white text-amber-900 hover:bg-amber-100"}`}
                   >
                     {speed}×
                   </button>
@@ -215,10 +222,13 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
               </div>
             )}
 
-            <p className="text-[11px] leading-snug text-navy-500">
-              Bus and metro positions are not tracked live — bus times come from the demo timetable. A website can only follow your
-              location while this screen is open{wake.supported ? (wake.held ? " (your screen is kept on)" : "") : " (your browser cannot keep the screen on)"}.
-            </p>
+            <details className="text-[11px] leading-snug text-navy-600">
+              <summary className="cursor-pointer font-semibold">About live tracking</summary>
+              <p className="mt-1">
+                Bus and metro positions are not tracked live — bus times come from the demo timetable. A website can only follow your
+                location while this screen is open{wake.supported ? (wake.held ? " (your screen is kept on)" : "") : " (your browser cannot keep the screen on)"}.
+              </p>
+            </details>
           </>
         )}
       </section>

@@ -34,7 +34,8 @@ function route(withTimes: boolean): MultimodalRoute {
 describe("RouteCard bus leg", () => {
   it("shows the number, direction, boarding, next buses, get-off stop, arrival and crowd", () => {
     render(<RouteCard route={route(true)} selected={false} onSelect={() => {}} index={0} />)
-    expect(screen.getByLabelText("Bus number 356")).toBeInTheDocument()
+    expect(screen.getByText("Bus number")).toBeInTheDocument() // read out by screen readers before the number
+    expect(screen.getAllByText("356").length).toBeGreaterThan(0)
     expect(screen.getByText("Towards Kempegowda Bus Station")).toBeInTheDocument()
     expect(screen.getByText(/at ~8:36 AM/)).toBeInTheDocument()
     expect(screen.getByText(/next ~8:41 AM, ~8:46 AM/)).toBeInTheDocument()
@@ -56,6 +57,6 @@ describe("RouteCard bus leg", () => {
     r.segments = r.segments.filter((s) => s.mode !== "bus")
     r.crowd = undefined
     render(<RouteCard route={r} selected={false} onSelect={() => {}} index={0} />)
-    expect(screen.queryByLabelText(/Bus number/)).toBeNull()
+    expect(screen.queryByText(/Bus number/)).toBeNull()
   })
 })

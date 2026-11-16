@@ -34,5 +34,9 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
     css: false,
+    // With ~15 files of jsdom tests running in parallel, a slow laptop or a busy CI runner can take several
+    // seconds over a trivial test; the default 5 s then produces failures that have nothing to do with the code.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
   },
 })

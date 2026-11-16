@@ -138,7 +138,9 @@ function SegmentRow({ seg, profile, crowd }: { seg: RouteSegment; profile?: stri
         <span>{formatDistance(seg.distanceMeters)}</span>
         {seg.estimatedFare > 0 && <span>₹{seg.estimatedFare} est.</span>}
         {seg.transitDetails && (
-          <span className="font-medium" style={{ color: seg.transitDetails.lineColor }}>
+          // The line's own colour is a dot, not the text colour: yellow and green lines fail 4.5:1 as text on these cards.
+          <span className="inline-flex items-center gap-1.5 font-medium text-navy-700">
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: seg.transitDetails.lineColor }} aria-hidden="true" />
             {seg.transitDetails.lineName}
           </span>
         )}
