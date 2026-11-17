@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { User, Shield, Settings, CheckCircle, AlertTriangle, RefreshCw, Dna } from "lucide-react"
+import { User, Shield, CheckCircle2, AlertTriangle, RefreshCw, Dna } from "lucide-react"
 import { useAuthContext } from "../context/AuthContext"
 import { intelligenceService } from "../services/intelligenceService"
 import Card from "../components/ui/Card"
@@ -7,6 +7,9 @@ import Button from "../components/ui/Button"
 import Badge from "../components/ui/Badge"
 import ProfileIcon from "../components/ui/ProfileIcon"
 import ModeIcon from "../components/ui/ModeIcon"
+import PageHeader from "../components/ui/PageHeader"
+import Avatar from "../components/ui/Avatar"
+import WeightBar from "../components/ui/WeightBar"
 import type { AccessibilityProfile, UserPreferences } from "../types"
 
 const PROFILES = [
@@ -50,6 +53,10 @@ const PRIORITIZE_OPTIONS: Array<{ id: UserPreferences["prioritize"]; label: stri
   { id: "comfort", label: "Comfort" },
   { id: "accessibility", label: "Accessibility" },
 ]
+
+// A selectable option: filled brand blue with white text when chosen, a quiet outlined tile otherwise.
+const optionLook = (on: boolean) =>
+  `relative transition-colors ${on ? "bg-brand-500 text-white shadow-card" : "bg-navy-50 text-navy-800 ring-1 ring-inset ring-navy-200 hover:bg-navy-100"}`
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuthContext()
@@ -153,56 +160,51 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-navy-900">Profile & Mobility Preferences</h1>
-        <p className="text-navy-500 text-sm mt-1">
-          Personalize your TransitSwap travel profile and manage your adaptive TransitDNA learned weights.
-        </p>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <PageHeader
+        eyebrow="Your account"
+        title="Profile & Mobility Preferences"
+        subtitle="Personalize your TransitSwap travel profile and manage your adaptive TransitDNA learned weights."
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Sidebar */}
         <div className="space-y-4">
           <Card className="text-center">
-            <div className="w-20 h-20 rounded-full bg-brand-500 flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-display font-bold text-3xl">
-                {form.name.charAt(0)}
-              </span>
-            </div>
-            <p className="font-display font-bold text-navy-900">{form.name}</p>
-            <p className="text-xs text-navy-500 mt-0.5">{form.email}</p>
+            <Avatar name={form.name || "Commuter"} size="lg" className="mx-auto !h-20 !w-20 !text-3xl" />
+            <p className="mt-4 font-display font-bold text-navy-900">{form.name}</p>
+            <p className="mt-0.5 break-all text-sm text-navy-600">{form.email}</p>
             <div className="mt-3 flex items-center justify-center gap-2">
               <Badge variant="info">
-                <ProfileIcon id={form.accessibilityProfile} className="w-3.5 h-3.5" />
+                <ProfileIcon id={form.accessibilityProfile} className="h-3.5 w-3.5" />
                 {PROFILES.find((p) => p.id === form.accessibilityProfile)?.label}
               </Badge>
             </div>
           </Card>
 
           {/* TransitDNA Status & Weights */}
-          <Card className="bg-brand-50 border-brand-100 space-y-3">
+          <Card className="space-y-3 border-brand-100 bg-brand-50">
             <div className="flex items-center gap-2">
-              <Dna className="w-5 h-5 text-brand-600" />
-              <p className="font-display font-bold text-brand-900 text-sm">TransitDNA Learned Weights</p>
+              <Dna className="h-5 w-5 text-brand-700" aria-hidden="true" />
+              <h2 className="font-display text-sm font-bold text-brand-900">TransitDNA Learned Weights</h2>
             </div>
-            <p className="text-xs text-brand-700 leading-relaxed">
+            <p className="text-sm leading-relaxed text-brand-900">
               Dynamically refined based on your actual choices and journey feedback.
             </p>
-            <div className="space-y-1.5 text-xs text-brand-900 font-medium pt-1 border-t border-brand-200">
-              <div className="flex justify-between"><span>Speed:</span><span>{Math.round(weights.time * 100)}%</span></div>
-              <div className="flex justify-between"><span>Cost:</span><span>{Math.round(weights.cost * 100)}%</span></div>
-              <div className="flex justify-between"><span>Walking:</span><span>{Math.round(weights.walking * 100)}%</span></div>
-              <div className="flex justify-between"><span>Reliability:</span><span>{Math.round(weights.reliability * 100)}%</span></div>
-              <div className="flex justify-between"><span>Accessibility:</span><span>{Math.round(weights.accessibility * 100)}%</span></div>
+            <div className="space-y-3 border-t border-brand-100 pt-3">
+              <WeightBar label="Speed" value={weights.time} barClass="bg-brand-500" />
+              <WeightBar label="Cost" value={weights.cost} barClass="bg-go-600" />
+              <WeightBar label="Walking" value={weights.walking} barClass="bg-bus-600" />
+              <WeightBar label="Reliability" value={weights.reliability} barClass="bg-navy-700" />
+              <WeightBar label="Accessibility" value={weights.accessibility} barClass="bg-auto-500" />
             </div>
 
             <Button
               size="sm"
               variant="outline"
-              className="w-full mt-2"
+              className="mt-2 w-full"
               loading={resetting}
-              icon={<RefreshCw className="w-3.5 h-3.5" />}
+              icon={<RefreshCw className="h-3.5 w-3.5" />}
               onClick={() => void handleResetDna()}
             >
               Reset Learned Weights
@@ -211,10 +213,10 @@ export default function ProfilePage() {
         </div>
 
         {/* Main Form */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-4 flex items-center gap-2">
-              <User className="w-4.5 h-4.5 text-brand-500" /> Personal Information
+            <h2 className="mb-4 flex items-center gap-2 font-display font-semibold text-navy-900">
+              <User className="h-5 w-5 text-brand-600" aria-hidden="true" /> Personal Information
             </h2>
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -224,7 +226,7 @@ export default function ProfilePage() {
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-2xl border border-transparent bg-navy-50/70 text-sm text-navy-900 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:bg-white transition-all"
+                  className="min-h-11 w-full rounded-control border border-navy-200 bg-white px-4 py-2.5 text-sm text-navy-900 transition-colors hover:border-navy-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25"
                 />
               </div>
               <div className="space-y-1.5">
@@ -234,138 +236,133 @@ export default function ProfilePage() {
                   type="email"
                   value={form.email}
                   readOnly
-                  className="w-full px-4 py-2.5 rounded-2xl border border-transparent bg-navy-100 text-sm text-navy-600 cursor-not-allowed"
+                  aria-describedby="profile-email-note"
+                  className="min-h-11 w-full cursor-not-allowed rounded-control border border-navy-100 bg-navy-100 px-4 py-2.5 text-sm text-navy-700"
                 />
+                <p id="profile-email-note" className="text-xs text-navy-600">Your email is your sign-in and cannot be changed here.</p>
               </div>
             </div>
           </Card>
 
           {/* Accessibility Profile */}
           <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-1 flex items-center gap-2">
-              <Shield className="w-4.5 h-4.5 text-brand-500" /> Accessibility Profile
+            <h2 className="mb-1 flex items-center gap-2 font-display font-semibold text-navy-900">
+              <Shield className="h-5 w-5 text-brand-600" aria-hidden="true" /> Accessibility Profile
             </h2>
-            <p className="text-xs text-navy-500 mb-4">
+            <p className="mb-4 text-sm text-navy-600">
               Routes violating your mobility constraints will be strictly filtered out.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {PROFILES.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setForm((f) => ({ ...f, accessibilityProfile: p.id as AccessibilityProfile }))}
-                  className={`flex flex-col items-start gap-1 p-3.5 rounded-2xl text-left transition-all ${
-                    form.accessibilityProfile === p.id
-                      ? "bg-brand-500 shadow-card"
-                      : "bg-navy-50 hover:bg-navy-100"
-                  }`}
-                >
-                  <ProfileIcon id={p.id} className={`w-6 h-6 ${form.accessibilityProfile === p.id ? "text-white" : "text-navy-700"}`} />
-                  <span className={`text-sm font-semibold font-display ${form.accessibilityProfile === p.id ? "text-white" : "text-navy-800"}`}>
-                    {p.label}
-                  </span>
-                  <span className={`text-xs ${form.accessibilityProfile === p.id ? "text-white" : "text-navy-500"}`}>{p.desc}</span>
-                </button>
-              ))}
+            <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 sm:grid-cols-3">
+              {PROFILES.map((p) => {
+                const on = form.accessibilityProfile === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setForm((f) => ({ ...f, accessibilityProfile: p.id as AccessibilityProfile }))}
+                    className={`flex min-h-24 flex-col items-start gap-1 rounded-panel p-3.5 text-left ${optionLook(on)}`}
+                  >
+                    {on && <CheckCircle2 className="absolute right-2.5 top-2.5 h-4 w-4 text-white" aria-hidden="true" />}
+                    <ProfileIcon id={p.id} className={`h-6 w-6 ${on ? "text-white" : "text-navy-700"}`} />
+                    <span className="font-display text-sm font-semibold">{p.label}</span>
+                    <span className={`text-xs ${on ? "text-white" : "text-navy-600"}`}>{p.desc}</span>
+                  </button>
+                )
+              })}
             </div>
           </Card>
 
           {/* Travel Preferences */}
           <Card>
-            <h2 className="font-display font-semibold text-navy-900 mb-4">Travel Preferences</h2>
-            <div className="space-y-5">
-              <div>
-                <label className="text-sm font-medium text-navy-700 block mb-2.5">Preferred Transport Mode</label>
+            <h2 className="mb-4 font-display font-semibold text-navy-900">Travel Preferences</h2>
+            <div className="divide-y divide-navy-100">
+              <fieldset className="pb-5">
+                <legend className="mb-2.5 text-sm font-medium text-navy-700">Preferred Transport Mode</legend>
                 <div className="flex flex-wrap gap-2">
                   {TRANSPORT_MODES.map((m) => (
                     <button
                       key={m.id}
+                      type="button"
+                      aria-pressed={form.preferredMode === m.id}
                       onClick={() => setForm((f) => ({ ...f, preferredMode: m.id }))}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        form.preferredMode === m.id
-                          ? "bg-brand-500 text-white shadow-card"
-                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
-                      }`}
+                      className={`flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ${optionLook(form.preferredMode === m.id)}`}
                     >
-                      <ModeIcon mode={m.id} className="w-4 h-4" /> {m.label}
+                      <ModeIcon mode={m.id} className="h-4 w-4" /> {m.label}
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
 
-              <div>
-                <label className="text-sm font-medium text-navy-700 block mb-2.5">Walking Tolerance</label>
-                <div className="flex gap-2">
+              <fieldset className="py-5">
+                <legend className="mb-2.5 text-sm font-medium text-navy-700">Walking Tolerance</legend>
+                <div className="grid grid-cols-3 gap-2">
                   {WALK_TOLERANCE.map((w) => (
                     <button
                       key={w.id}
+                      type="button"
+                      aria-pressed={form.walkingTolerance === w.id}
                       onClick={() => setForm((f) => ({ ...f, walkingTolerance: w.id }))}
-                      className={`flex flex-col px-4 py-2.5 rounded-2xl text-sm transition-all flex-1 text-center ${
-                        form.walkingTolerance === w.id
-                          ? "bg-brand-500 text-white shadow-card"
-                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
-                      }`}
+                      className={`flex min-h-14 flex-col items-center justify-center rounded-panel px-2 py-2.5 text-center text-sm ${optionLook(form.walkingTolerance === w.id)}`}
                     >
                       <span className="font-semibold">{w.label}</span>
-                      <span className={`text-xs mt-0.5 ${form.walkingTolerance === w.id ? "text-white" : "text-navy-400"}`}>{w.desc}</span>
+                      <span className={`mt-0.5 text-xs ${form.walkingTolerance === w.id ? "text-white" : "text-navy-600"}`}>{w.desc}</span>
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
 
-              <div>
-                <label className="text-sm font-medium text-navy-700 block mb-2.5">Budget Preference</label>
-                <div className="flex gap-2">
+              <fieldset className="py-5">
+                <legend className="mb-2.5 text-sm font-medium text-navy-700">Budget Preference</legend>
+                <div className="grid grid-cols-3 gap-2">
                   {BUDGET_PREFERENCE.map((b) => (
                     <button
                       key={b.id}
+                      type="button"
+                      aria-pressed={form.budgetPreference === b.id}
                       onClick={() => setForm((f) => ({ ...f, budgetPreference: b.id }))}
-                      className={`flex flex-col items-center min-w-0 px-2 sm:px-4 py-2.5 rounded-2xl text-sm transition-all flex-1 text-center ${
-                        form.budgetPreference === b.id
-                          ? "bg-brand-500 text-white shadow-card"
-                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
-                      }`}
+                      className={`flex min-h-14 min-w-0 flex-col items-center rounded-panel px-2 py-2.5 text-center text-sm sm:px-4 ${optionLook(form.budgetPreference === b.id)}`}
                     >
-                      <span className="flex flex-wrap items-center justify-center gap-x-1.5 font-semibold"><ProfileIcon id={b.id} className="w-4 h-4" /> {b.label}</span>
-                      <span className={`text-xs mt-0.5 ${form.budgetPreference === b.id ? "text-white" : "text-navy-400"}`}>{b.desc}</span>
+                      <span className="flex flex-wrap items-center justify-center gap-x-1.5 font-semibold"><ProfileIcon id={b.id} className="h-4 w-4" /> {b.label}</span>
+                      <span className={`mt-0.5 text-xs ${form.budgetPreference === b.id ? "text-white" : "text-navy-600"}`}>{b.desc}</span>
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
 
-              <div>
-                <label className="text-sm font-medium text-navy-700 block mb-2.5">Primary Priority</label>
+              <fieldset className="pt-5">
+                <legend className="mb-2.5 text-sm font-medium text-navy-700">Primary Priority</legend>
                 <div className="grid grid-cols-2 gap-2">
                   {PRIORITIZE_OPTIONS.map((opt) => (
                     <button
                       key={opt.id}
+                      type="button"
+                      aria-pressed={form.prioritize === opt.id}
                       onClick={() => setForm((f) => ({ ...f, prioritize: opt.id }))}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                        form.prioritize === opt.id
-                          ? "bg-brand-500 text-white shadow-card"
-                          : "bg-navy-50 text-navy-600 hover:bg-navy-100"
-                      }`}
+                      className={`flex min-h-11 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium ${optionLook(form.prioritize === opt.id)}`}
                     >
-                      <ProfileIcon id={opt.id} className="w-4 h-4" /> {opt.label}
+                      <ProfileIcon id={opt.id} className="h-4 w-4" /> {opt.label}
                     </button>
                   ))}
                 </div>
-              </div>
+              </fieldset>
             </div>
           </Card>
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Button onClick={() => void handleSave()} size="lg" loading={saving}>
-                Save Mobility Profile
-              </Button>
+          {/* Stays in reach while the long form scrolls (above the phone's tab bar). */}
+          <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 flex flex-wrap items-center gap-3 rounded-panel border border-navy-100 bg-white/95 p-3 shadow-float backdrop-blur md:bottom-4">
+            <Button onClick={() => void handleSave()} size="lg" loading={saving}>
+              Save Mobility Profile
+            </Button>
+            <div aria-live="polite" className="min-w-0 flex-1">
               {savedMessage && (
-                <span className={`flex items-center gap-1.5 text-xs font-medium ${savedMessageIsError ? "text-danger" : "text-emerald-700"}`}>
+                <span className={`flex items-start gap-1.5 text-sm font-medium ${savedMessageIsError ? "text-danger" : "text-go-800"}`}>
                   {savedMessageIsError ? (
-                    <AlertTriangle className="w-4 h-4 text-danger" />
+                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                   ) : (
-                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                   )}{" "}
-                  {savedMessage}
+                  <span>{savedMessage}</span>
                 </span>
               )}
             </div>

@@ -17,6 +17,7 @@ import ProfileIcon from "../components/ui/ProfileIcon"
 import ModeIcon from "../components/ui/ModeIcon"
 import Photo from "../components/ui/Photo"
 import StatTile from "../components/ui/StatTile"
+import WeightBar from "../components/ui/WeightBar"
 import Skeleton from "../components/ui/Skeleton"
 import RouteEnds from "../components/ui/RouteEnds"
 import { ModeChips } from "../components/ui/ModeStrip"
@@ -69,22 +70,6 @@ function ListSkeleton({ label }: { label: string }) {
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-4 w-1/2" />
       <span className="sr-only">{label}</span>
-    </div>
-  )
-}
-
-/** One preference weight as a labelled bar. The number is always written out, the bar only helps the eye. */
-function WeightBar({ label, value, barClass }: { label: string; value: number; barClass: string }) {
-  const pct = Math.round(value * 100)
-  return (
-    <div>
-      <div className="flex items-baseline justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-navy-600">{label}</p>
-        <p className="font-display text-base font-bold tabular-nums text-navy-900">{pct}%</p>
-      </div>
-      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-navy-100" aria-hidden="true">
-        <div className={`h-full rounded-full ${barClass}`} style={{ width: `${Math.min(100, pct)}%` }} />
-      </div>
     </div>
   )
 }

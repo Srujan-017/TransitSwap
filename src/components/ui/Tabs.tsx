@@ -34,7 +34,7 @@ export default function Tabs({ items, value, onChange, ariaLabel, className = ""
   const active = items.find((i) => i.id === value) ?? items[0]
   return (
     <div className={className}>
-      <div role="tablist" aria-label={ariaLabel} className="flex gap-1 border-b border-navy-200">
+      <div role="tablist" aria-label={ariaLabel} className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-navy-200">
         {items.map((item, i) => {
           const on = item.id === active.id
           return (

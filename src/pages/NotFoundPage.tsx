@@ -1,27 +1,28 @@
 import { Link } from "react-router-dom"
 import { Home, ArrowLeft } from "lucide-react"
 import Button from "../components/ui/Button"
+import Photo from "../components/ui/Photo"
 
 export default function NotFoundPage() {
   return (
-    <div className="min-h-screen bg-navy-50 flex items-center justify-center px-4">
-      <div className="text-center max-w-md">
-        <div className="text-8xl font-display font-bold text-navy-200 mb-4">404</div>
-        <h1 className="font-display text-2xl font-bold text-navy-900 mb-3">
-          Route not found
-        </h1>
-        <p className="text-navy-500 mb-8 leading-relaxed">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-navy-950 px-4 py-12">
+      <Photo id="train-dusk" decorative priority sizes="100vw" className="absolute inset-0 h-full w-full object-cover" />
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/70 to-navy-950/40" />
+      <main id="main-content" className="relative w-full max-w-md text-center">
+        <p aria-hidden="true" className="font-display text-8xl font-bold tracking-tight text-white sm:text-9xl">404</p>
+        <h1 className="mt-2 font-display text-2xl font-bold text-white sm:text-3xl">Route not found</h1>
+        <p className="mt-3 leading-relaxed text-white">
           Looks like this page took a wrong turn. Let TransitSwap get you back on track.
         </p>
-        <div className="flex gap-3 justify-center">
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link to="/">
-            <Button icon={<Home className="w-4 h-4" />}>Go Home</Button>
+            <Button variant="go" icon={<Home className="h-4 w-4" />}>Go Home</Button>
           </Link>
-          <Button variant="outline" onClick={() => history.back()} icon={<ArrowLeft className="w-4 h-4" />}>
+          <Button variant="outline" onClick={() => history.back()} icon={<ArrowLeft className="h-4 w-4" />}>
             Go Back
           </Button>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

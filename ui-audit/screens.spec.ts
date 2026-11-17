@@ -258,6 +258,17 @@ test("screenshots and accessibility of every screen", async ({ page }) => {
     await page.goto("/admin")
     await expect(page.getByText("Admin Dashboard").first()).toBeVisible({ timeout: 15_000 })
     await capture(page, vp.name, "admin")
+    // The other admin sections (not scanned before), and the Add Station dialog.
+    for (const [tabName, shot] of [["Stations", "admin-stations"], ["Accessibility", "admin-accessibility"], ["Crowd Reports", "admin-crowd"], ["Feedback", "admin-feedback"], ["Dataset", "admin-dataset"], ["Reports", "admin-reports"]] as const) {
+      await page.getByRole("tab", { name: tabName, exact: true }).click()
+      await page.waitForTimeout(600)
+      await capture(page, vp.name, shot)
+    }
+    await page.getByRole("tab", { name: "Stations" }).click()
+    await page.getByRole("button", { name: "Add Station" }).click()
+    await expect(page.getByRole("dialog", { name: "Add station" })).toBeVisible()
+    await capture(page, vp.name, "admin-add-station")
+    await page.keyboard.press("Escape")
   }
 
   // Merge with the results of the other viewports already written for this label.

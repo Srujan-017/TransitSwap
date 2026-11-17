@@ -58,7 +58,8 @@ export default function Navbar() {
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-900">
               <Bus className="h-[18px] w-[18px] text-white" aria-hidden="true" />
             </div>
-            <span className="font-display text-lg font-bold tracking-tight text-navy-900">TransitSwap</span>
+            {/* Between a phone and a laptop the six links need the room, so the wordmark is read aloud but not shown. */}
+            <span className="font-display text-lg font-bold tracking-tight text-navy-900 max-lg:sr-only">TransitSwap</span>
           </Link>
 
           {/* Main links: desktop only (a phone uses the bottom tab bar) */}
@@ -69,7 +70,7 @@ export default function Navbar() {
                   key={l.to}
                   to={l.to}
                   className={({ isActive }) =>
-                    `rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    `whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-colors lg:px-4 ${
                       isActive ? "bg-white text-navy-900 shadow-card" : "text-navy-600 hover:text-navy-900"
                     }`
                   }
