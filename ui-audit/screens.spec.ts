@@ -205,11 +205,11 @@ test("screenshots and accessibility of every screen", async ({ page }) => {
       await start.first().click()
       await expect(page.getByTestId("guidance-primary")).toBeVisible({ timeout: 10_000 })
       await capture(page, vp.name, "navigation")
-      if (vp.name === "375") expect(results[results.length - 1].mapShare ?? 0, "the map keeps half the phone screen while navigating").toBeGreaterThanOrEqual(0.5)
+      expect(results[results.length - 1].mapShare ?? 0, "the map keeps half the phone screen while navigating").toBeGreaterThanOrEqual(0.5)
       await page.getByRole("button", { name: /Simulate journey/ }).click()
       await page.waitForTimeout(1500)
       await capture(page, vp.name, "navigation-simulating")
-      if (vp.name === "375") expect(results[results.length - 1].mapShare ?? 0, "the map keeps half the phone screen even with the demo controls showing").toBeGreaterThanOrEqual(0.5)
+      expect(results[results.length - 1].mapShare ?? 0, "the map keeps half the phone screen even with the demo controls showing").toBeGreaterThanOrEqual(0.5)
       await page.getByRole("button", { name: "Exit navigation" }).click()
     }
 

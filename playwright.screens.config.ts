@@ -21,7 +21,9 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:5173",
     trace: "retain-on-failure",
-    reducedMotion: "reduce",
+    // Screenshots are taken with motion off so they are stable; UI_MOTION=on runs the same audit with real animations, which
+    // is how a real visitor sees the app (an entrance animation once left a transform behind that broke every fixed overlay).
+    reducedMotion: process.env.UI_MOTION === "on" ? "no-preference" : "reduce",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [

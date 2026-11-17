@@ -244,12 +244,12 @@ h1, h2, h3, h4, h5, h6 {
 /* Staggered entrance animation for dashboard-style section lists — each element fades/slides up once on mount,
    staggered via the inline --fade-delay custom property each caller sets. */
 .animate-fade-slide-up {
-  animation: fade-slide-up-anim 0.5s var(--ease-out-soft) both;
+  animation: fade-slide-up-anim 0.5s var(--ease-out-soft) backwards;
   animation-delay: var(--fade-delay, 0ms);
 }
 @keyframes fade-slide-up-anim {
   from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: none; }
 }
 
 /* Skeleton loading blocks (the Skeleton component): a soft moving highlight over a grey block. */
@@ -265,20 +265,24 @@ h1, h2, h3, h4, h5, h6 {
 
 /* A bottom sheet or toast sliding up into place. */
 .animate-sheet-up {
-  animation: sheet-up-anim var(--duration-slow) var(--ease-out-soft) both;
+  animation: sheet-up-anim var(--duration-slow) var(--ease-out-soft) backwards;
 }
 @keyframes sheet-up-anim {
   from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: none; }
 }
 
-/* A new page fading in under the top bar: short, and only opacity plus a few pixels of movement. */
+/* A new page fading in under the top bar: short, and only opacity plus a few pixels of movement.
+   IMPORTANT: every entrance animation here uses fill-mode `backwards` and ends on `transform: none`. With `both` the last
+   keyframe's `translateY(0)` stays applied for ever, and any element with a transform becomes the containing block of its
+   `position: fixed` descendants: the live navigation screen and every dialog then sized themselves to the page content
+   instead of the window (a small map and a cut-off panel). src/styles/animations.test.ts guards this. */
 .animate-page-in {
-  animation: page-in-anim var(--duration-base) var(--ease-out-soft) both;
+  animation: page-in-anim var(--duration-base) var(--ease-out-soft) backwards;
 }
 @keyframes page-in-anim {
   from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: none; }
 }
 
 /* On the live navigation map, the demo controls float over the bottom; the zoom buttons step up above them. */

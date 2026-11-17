@@ -100,4 +100,16 @@ The first look at the **live** site (17 Nov) found problems that no local check 
 | A place search that depends on a slow public service is a risk in a live demonstration | Place suggestions come from OpenStreetMap's Nominatim. | **Four one-tap demo trips** on Plan Trip (no place search at all); transit hubs and saved places on the dashboard open Plan Trip pre-filled. `demo-trips.spec.ts` drives all four on the real backend, including the Hoodi to MG Road wheelchair story. |
 | Running the three end-to-end specs at once made two of them time out | One backend, one database, three browsers. | The end-to-end config runs one at a time. |
 
+### The navigation screen that did not fill the window (found by the owner on the live site, 17 Nov)
+
+On a laptop the live navigation screen showed the top bar above it and the footer below it, a map only about 140 px tall and a panel cut off after one line. **Cause:** the page's entrance animation (`animate-page-in`) used fill mode `both`, so its last keyframe, `transform: translateY(0)`, stayed applied for ever. An element with a transform becomes the containing block of its `position: fixed` descendants, so the full-screen overlay was sized to the page's content instead of the window. The same fault would have hit every dialog (the "More" travel profiles sheet, the admin dialogs, toasts). It had been there since Phase 3.
+
+**Why nothing caught it:** the screenshot audit runs with *reduced motion* switched on (so pictures are stable), and that switches these animations off. The unit tests have no layout. Every earlier check looked at an app that was not animating, which is not how a visitor sees it.
+
+**Fix and guards:**
+* Every entrance animation now uses fill mode `backwards` and ends on `transform: none`.
+* `src/styles/animations.test.ts` reads the stylesheet and fails if any one-shot animation uses `both`/`forwards` or a keyframe ends on a transform.
+* `e2e/navigation-fullscreen.spec.ts` runs **with motion on** at 1280×720, 1280×640 and 375×812: it starts a real journey and asserts the overlay's box equals the window, the map is at least 95% (laptop) or 45% (phone) of the window height, and the overlay is the topmost element at its corners and centre. It fails on the old stylesheet (checked) and passes on the new one.
+* The screenshot audit can now run with real animations (`UI_MOTION=on`), and its map-share assertion applies at every width, not only 375 px.
+
 The lesson recorded here: **a deployment check must look at what the visitor sees** (the pictures, the first screen on a phone), not only at a successful build.
