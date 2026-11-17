@@ -86,3 +86,18 @@ Removed every `text-[9px]`, `text-[10px]` and `text-[11px]` (now 12 px, the smal
 ## 6. Live site
 
 The Phase 10 commit (`1945d25`) passed CI and is deployed: the live bundle changed, `/robots.txt` is served, and the Lighthouse numbers above were taken from it. The Render backend was not touched by the redesign.
+
+## 7. After release: what the live site showed that the local checks did not
+
+The first look at the **live** site (17 Nov) found problems that no local check could have, because every check ran against the local build. They are fixed, and each now has a guard.
+
+| Found on the live site | Cause | Fix and guard |
+|---|---|---|
+| **Every photograph showed as a broken image** (only the blurred placeholder behind it was visible) | `.gitattributes` tracked `*.webp` in **Git LFS**. Vercel does not fetch LFS content, so each photo was served as the 130-byte pointer text. All earlier phases were "confirmed live" by checking the JavaScript bundle, not the pictures. | `public/` is now excluded from LFS and the 33 photos are committed as real files; the picture URLs carry `?v=2` so browsers drop the broken answers they cached; **`publicAssets.test.ts` fails if a pointer file ever appears under `public/`**. A script now visits the live pages in a fresh browser and checks every picture decodes. |
+| The live-navigation map was small on a short laptop window (about 200 px of a 650 px window) | Banner, map and card were stacked in one column. | On a laptop the banner and card are a **side panel** (instruction, arrival, every step of the journey) and the map takes the rest of the screen at full height. |
+| A band of white above and below the "Ready to travel smarter?" photo | My performance change (`content-visibility`) was first put on an inner wrapper; containment made the wrapper the containing block of the absolutely positioned photo. | Set on the section itself (verified by scrolling the page with the mouse wheel: every section fades in and the photo fills its band). The audit now forces everything to render for its screenshots and scans, since a full-page capture would otherwise skip those sections. |
+| The first request after a quiet period took **33 seconds** | The free host puts the backend to sleep. | The site asks for the backend's health page as soon as it opens; `docs/demo/keep-warm.workflow.yml.example` is an optional 10-minute ping. |
+| A place search that depends on a slow public service is a risk in a live demonstration | Place suggestions come from OpenStreetMap's Nominatim. | **Four one-tap demo trips** on Plan Trip (no place search at all); transit hubs and saved places on the dashboard open Plan Trip pre-filled. `demo-trips.spec.ts` drives all four on the real backend, including the Hoodi to MG Road wheelchair story. |
+| Running the three end-to-end specs at once made two of them time out | One backend, one database, three browsers. | The end-to-end config runs one at a time. |
+
+The lesson recorded here: **a deployment check must look at what the visitor sees** (the pictures, the first screen on a phone), not only at a successful build.

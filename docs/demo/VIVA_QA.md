@@ -45,7 +45,11 @@ From commands in this repository. The paper's results: `cd backend && npx ts-nod
 
 **How is it secured?** JWT authentication (production refuses to start without a strong `JWT_SECRET`), `helmet`, rate limiting, request validation on every write endpoint, ownership checks on user data, admin accounts created only by a server-side script, never via the public API. The token is kept in `localStorage` — a documented trade-off.
 
-**How is it tested?** 29 backend test files (unit and API integration against an in-memory MongoDB) and 35 frontend tests; the runner fails on a skipped database test in CI; GitHub Actions runs type-check, build and tests on every push; the interface was scanned with axe-core.
+**How is it tested?** 29 backend test files (unit and API integration against an in-memory MongoDB) and **344 frontend tests**; four end-to-end tests drive the real app on a real backend (sign-up, plan, save, feedback; the same journey with the keyboard alone; and every one-tap demo trip); the runner fails on a skipped database test in CI; GitHub Actions runs type-check, build and tests on every push. The interface was scanned with axe-core on **87 screens** at three widths (0 findings) and with Lighthouse (accessibility 100, SEO 100).
+
+**Did you redesign the interface properly, or just restyle it?** In eleven planned phases (`UI_REDESIGN_PLAN.md`): a design system with tokens and shared components, then each screen in turn, with a rule that no feature or tested text could be lost (a contract file lists them) and an audit after every phase. It found real problems along the way, which are recorded: a dashboard that counted unrated journeys as rated, a place search with no keyboard support, missing skip links, an admin page that scrolled sideways because the top bar wrapped, and photographs that deployed as broken files (Git LFS pointers) until a test and a rule were added to prevent it.
+
+**What did the redesign not check?** Real phones, Firefox and Safari, and screen readers (all listed in `docs/ui-redesign/UI_REDESIGN_VERIFICATION.md`). Dark mode was deliberately dropped.
 
 **Why is the backend slow at first?** The free hosting tier sleeps when idle; the first request wakes it (about 30 s).
 

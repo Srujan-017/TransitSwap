@@ -6,7 +6,7 @@ TransitSwap is a full-stack, AI-assisted urban mobility web application built as
 
 **Live demo:** frontend <https://transit-swap.vercel.app> · backend health <https://transitswap-backend.onrender.com/api/health> (the free backend host sleeps when idle; the first request can take ~30 s).
 **Demo material:** step-by-step demo script, presentation slides and viva answers are in [`docs/demo/`](docs/demo/).
-**Status:** CI (GitHub Actions) runs type-checking, the production build, 29 backend test files and 35 frontend tests on every push. The user interface was scanned with axe-core against WCAG 2.1 A/AA with no remaining violations on the main screens. All transit, accessibility and crowd data are **synthetic demonstration data** (see §16 and §19).
+**Status:** CI (GitHub Actions) runs type-checking, the production build, 29 backend test files and 344 frontend tests on every push; four end-to-end tests (real backend, in-memory database) cover sign-up, planning, saving, feedback, a keyboard-only run, and the one-tap demo trips. The redesigned interface (see §21 and [`docs/ui-redesign/`](docs/ui-redesign/)) was scanned with axe-core against WCAG 2.1 A/AA on **87 screens** at phone, tablet and laptop widths with **0 findings**; Lighthouse on the live site gives accessibility 100 and SEO 100, and performance 96–99 on a phone. All transit, accessibility and crowd data are **synthetic demonstration data** (see §16 and §19).
 
 ---
 
@@ -143,6 +143,8 @@ The Transit Intelligence Engine runs the following pipeline on every route reque
 | 25 | Research page: ML status for the user's profile, route-ranking benchmark vs 5 baselines with ablation and latency, prediction-interval coverage |
 | 26 | Admin console: station accessibility and lift status, crowd-report moderation, community accessibility reports |
 | 27 | Accessibility audit of the app itself (axe-core, WCAG 2.1 A/AA) and a GitHub Actions CI pipeline |
+| 28 | Complete interface redesign (11 phases): a design system (tokens, shared components, self-hosted fonts), 11 real credited photographs, map-first Plan Trip with a phone bottom sheet, Citymapper-style route cards, Google-Maps-style live navigation (side panel on a laptop), redesigned dashboard, history, saved routes, profile, research and admin console, skip links and keyboard-operable place search |
+| 29 | Demonstration readiness: one-tap demo trips that need no place search, transit hubs and saved places that open Plan Trip pre-filled, the sleeping backend is woken when the site opens |
 
 ---
 
@@ -739,14 +741,20 @@ Actual captured run (`evaluationService.runEvaluation()`, OSRM unreachable so al
 
 ## 21. Screenshots & Demo
 
-The application includes the following main views:
+The application includes the following main views (before and after pictures of each are in [`docs/ui-redesign/compare/`](docs/ui-redesign/compare/)):
 
-- **Dashboard** — TransitDNA profile card, quick stats, research benchmark table
-- **Plan Trip** — Multimodal route planner with Explainability cards, confidence intervals, Monte Carlo risk, smart departure, last-mile options
-- **History** — Saved journeys with star-rating feedback panel and TransitDNA learning trigger
-- **Profile** — Mobility profile editor, preference toggles, TransitDNA weight display and reset
-- **Research** — ML status for your profile, route-ranking benchmark vs 5 baselines (ablation, latency), prediction-interval coverage
-- **Journey navigation** — step-by-step, voice-guided navigation card with arrival estimate and next stop
+- **Home, sign in and sign up** — a photograph hero with a search box, the seven travel profiles and their rules in plain words, and a split-screen sign-in with a one-press demo account
+- **Dashboard** — greeting over a photograph, TransitDNA weights as bars, recent journeys, travel statistics, saved places and routes, sustainability score, transit hubs that open Plan Trip pre-filled
+- **Plan Trip** — a map with a journey panel (a draggable bottom sheet on a phone): place search, **one-tap demo trips**, Leave now / Depart at, travel profile, route cards with big durations and leg chips, "Why recommended", confidence intervals, Monte Carlo risk, step-by-step timeline with bus numbers, last-mile options
+- **Journey navigation** — a Google-Maps-style banner, voice guidance, arrival estimate, simulation with speeds and a "go off route" demo, automatic rerouting; on a laptop a side panel lists every step and the map fills the rest of the screen
+- **History** — journeys grouped by day, with a star-rating and feedback panel that feeds TransitDNA
+- **Saved Routes** — snapshots you can plan again in one tap
+- **Profile** — mobility profile as icon cards, preferences, TransitDNA weights and reset
+- **Research** — ML status, the pre-computed route-ranking benchmark vs 5 baselines (ablation, latency), prediction-interval coverage
+- **Admin** — overview tiles, searchable and sortable station table, lift status and accessibility editing in dialogs, crowd reports, feedback, dataset, reports
+- **Photo credits** (`/credits`) — every photograph's author, source and licence
+
+How the redesign was planned, built phase by phase and verified (audit numbers, Lighthouse, keyboard run, what was **not** checked) is recorded in [`UI_REDESIGN_PLAN.md`](UI_REDESIGN_PLAN.md) and [`docs/ui-redesign/UI_REDESIGN_VERIFICATION.md`](docs/ui-redesign/UI_REDESIGN_VERIFICATION.md).
 
 ---
 

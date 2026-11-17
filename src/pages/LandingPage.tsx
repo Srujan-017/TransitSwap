@@ -26,13 +26,21 @@ import type { PhotoId } from "../data/photoCredits"
 // Section pictures are real photographs served from this site's own files through <Photo>; src/data/photoCredits.ts holds
 // each photographer's credit and the /credits page lists them.
 
-/** A section that fades in once, the first time it scrolls into view. The browser skips laying out the contents of the ones below the fold until they are near (content-visibility), which cuts the first-load work on a phone. */
+/**
+ * A section that fades in once, the first time it scrolls into view. The browser also skips laying out the sections below the
+ * fold until they are near (content-visibility), which cuts the first-load work on a phone (blocking time about 700 ms to about
+ * 100 ms). It is set on the section itself, not on an inner wrapper: containment makes a wrapper the containing block of any
+ * absolutely positioned child, which shrank the call-to-action's background photo to a band with white above and below.
+ */
 function RevealSection({ id, className = "", children }: { id?: string; className?: string; children: ReactNode }) {
   const { ref, isVisible } = useScrollReveal<HTMLElement>()
   return (
-    <section id={id} ref={ref} className={`${className} ${isVisible ? "animate-fade-slide-up" : "opacity-0"}`}>
-      {/* The section itself is what is watched for scrolling into view; only its contents are skipped until near. */}
-      <div className="[contain-intrinsic-size:auto_700px] [content-visibility:auto]">{children}</div>
+    <section
+      id={id}
+      ref={ref}
+      className={`${className} [contain-intrinsic-size:auto_700px] [content-visibility:auto] ${isVisible ? "animate-fade-slide-up" : "opacity-0"}`}
+    >
+      {children}
     </section>
   )
 }

@@ -4,10 +4,10 @@ import userEvent from "@testing-library/user-event"
 import DemoTrips, { DEMO_TRIPS } from "./DemoTrips"
 
 describe("DemoTrips", () => {
-  it("offers the three ready-made trips as one named group of buttons", () => {
+  it("offers the four ready-made trips as one named group of buttons", () => {
     render(<DemoTrips onPick={() => {}} />)
     const group = screen.getByRole("group", { name: "Demo trips" })
-    expect(within(group).getAllByRole("button")).toHaveLength(3)
+    expect(within(group).getAllByRole("button")).toHaveLength(4)
     expect(within(group).getByRole("button", { name: /Silk Board → Majestic/ })).toBeInTheDocument()
   })
 

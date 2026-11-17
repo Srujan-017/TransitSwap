@@ -24,6 +24,13 @@ export const DEMO_TRIPS: DemoTrip[] = [
     destination: place("Baiyappanahalli Metro Station", "Baiyappanahalli, Bengaluru, Karnataka, India", 12.9906, 77.653),
   },
   {
+    id: "hoodi-mg-road",
+    label: "Hoodi → MG Road",
+    detail: "Metro; switch to Wheelchair to see routes excluded and why",
+    origin: place("Hoodi Metro Station", "Hoodi, Bengaluru, Karnataka, India", 12.9897, 77.7126),
+    destination: place("MG Road Metro Station", "MG Road, Bengaluru, Karnataka, India", 12.9757, 77.6079),
+  },
+  {
     id: "silk-board-majestic",
     label: "Silk Board → Majestic",
     detail: "Bus and metro",
