@@ -43,13 +43,13 @@ export default function Input({
             disabled:bg-navy-50 disabled:cursor-not-allowed
             ${error ? "border-danger focus:border-danger focus:ring-danger/20" : ""}
             ${leftIcon ? "pl-10" : ""}
-            ${rightIcon ? "pr-10" : ""}
+            ${rightIcon ? "pr-12" : ""}
             ${className}
           `}
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-400">{rightIcon}</div>
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 text-navy-400">{rightIcon}</div>
         )}
       </div>
       {error && <p className="text-xs text-danger font-medium">{error}</p>}

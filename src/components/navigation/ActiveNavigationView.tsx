@@ -240,7 +240,7 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
               )}
             </div>
 
-            <details className="text-[11px] leading-snug text-navy-700">
+            <details className="text-xs leading-snug text-navy-700">
               <summary className="min-h-6 cursor-pointer font-semibold">About live tracking</summary>
               <p className="mt-1">
                 Bus and metro positions are not tracked live — bus times come from the demo timetable. A website can only follow your

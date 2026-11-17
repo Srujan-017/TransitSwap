@@ -93,7 +93,7 @@ function BusLeg({ seg, crowd }: { seg: RouteSegment; crowd?: LegCrowd }) {
         <p className="font-semibold text-navy-900">
           {d.towards ? `Towards ${d.towards}` : d.lineName}
           {crowd?.level && (
-            <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${CROWD_CHIP[crowd.level]}`}>
+            <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${CROWD_CHIP[crowd.level]}`}>
               Crowd: {crowd.level}
             </span>
           )}
@@ -250,7 +250,7 @@ export default function RouteCard({ route, selected, onSelect, index }: Props) {
 
       {route.whyRecommended && route.whyRecommended.length > 0 && (
         <div className="mt-3 space-y-1 border-t border-navy-100 pt-2.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-navy-500">Why Recommended</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-navy-500">Why Recommended</p>
           <div className="space-y-1">
             {route.whyRecommended.slice(0, 3).map((reason, i) => (
               <div key={i} className="flex items-start gap-1.5 text-xs font-medium leading-snug text-navy-700">

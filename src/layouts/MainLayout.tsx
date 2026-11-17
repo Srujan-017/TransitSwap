@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom"
 import Navbar from "../components/Navbar"
+import SkipLink from "../components/ui/SkipLink"
 import BottomTabBar from "../components/BottomTabBar"
 import AppFooter from "../components/AppFooter"
 
@@ -11,12 +12,7 @@ export default function MainLayout() {
   const { pathname } = useLocation()
   return (
     <div className="flex min-h-screen flex-col bg-navy-50">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[1300] focus:rounded-control focus:bg-navy-900 focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-white"
-      >
-        Skip to main content
-      </a>
+      <SkipLink />
       <Navbar />
       <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
         <div key={pathname} className="animate-page-in">

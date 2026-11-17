@@ -88,7 +88,7 @@ export function RadialGauge({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="font-display font-bold text-navy-900" style={{ fontSize: size * 0.26 }}>{clamped}</span>
-        {label && <span className="text-[9px] text-navy-400 font-medium -mt-0.5">{label}</span>}
+        {label && <span className="text-xs text-navy-600 font-medium -mt-0.5">{label}</span>}
       </div>
     </div>
   )

@@ -29,10 +29,10 @@ export default function RouteSummary({
   const hasDemoData = routes.some((r) => r.isDemoData)
 
   return (
-    <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-5 space-y-4">
+    <div className="bg-white rounded-panel shadow-card p-5 space-y-4">
       {/* Demo banner */}
       {hasDemoData && (
-        <div className="flex items-center gap-2 bg-amber-50 rounded-2xl px-3 py-2">
+        <div className="flex items-center gap-2 bg-amber-50 rounded-panel px-3 py-2">
           <FlaskConical className="w-4 h-4 text-amber-600 flex-shrink-0" />
           <p className="text-xs text-amber-700 font-medium">
             Demo route — not real navigation data. Live routing requires the backend service.
@@ -48,7 +48,7 @@ export default function RouteSummary({
               key={r.id}
               type="button"
               onClick={() => onSelectRoute(i)}
-              className={`flex-1 py-2 px-3 rounded-2xl text-xs font-semibold transition-all ${
+              className={`flex-1 py-2 px-3 rounded-panel text-xs font-semibold transition-all ${
                 i === selectedIndex
                   ? "bg-brand-500 text-white shadow-card"
                   : "bg-navy-50 text-navy-500 hover:bg-navy-100"
@@ -97,7 +97,7 @@ export default function RouteSummary({
       </div>
 
       {/* Provider note */}
-      <p className="text-xs text-navy-400 flex items-center gap-1.5">
+      <p className="text-xs text-navy-600 flex items-center gap-1.5">
         <Navigation className="w-3 h-3" />
         {MODE_ICONS[selected.mode]}
         {selected.isDemoData

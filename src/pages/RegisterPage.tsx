@@ -128,7 +128,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               leftIcon={<Lock className="w-4 h-4" />}
               rightIcon={
-                <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "Hide password" : "Show password"} aria-pressed={showPw} className="text-navy-400 hover:text-navy-600">
+                <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "Hide password" : "Show password"} aria-pressed={showPw} className="flex h-11 w-11 items-center justify-center rounded-control text-navy-500 hover:text-navy-800">
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               }
@@ -178,7 +178,7 @@ export default function RegisterPage() {
                   type="button"
                   aria-pressed={form.accessibilityProfile === p.id}
                   onClick={() => setForm((f) => ({ ...f, accessibilityProfile: p.id as AccessibilityProfile }))}
-                  className={`flex flex-col items-center gap-1 px-2 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                  className={`flex flex-col items-center gap-1 px-2 py-3 rounded-panel text-xs font-semibold transition-all ${
                     form.accessibilityProfile === p.id
                       ? "bg-brand-500 text-white shadow-card"
                       : "bg-navy-50 text-navy-600 hover:bg-navy-100"

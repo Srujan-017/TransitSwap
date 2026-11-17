@@ -52,7 +52,7 @@ export default function WeatherBanner({ weather }: Props) {
       <p className="flex items-center gap-2 text-sm font-bold">
         <Icon weather={weather} />
         {weather.headline}
-        <span className="ml-auto rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-900">{sourceLabel(weather)}</span>
+        <span className="ml-auto rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900">{sourceLabel(weather)}</span>
       </p>
       <p className="text-xs">{weather.rule}</p>
       <p className="text-xs text-amber-900">

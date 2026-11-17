@@ -47,6 +47,9 @@ export default function LocationSearch({
   const [isOpen, setIsOpen] = useState(false)
   const [searchError, setSearchError] = useState("")
   const inputId = useId()
+  const listId = useId()
+  // The suggestion the arrow keys are on (-1 = none); Enter picks it.
+  const [activeIndex, setActiveIndex] = useState(-1)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -80,6 +83,7 @@ export default function LocationSearch({
   const handleInput = useCallback((query: string) => {
     setInputValue(query)
     setSearchError("")
+    setActiveIndex(-1)
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
@@ -96,6 +100,7 @@ export default function LocationSearch({
         const results = await mapService.search(query.trim())
         if (searchId !== latestSearchIdRef.current) return
         setSuggestions(results)
+        setActiveIndex(-1)
         setIsOpen(results.length > 0)
         if (results.length === 0) setSearchError("No locations found.")
       } catch {
@@ -137,6 +142,26 @@ export default function LocationSearch({
 
   const isSelected = !!value
 
+  // The WAI-ARIA combobox keys: arrows move through the suggestions, Enter picks, Escape closes.
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const listOpen = isOpen && suggestions.length > 0
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (suggestions.length === 0) return
+      e.preventDefault()
+      if (!listOpen) { setIsOpen(true); setActiveIndex(e.key === "ArrowDown" ? 0 : suggestions.length - 1); return }
+      const step = e.key === "ArrowDown" ? 1 : -1
+      setActiveIndex((i) => (i + step + suggestions.length) % suggestions.length)
+    } else if (e.key === "Enter" && listOpen && activeIndex >= 0) {
+      e.preventDefault()
+      handleSelect(suggestions[activeIndex])
+    } else if (e.key === "Escape" && listOpen) {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsOpen(false)
+      setActiveIndex(-1)
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <label htmlFor={inputId} className="sr-only">
@@ -162,6 +187,12 @@ export default function LocationSearch({
           value={inputValue}
           onChange={(e) => handleInput(e.target.value)}
           onFocus={() => suggestions.length > 0 && setIsOpen(true)}
+          onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-expanded={isOpen && suggestions.length > 0}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={isOpen && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
           placeholder={isSelected ? value!.name : placeholder}
           className="min-h-[3.25rem] w-full rounded-panel bg-transparent py-3 pl-11 pr-20 text-sm font-medium text-navy-900 placeholder-navy-500 transition-colors focus:bg-navy-50/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500/50"
         />
@@ -202,13 +233,18 @@ export default function LocationSearch({
 
       {/* Suggestions dropdown */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-64 overflow-hidden overflow-y-auto rounded-panel border border-navy-100 bg-white shadow-float">
+        <div id={listId} role="listbox" aria-label={`${label} suggestions`} className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-64 overflow-hidden overflow-y-auto rounded-panel border border-navy-100 bg-white shadow-float">
           {suggestions.map((loc, i) => (
             <button
               key={i}
+              id={`${listId}-${i}`}
               type="button"
+              role="option"
+              aria-selected={i === activeIndex}
+              tabIndex={-1}
               onClick={() => handleSelect(loc)}
-              className="flex min-h-12 w-full items-start gap-3 border-b border-navy-100/80 px-4 py-3 text-left transition-colors last:border-0 hover:bg-brand-50"
+              onMouseEnter={() => setActiveIndex(i)}
+              className={`flex min-h-12 w-full items-start gap-3 border-b border-navy-100/80 px-4 py-3 text-left transition-colors last:border-0 hover:bg-brand-50 ${i === activeIndex ? "bg-brand-50" : ""}`}
             >
               <MapPin aria-hidden="true" className="mt-0.5 h-4 w-4 flex-shrink-0 text-navy-500" />
               <div className="min-w-0">

@@ -42,7 +42,7 @@ function CrowdChip({ crowd }: { crowd?: LegCrowd }) {
   if (!crowd || !crowd.level) return null
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${CROWD_CHIP[crowd.level]}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${CROWD_CHIP[crowd.level]}`}
       title={`Boarding ${crowd.boardLevel ?? "unknown"}, getting off ${crowd.alightLevel ?? "unknown"}${crowd.onboardLevel ? `, on board ${crowd.onboardLevel}` : ""} (demo data)`}
     >
       Crowd: {crowd.level}
@@ -103,7 +103,7 @@ function SegmentRow({ seg, profile, crowd }: { seg: RouteSegment; profile?: stri
             <p className="truncate text-sm font-bold leading-tight text-navy-900">
               {seg.mode === "bus" && d.towards ? `Towards ${d.towards}` : d.lineName}
             </p>
-            <p className="text-[11px] text-navy-600">{seg.from.name} → {seg.to.name}</p>
+            <p className="text-xs text-navy-600">{seg.from.name} → {seg.to.name}</p>
           </div>
           <span className="flex-shrink-0 whitespace-nowrap text-xs font-semibold text-navy-700">{formatDuration(durationMin)}</span>
         </div>

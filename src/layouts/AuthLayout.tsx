@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import SkipLink from "../components/ui/SkipLink"
 import { ArrowLeft, Bus, CloudRain, History, ShieldCheck, Users } from "lucide-react"
 import type { ReactNode } from "react"
 import Photo from "../components/ui/Photo"
@@ -18,6 +19,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   const year = new Date().getFullYear()
   return (
     <div className="flex min-h-screen">
+      <SkipLink />
       {/* Left panel (desktop) */}
       <div className="relative hidden flex-col justify-between overflow-hidden p-12 lg:flex lg:w-1/2">
         <Photo id="vidhana-soudha-clear" decorative sizes="50vw" className="absolute inset-0 h-full w-full object-cover object-center" />
@@ -82,7 +84,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to home
           </Link>
         </div>
-        <main className="flex flex-1 items-center justify-center px-6 py-10">
+        <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-6 py-10 outline-none">
           <div className="w-full max-w-md">{children}</div>
         </main>
         <p className="px-6 pb-6 text-center text-xs text-navy-500 lg:hidden">

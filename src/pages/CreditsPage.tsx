@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import SkipLink from "../components/ui/SkipLink"
 import { ArrowLeft, Bus, ExternalLink } from "lucide-react"
 import Photo from "../components/ui/Photo"
 import { PHOTO_LIST } from "../data/photoCredits"
@@ -16,6 +17,7 @@ const OTHER_CREDITS = [
 export default function CreditsPage() {
   return (
     <div className="min-h-screen bg-navy-50">
+      <SkipLink />
       <header className="border-b border-navy-100 bg-white">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
@@ -30,7 +32,7 @@ export default function CreditsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-5xl px-4 py-10 outline-none sm:px-6">
         <h1 className="font-display text-3xl font-bold text-navy-900">Credits</h1>
         <p className="mt-2 max-w-2xl text-navy-600">
           Every picture on TransitSwap is a real photograph by the person named below, used under the licence shown. None of them is

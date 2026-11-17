@@ -15,14 +15,14 @@ function StationRow({ station }: { station: NearbyTransitStation }) {
   const label = station.transportMode === "metro" ? "Metro Station" : "Bus Stop"
 
   return (
-    <div className="flex-1 min-w-0 rounded-2xl bg-navy-50/70 p-3 space-y-1.5">
+    <div className="flex-1 min-w-0 rounded-panel bg-navy-50/70 p-3 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold text-navy-800 flex items-center gap-1.5 truncate">
           <ModeIcon mode={station.transportMode === "metro" ? "metro" : "bus"} className="w-4 h-4 flex-shrink-0 text-navy-600" />
           <span className="truncate">{station.stationName}</span>
         </p>
       </div>
-      <p className="text-[11px] text-navy-500">{label}</p>
+      <p className="text-xs text-navy-500">{label}</p>
       <div className="flex items-center gap-2 text-xs text-navy-700">
         <span className="font-semibold">{formatDistance(station.distanceMeters)}</span>
         <span className="flex items-center gap-1 text-navy-500">
@@ -82,7 +82,7 @@ export default function NearbyTransit({ origin }: Props) {
   if (!origin) return null
 
   return (
-    <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] p-4 space-y-3">
+    <div className="bg-white rounded-panel shadow-card p-4 space-y-3">
       <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
         <Compass className="w-4 h-4 text-brand-600" /> Nearby Transit
       </div>

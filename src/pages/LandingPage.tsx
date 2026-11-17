@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import SkipLink from "../components/ui/SkipLink"
 import { Link } from "react-router-dom"
 import {
   Accessibility,
@@ -25,11 +26,11 @@ import type { PhotoId } from "../data/photoCredits"
 // Section pictures are real photographs served from this site's own files through <Photo>; src/data/photoCredits.ts holds
 // each photographer's credit and the /credits page lists them.
 
-/** A section that fades in once, the first time it scrolls into view. */
+/** A section that fades in once, the first time it scrolls into view. The browser skips laying out the ones below the fold until they are near (content-visibility), which cuts the first-load work on a phone. */
 function RevealSection({ id, className = "", children }: { id?: string; className?: string; children: ReactNode }) {
   const { ref, isVisible } = useScrollReveal<HTMLElement>()
   return (
-    <section id={id} ref={ref} className={`${className} ${isVisible ? "animate-fade-slide-up" : "opacity-0"}`}>
+    <section id={id} ref={ref} className={`${className} [contain-intrinsic-size:auto_700px] [content-visibility:auto] ${isVisible ? "animate-fade-slide-up" : "opacity-0"}`}>
       {children}
     </section>
   )
@@ -104,6 +105,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white">
+      <SkipLink />
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-navy-100 bg-white/90 backdrop-blur-lg">
         <div className={`${SECTION} flex h-16 items-center justify-between`}>
@@ -143,7 +145,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main>
+      <main id="main-content" tabIndex={-1} className="outline-none">
         {/* Hero: a real Bengaluru metro platform, under a dark wash so the headline stays readable. */}
         <section className="relative overflow-hidden">
           <Photo id="metro-sunset" decorative priority className="absolute inset-0 h-full w-full object-cover object-center" />

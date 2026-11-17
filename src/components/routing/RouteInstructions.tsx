@@ -14,7 +14,7 @@ export default function RouteInstructions({ route }: RouteInstructionsProps) {
   if (allSteps.length === 0) return null
 
   return (
-    <div className="bg-white rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-14px_rgba(15,23,42,0.16)] overflow-hidden">
+    <div className="bg-white rounded-panel shadow-card overflow-hidden">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
@@ -25,7 +25,7 @@ export default function RouteInstructions({ route }: RouteInstructionsProps) {
           <span className="font-display font-semibold text-navy-800 text-sm">
             Step-by-step directions
           </span>
-          <span className="text-xs text-navy-400 bg-navy-100 px-2 py-0.5 rounded-full">
+          <span className="text-xs text-navy-600 bg-navy-100 px-2 py-0.5 rounded-full">
             {allSteps.length} steps
           </span>
         </div>
@@ -45,7 +45,7 @@ export default function RouteInstructions({ route }: RouteInstructionsProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-navy-800">{step.instruction}</p>
-                <p className="text-xs text-navy-400 mt-0.5">
+                <p className="text-xs text-navy-600 mt-0.5">
                   {formatDistance(step.distanceMeters)}
                   {step.durationSeconds > 0 && ` · ${formatDuration(Math.ceil(step.durationSeconds / 60))}`}
                 </p>

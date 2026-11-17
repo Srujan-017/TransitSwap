@@ -58,7 +58,7 @@ export default function WhyNoRoute({ origin, destination }: Props) {
   }, [origin.latitude, origin.longitude, destination.latitude, destination.longitude])
 
   if (status === "loading") {
-    return <p className="text-xs text-navy-400 px-1">Checking which part of your trip is outside the demo network…</p>
+    return <p className="text-xs text-navy-600 px-1">Checking which part of your trip is outside the demo network…</p>
   }
 
   const originReachable = isWithinAccessRange(originNearby)

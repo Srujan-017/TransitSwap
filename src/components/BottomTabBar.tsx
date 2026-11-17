@@ -24,7 +24,7 @@ export default function BottomTabBar() {
             <NavLink
               to={to}
               className={({ isActive }) =>
-                `relative flex min-h-16 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-semibold transition-colors ${
+                `relative flex min-h-16 flex-col items-center justify-center gap-0.5 px-1 text-xs font-semibold transition-colors ${
                   isActive ? "text-brand-700" : "text-navy-600 hover:text-navy-900"
                 }`
               }

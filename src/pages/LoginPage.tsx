@@ -77,7 +77,7 @@ export default function LoginPage() {
             onChange={handleChange}
             leftIcon={<Lock className="w-4 h-4" />}
             rightIcon={
-              <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "Hide password" : "Show password"} aria-pressed={showPw} className="text-navy-400 hover:text-navy-600">
+              <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "Hide password" : "Show password"} aria-pressed={showPw} className="flex h-11 w-11 items-center justify-center rounded-control text-navy-500 hover:text-navy-800">
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             }

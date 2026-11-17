@@ -291,8 +291,15 @@ h1, h2, h3, h4, h5, h6 {
   .animate-page-in,
   .animate-sheet-up,
   .skeleton,
-  .my-location-pulse {
+  .my-location-pulse,
+  .animate-pulse {
     animation: none;
+  }
+  /* Hover lifts, sheet and chevron turns happen at once. (The loading spinner keeps turning: it is not decoration.) */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
   }
   html {
     scroll-behavior: auto;

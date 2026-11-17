@@ -235,7 +235,7 @@ export default function MultimodalResults({
           {selected.profileFit.tips.length > 0 && (
             <ul className="space-y-1 border-t border-go-200 pt-2">
               {selected.profileFit.tips.map((tip) => (
-                <li key={tip} className="text-[11px] text-go-800">Tip: {tip}</li>
+                <li key={tip} className="text-xs text-go-800">Tip: {tip}</li>
               ))}
             </ul>
           )}
@@ -332,7 +332,7 @@ export default function MultimodalResults({
           {selected.missedConnectionRisk?.transfers && selected.missedConnectionRisk.transfers.length > 0 && (
             <div className="space-y-1 border-t border-navy-100 pt-1">
               {selected.missedConnectionRisk.transfers.map((t, idx) => (
-                <div key={idx} className="flex items-center justify-between gap-2 text-[11px] text-navy-600">
+                <div key={idx} className="flex items-center justify-between gap-2 text-xs text-navy-600">
                   <span>Transfer at {t.transferStation} ({t.fromSegmentMode} → {t.toSegmentMode}):</span>
                   <span className="font-semibold">{t.estimatedRiskPercent}% risk</span>
                 </div>
@@ -351,9 +351,9 @@ export default function MultimodalResults({
             <p className="text-xs text-brand-800">
               Recommended departure: <span className="font-bold">{selected.departureSuggestion.suggestedDepartureTime}</span> (Expected arrival ~{selected.departureSuggestion.expectedArrival}).
             </p>
-            <p className="text-[11px] text-brand-800">{selected.departureSuggestion.reason}</p>
+            <p className="text-xs text-brand-800">{selected.departureSuggestion.reason}</p>
             {selected.departureSuggestion.reliabilityGainPercent > 0 && (
-              <p className="text-[11px] text-brand-800">
+              <p className="text-xs text-brand-800">
                 Estimated missed-connection risk improvement: {selected.departureSuggestion.reliabilityGainPercent}%
               </p>
             )}
@@ -381,7 +381,7 @@ export default function MultimodalResults({
               <Badge variant={selected.weatherImpact?.level === "high" ? "danger" : selected.weatherImpact?.level === "medium" ? "warning" : "success"}>
                 {selected.weatherImpact?.summary}
               </Badge>
-              <p className="text-[11px] text-navy-500">{weather.source}</p>
+              <p className="text-xs text-navy-500">{weather.source}</p>
             </>
           ) : (
             <p className="text-xs text-navy-600">Weather information temporarily unavailable.</p>
@@ -399,7 +399,7 @@ export default function MultimodalResults({
           {selected.accessibility && selected.accessibility.warnings.length > 0 && (
             <ul className="space-y-1 rounded-control border border-amber-200 bg-amber-50 px-2.5 py-2">
               {selected.accessibility.warnings.map((warning, i) => (
-                <li key={i} className="flex items-start gap-1.5 text-[11px] text-amber-800">
+                <li key={i} className="flex items-start gap-1.5 text-xs text-amber-800">
                   <AlertCircle className="mt-0.5 h-3 w-3 flex-shrink-0" aria-hidden="true" />
                   <span>{warning}</span>
                 </li>
@@ -408,7 +408,7 @@ export default function MultimodalResults({
           )}
           <div className="space-y-1">
             {checkedStations.slice(0, 3).map((station) => (
-              <p key={station.stationId} className="text-[11px] text-navy-600">
+              <p key={station.stationId} className="text-xs text-navy-600">
                 {station.stationName}: {station.status.replace("_", " ")}
               </p>
             ))}
@@ -423,17 +423,17 @@ export default function MultimodalResults({
             {selected.crowd?.level ?? "Unavailable"}
           </Badge>
           <p className="text-xs text-navy-600">{selected.crowd?.summary}</p>
-          <p className="text-[11px] text-navy-500">{sourceLabel(selected.crowd?.source)}</p>
+          <p className="text-xs text-navy-500">{sourceLabel(selected.crowd?.source)}</p>
           <div className="space-y-1">
             {selected.crowd?.legs && selected.crowd.legs.length > 0
               ? selected.crowd.legs.map((leg) => (
-                  <p key={leg.segmentId} className="text-[11px] text-navy-600">
+                  <p key={leg.segmentId} className="text-xs text-navy-600">
                     <span className="font-semibold text-navy-700">{leg.label}</span> {leg.from} → {leg.to}:{" "}
                     <span className="font-semibold">{leg.level ?? "unknown"}</span>
                   </p>
                 ))
               : crowdStations.slice(0, 2).map((station) => (
-                  <p key={station.stationId} className="text-[11px] text-navy-600">
+                  <p key={station.stationId} className="text-xs text-navy-600">
                     {station.stationName}: {station.crowdLevel ?? "unknown"} ({sourceLabel(station.source)})
                   </p>
                 ))}
@@ -491,7 +491,7 @@ export default function MultimodalResults({
                         }`}
                       >
                         <Icon className="h-4 w-4" aria-hidden="true" />
-                        <span className="text-[10px] font-semibold leading-tight">{opt.label}</span>
+                        <span className="text-xs font-semibold leading-tight">{opt.label}</span>
                       </button>
                     )
                   })}

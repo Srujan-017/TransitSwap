@@ -56,7 +56,7 @@ export default function DemoOptions<T extends string>({ options, value, onChange
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-navy-500">
+          <p className="text-xs text-navy-500">
             {value === "live"
               ? "Uses the real weather — the forecast for your departure hour if you pick a time."
               : "Demo weather: in rain or heat, walks over 300 m become autos."}
