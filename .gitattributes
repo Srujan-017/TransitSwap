@@ -144,3 +144,10 @@
 *.stl                filter=lfs diff=lfs merge=lfs -text
 *.nc                 filter=lfs diff=lfs merge=lfs -text
 *.mat                filter=lfs diff=lfs merge=lfs -text
+
+# ---------------------------------------------------------------------------
+# Files the deployed site serves must be real files, NOT Git LFS pointers: Vercel does not fetch LFS content,
+# so a tracked photo in public/ was served as the pointer text and every picture showed as a broken image.
+# (Documentation screenshots under docs/ stay in LFS.)
+# ---------------------------------------------------------------------------
+public/** -filter -diff -merge
