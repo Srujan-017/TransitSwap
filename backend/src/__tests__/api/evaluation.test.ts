@@ -1,5 +1,15 @@
 import request from "supertest"
 import { app, registerTestUser, authHeader, ensureDbConnected } from "../helpers/testApp"
+import { setMultimodalRoadLegProviderForTesting } from "../../services/multimodalService"
+
+// These checks are about the SHAPE of the benchmark, not about live road routing. The 22-scenario benchmark makes hundreds of road
+// requests; with real, working OSRM servers that no longer finishes inside the runner's 120 s limit, and a test that depends on a
+// public service being fast is a flaky test. So road legs come from the deterministic offline model, as in evaluationHarness.test.ts.
+setMultimodalRoadLegProviderForTesting({
+  async getRoute() {
+    throw new Error("offline test provider")
+  },
+})
 
 /**
  * Phase 10 — API integration tests for /api/evaluation/* (5 of 50

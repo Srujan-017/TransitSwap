@@ -59,6 +59,7 @@ const ALL_ENTRIES = [
   "src/__tests__/busNetwork.test.ts",
   "src/__tests__/weatherRules.test.ts",
   "src/__tests__/navigationData.test.ts",
+  "src/__tests__/osrmEndpoints.test.ts",
   "src/__tests__/ml.test.ts",
   "src/__tests__/recommendationExplanation.test.ts",
   "src/__tests__/reliability.test.ts",

@@ -296,7 +296,7 @@ Navigate to **http://localhost:5173** and use demo mode (no API keys required).
 | `MONGODB_URI` | Optional for route demos; required for authentication, profiles, saved journeys, saved destinations, saved routes, feedback, and user reports. If absent, database-backed endpoints return clear 503 errors while route intelligence continues on demo/fallback data |
 | `JWT_SECRET` | **Yes** | Secret for JWT signing. Change in production |
 | `OPENWEATHER_API_KEY` | Optional | Free OpenWeatherMap key. If absent, demo weather data is used |
-| `OSRM_API_URL` | No (default: `http://router.project-osrm.org`) | Optional OSRM routing server override |
+| `OSRM_API_URL` | No (default: the FOSSGIS servers `routing.openstreetmap.de/routed-car`, `/routed-foot`, `/routed-bike`, one per travel mode) | Optional override: your own OSRM server that carries the car, foot and bike networks. The public demo server `router.project-osrm.org` is ignored if set, because it only knows the car network (walking legs would come back at car speed and be drawn as straight lines) |
 | `FRONTEND_URL` | No (default: `http://localhost:5173`) | Exact frontend origin trusted by production CORS. In development, any `localhost`/`127.0.0.1` origin is also allowed automatically |
 | `NODE_ENV` | No (default: `development`) | Set to `production` on your hosting platform — enforces a real `JWT_SECRET` and strict CORS |
 
@@ -598,7 +598,7 @@ These metrics are displayed on the Dashboard page, clearly labelled `isSimulated
 | Accessibility info | Synthetic prototype dataset — no station was physically surveyed (see §12) | `synthetic_demo` |
 | Weather | OpenWeatherMap API, or a coordinate-seeded deterministic value when no API key is set | Live / Demo clearly labelled |
 | Crowd levels | Real authenticated user reports, blended with a small synthetic historical baseline | `RECENT_USER_REPORT` / `DEMO_DATA` |
-| Route geometry | OSRM road geometry for walk/auto legs when reachable, else a straight-line fallback; metro/bus legs are drawn as straight lines between stations, not the real track/road shape | Computed |
+| Route geometry | OSRM road geometry for walk/auto legs (walking asks the FOSSGIS **foot** server, so a walk follows footpaths and streets with turn-by-turn steps at about 1.25 m/s); if the router is unreachable, a straight-line fallback. Metro and bus legs follow the road network between stations (a proxy: OSRM has no rail geometry), not the real track | Computed |
 
 **No real-time user location data is ever stored.** Coordinates are only used transiently for route calculation.
 

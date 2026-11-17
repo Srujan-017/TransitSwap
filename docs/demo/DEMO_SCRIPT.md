@@ -7,7 +7,7 @@ Everything below was rehearsed against the redesigned interface (UI redesign Pha
 
 1. **Wake the backend.** The free host sleeps when idle and the first request can take about 30 s (measured: 33 s). The site now asks for the backend's health page as soon as it opens, but do not rely on that for a demonstration: open <https://transitswap-backend.onrender.com/api/health> in a spare tab and wait for `"database":"connected"`. (`docs/demo/keep-warm.workflow.yml.example` is an optional GitHub workflow that pings it every 10 minutes; copy it to `.github/workflows/` to use it.)
 2. Open the site in one browser window, signed out. Close other tabs. **Zoom to 100 %** (the live-navigation screen is designed for a window at least 700 px high; a laptop in full screen is ideal).
-3. Press **F5 once** so the page and its photographs are fresh in the cache.
+3. Press **F5 once** so the page and its photographs are fresh in the cache. **Rehearse each demo trip once** (press it, Find Routes) a few minutes before you start: the road legs are fetched from free public servers and kept for six hours, so the real demonstration is instant and shows walking along real streets.
 4. **You do not need to type any place names.** Plan Trip has four **"Try a demo trip"** buttons; they work without the place-search service, so a slow or rate-limited network cannot break the demonstration.
 
 ## Say this first (30 seconds)
@@ -47,4 +47,5 @@ If someone asks about accessibility of the app itself (30 seconds): press **Tab*
 | Voice is silent | Browser blocked speech or is muted; the text instruction on screen is the same; say so. |
 | The live-navigation map looks small | The window is very short: it uses the full screen, so press F11 or zoom out once (Ctrl and minus). On a laptop the map takes everything beside the side panel. |
 | Photographs look blurry or show only grey | The browser kept an old answer; hard-reload once (Ctrl+Shift+R). The site now versions its picture URLs so this should not happen after the first load. |
+| A walking leg shows **Approximate path** or a straight line | The free road-routing servers were busy or slow (they are rate-limited). Wait about a minute and search the same trip again; once a leg has been fetched it is kept for six hours, so a rehearsal a few minutes before the demonstration warms every demo trip. |
 | Admin step | Skip if you have no admin account (see the note in `PHASE_15_VERIFICATION.md`). Never leave a lift marked broken. |

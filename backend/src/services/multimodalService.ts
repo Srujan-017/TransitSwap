@@ -243,6 +243,27 @@ interface RoadContext {
   // newly-installed one. The real server never sets an override, so
   // production traffic always benefits from the shared cache.
   sharedCacheEnabled: boolean
+  // When this request stops waiting for the road router: a leg not answered by then keeps its straight-line estimate. Without a
+  // limit, a slow or overloaded router made a journey search take as long as all its legs' timeouts added together.
+  deadlineAt: number
+}
+
+// How long one search may spend waiting for road legs (finding candidates), and then for snapping the chosen routes' metro and
+// bus legs to the road (a cosmetic step, so it gets less).
+let roadBudgetMs = 8000
+const SNAP_BUDGET_MS = 4000
+export function setRoadBudgetForTesting(ms: number | null): void {
+  roadBudgetMs = ms ?? 8000
+}
+
+function withinBudget<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("road budget exhausted")), ms)
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value) },
+      (err) => { clearTimeout(timer); reject(err) },
+    )
+  })
 }
 
 let roadLegProviderOverride: RoadLegProvider | null = null
@@ -259,14 +280,17 @@ export function setMultimodalRoadLegProviderForTesting(provider: RoadLegProvider
 // request this server process handles. Bounded by TTL and size — see
 // ttlCache.ts — and only ever populated with a genuine resolved OSRM result,
 // never a failure/fallback, so a transient OSRM outage can't poison it.
-const sharedRoadLegCache = createTtlCache<RoadLegEstimate>({ ttlMs: 10 * 60 * 1000, maxEntries: 2000 })
+// Streets do not move, and the free road servers are slow and rate-limited, so a leg that was fetched once is kept for six hours
+// (it was ten minutes): the second search of a trip, including the demo trips, is instant and keeps its street-accurate path.
+const sharedRoadLegCache = createTtlCache<RoadLegEstimate>({ ttlMs: 6 * 60 * 60 * 1000, maxEntries: 2000 })
 
-function createRoadContext(excludeIds: ReadonlySet<string> = new Set()): RoadContext {
+function createRoadContext(excludeIds: ReadonlySet<string> = new Set(), budgetMs: number = roadBudgetMs): RoadContext {
   return {
     provider: roadLegProviderOverride ?? routingService,
     cache: new Map(),
     excludeIds,
     sharedCacheEnabled: roadLegProviderOverride === null,
+    deadlineAt: Date.now() + budgetMs,
   }
 }
 
@@ -315,6 +339,10 @@ async function roadLeg(
   toLat: number,
   toLng: number,
 ): Promise<RoadLegEstimate | null> {
+  // A leg that starts where it ends (a station used as both ends of a hop) needs no road at all: the caller's straight-line
+  // estimate is exact, and asking the router wastes one of its few allowed requests.
+  if (haversine(fromLat, fromLng, toLat, toLng) < 2) return null
+
   const key = `${mode}:${fromLat.toFixed(6)},${fromLng.toFixed(6)}>${toLat.toFixed(6)},${toLng.toFixed(6)}`
   const cached = ctx.cache.get(key)
   if (cached) return cached
@@ -328,13 +356,19 @@ async function roadLeg(
     }
   }
 
+  const remainingMs = ctx.deadlineAt - Date.now()
+  if (remainingMs <= 0) return null // out of time for this search: the caller keeps its straight-line estimate
+
   const request = (async () => {
     try {
-      const routes = await ctx.provider.getRoute({
-        origin: { latitude: fromLat, longitude: fromLng },
-        destination: { latitude: toLat, longitude: toLng },
-        mode,
-      })
+      const routes = await withinBudget(
+        ctx.provider.getRoute({
+          origin: { latitude: fromLat, longitude: fromLng },
+          destination: { latitude: toLat, longitude: toLng },
+          mode,
+        }),
+        remainingMs,
+      )
       const route = routes.find((candidate) => isUsableRoadRoute(candidate, mode))
       if (!route) return null
       const steps = toTurnSteps(route)
@@ -1725,7 +1759,7 @@ export const multimodalService = {
 
   /** Road-snaps metro/bus geometry for routes chosen from a pool (generateRoutes with `pool`). */
   async snapRouteGeometry<T extends MultimodalRoute>(route: T): Promise<T> {
-    const segments = await roadSnapCandidateGeometry(createRoadContext(), route.segments)
+    const segments = await roadSnapCandidateGeometry(createRoadContext(new Set(), SNAP_BUDGET_MS), route.segments)
     return { ...route, segments }
   },
 

@@ -148,3 +148,19 @@ describe("rerouting", () => {
     await act(async () => { finish(true) })
   })
 })
+
+describe("straight-line estimates are admitted, not presented as a path", () => {
+  it("warns when a leg still ahead is only a straight line between its ends", () => {
+    // makeRoute()'s auto leg is a two-point line of 400 m
+    renderNav()
+    expect(screen.getByText(/straight-line estimate, not a path to follow/)).toBeInTheDocument()
+  })
+
+  it("says nothing when every leg ahead follows streets", () => {
+    const route = makeRoute()
+    const auto = route.segments[2]
+    auto.geometry = geom([200, 2200], [350, 2200], [450, 2230], [600, 2200])
+    renderNav({ route })
+    expect(screen.queryByText(/straight-line estimate/)).toBeNull()
+  })
+})

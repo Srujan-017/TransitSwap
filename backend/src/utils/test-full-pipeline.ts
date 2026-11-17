@@ -1,10 +1,19 @@
-import { multimodalService } from "../services/multimodalService"
+import { multimodalService, setMultimodalRoadLegProviderForTesting } from "../services/multimodalService"
 import { reliabilityService } from "../services/reliabilityService"
 import { transitDnaService } from "../services/transitDnaService"
 import { evaluationService } from "../services/evaluationService"
 import { accessibilityService } from "../services/accessibilityService"
 import { weatherService } from "../services/weatherService"
 import { crowdService } from "../services/crowdService"
+
+// These checks are about the SHAPE of the benchmark, not about live road routing. The 22-scenario benchmark makes hundreds of road
+// requests; with real, working OSRM servers that no longer finishes inside the runner's 120 s limit, and a test that depends on a
+// public service being fast is a flaky test. So road legs come from the deterministic offline model, as in evaluationHarness.test.ts.
+setMultimodalRoadLegProviderForTesting({
+  async getRoute() {
+    throw new Error("offline test provider")
+  },
+})
 
 async function runPipelineTest() {
   console.log("=== TRANSITSWAP PHASE 18 - FULL PIPELINE VERIFICATION ===")

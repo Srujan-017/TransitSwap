@@ -227,3 +227,11 @@ describe("the step-by-step timeline", () => {
     expect(filledWithText).toHaveLength(0)
   })
 })
+
+describe("Approximate path label", () => {
+  it("is shown on a long walk drawn as a straight line, and not on one that follows streets", async () => {
+    const { isStraightLineEstimate } = await import("../../utils/pathQuality")
+    expect(isStraightLineEstimate({ mode: "walking", distanceMeters: 900, geometry: { coordinates: [[0, 0], [1, 1]] } })).toBe(true)
+    expect(isStraightLineEstimate({ mode: "walking", distanceMeters: 900, geometry: { coordinates: [[0, 0], [0.5, 0.2], [1, 1]] } })).toBe(false)
+  })
+})

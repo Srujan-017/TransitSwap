@@ -12,6 +12,7 @@ import { describeGuidance, type GuidanceIcon } from "../../navigation/guidance"
 import { formatClock } from "../../navigation/clock"
 import { buildStepInstruction } from "../../utils/navigationInstructions"
 import { formatDuration, formatDistance } from "../../utils/formatters"
+import { isStraightLineEstimate } from "../../utils/pathQuality"
 import type { MultimodalRoute } from "../../types/multimodal"
 import type { GeoLocation } from "../../types/map"
 import type { LatLng } from "../../navigation/geo"
@@ -233,6 +234,12 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
             )}
 
             <p className="text-xs text-navy-700" data-testid="nav-status">{statusText}</p>
+
+            {session.legs.slice(state.legIndex).some((l) => isStraightLineEstimate(l.segment)) && (
+              <p className="rounded-control bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                Street data was unavailable for part of this route, so that part of the line on the map is a straight-line estimate, not a path to follow.
+              </p>
+            )}
 
             <div className="flex gap-2 [&>button]:flex-1 [&>button]:whitespace-nowrap">
               <Button variant="outline" size="sm" className="min-h-11" onClick={session.skip} icon={<ChevronRight className="h-4 w-4" />}>Next step</Button>

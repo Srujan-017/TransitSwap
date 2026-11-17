@@ -13,6 +13,9 @@ const TRIPS = [
 ]
 
 test("every demo trip plans a real route with one tap", async ({ page }) => {
+  // Each search asks free public road servers for its legs (a few seconds when they are quick, up to the 12 s road budget when they
+  // are throttled), four times over.
+  test.setTimeout(150_000)
   let geocoded = 0
   await page.route("**/api/geocoding/**", async (route) => {
     geocoded++
@@ -43,6 +46,7 @@ test("every demo trip plans a real route with one tap", async ({ page }) => {
 })
 
 test("the Hoodi to MG Road trip tells the wheelchair story: a route is still recommended, and the excluded ones are explained", async ({ page }) => {
+  test.setTimeout(90_000)
   await page.goto("/register")
   await page.getByLabel("Full name").fill("Wheelchair Story")
   await page.getByLabel("Email address").fill(`story.${Date.now()}@example.com`)

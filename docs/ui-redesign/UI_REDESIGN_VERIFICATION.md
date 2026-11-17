@@ -112,4 +112,22 @@ On a laptop the live navigation screen showed the top bar above it and the foote
 * `e2e/navigation-fullscreen.spec.ts` runs **with motion on** at 1280×720, 1280×640 and 375×812: it starts a real journey and asserts the overlay's box equals the window, the map is at least 95% (laptop) or 45% (phone) of the window height, and the overlay is the topmost element at its corners and centre. It fails on the old stylesheet (checked) and passes on the new one.
 * The screenshot audit can now run with real animations (`UI_MOTION=on`), and its map-share assertion applies at every width, not only 375 px.
 
+### Walking drawn as a straight line through buildings (found by the owner on the live site, 17 Nov)
+
+The walking part of a journey was a dotted straight line across a hospital compound and its buildings. **Cause (in the backend, not the redesign):** road legs are fetched from OSRM, and the server used by default, `router.project-osrm.org`, **only carries the car network**: asked for the `foot` profile it answers with a *driving* route (measured: 1.56 km in 189 s, 8.3 m/s). The engine's walking-speed check (at most 2.5 m/s) correctly rejected that as implausible, and every walking leg then fell back to a straight line. It had been so since road routing was first added; it only became obvious with the redesigned map and live navigation, which draw the legs large.
+
+**Fix:** each mode now asks the OSRM server that carries its network: the FOSSGIS community servers `routed-foot`, `routed-bike` and `routed-car` (the same query on `routed-foot` gives 1.60 km in 1281 s, 1.25 m/s). A custom `OSRM_API_URL` still wins; the public demo server is ignored if configured. Requests send a User-Agent that names the project, as the community servers ask.
+
+**Checked against the real server:** a Majestic to Jayamahal search now returns walking legs with 87, 25 and 19 coordinates (the street shape) and 9, 6 and 5 turn-by-turn steps at 1.25 m/s, where before they had 2 coordinates and none. **Guard:** `backend/src/__tests__/osrmEndpoints.test.ts` (19 assertions: which server each mode asks, the User-Agent, real geometry reaching the route, and that a car-speed answer is still never shown as a walking time). It runs offline against a stand-in for the servers.
+
+**Making the dependency safe.** The free community servers proved to be slow (about 1 s a request from here) and, under a burst, to answer 429 or not at all; they went unreachable for several minutes while this was being tested. So the road client now:
+* sends requests **two at a time** and **retries** a 429 or a busy-server answer after the server's own `Retry-After`;
+* **falls back** to the public demo server if the right-network server is down, using its street geometry with the **time recomputed at walking pace** (a walk along streets is far better than a line through buildings; the steps are slowed in the same way);
+* **skips a server that failed for a minute** instead of letting every leg wait for its timeout (6 s);
+* gives each search a **road budget** (8 s to find routes, 4 s to snap metro and bus legs to the road); a leg not answered in time keeps its straight-line estimate, so a search never takes longer than that however slow the servers are;
+* keeps successful legs for **six hours** (they were kept for ten minutes), so the second search of a trip, the demo trips included, is instant and keeps its street path;
+* never asks about a leg that starts where it ends.
+
+If every server is down the app still answers, and **says so**: a long walking or auto leg that could not be routed is labelled **"Approximate path"** in the step-by-step list, and the navigation screen says the line on the map is a straight-line estimate, not a path to follow (`isStraightLineEstimate`). Measured against the real servers, with them reachable: Majestic to Jayamahal, 5 of 5 walking and auto legs along streets in 2.9 s; Hoodi to MG Road, 1 of 1 in 2.6 s. When they were throttled, the longest search ended at its 8 s budget with some legs approximate and labelled. For anything heavier, run your own OSRM and set `OSRM_API_URL`. `osrmEndpoints.test.ts` has 37 assertions covering all of the above offline.
+
 The lesson recorded here: **a deployment check must look at what the visitor sees** (the pictures, the first screen on a phone), not only at a successful build.

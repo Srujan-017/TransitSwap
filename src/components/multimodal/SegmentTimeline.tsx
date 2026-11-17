@@ -4,6 +4,7 @@ import ModeIcon from "../ui/ModeIcon"
 import LineBadge from "../ui/LineBadge"
 import type { MultimodalRoute, MultimodalMode, RouteSegment, LegCrowd } from "../../types/multimodal"
 import { formatDuration, formatDistance } from "../../utils/formatters"
+import { isStraightLineEstimate } from "../../utils/pathQuality"
 
 interface Props {
   route: MultimodalRoute
@@ -129,6 +130,9 @@ function SegmentRow({ seg, profile, crowd }: { seg: RouteSegment; profile?: stri
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-navy-600">
         <span>{formatDistance(seg.distanceMeters)}</span>
+        {isStraightLineEstimate(seg) && (
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-900" title="Street data was unavailable, so this path is drawn as a straight line">Approximate path</span>
+        )}
         {seg.estimatedFare > 0 && <span>₹{seg.estimatedFare} est.</span>}
         {d && (
           // The line's own colour is a dot, not the text colour: yellow and green lines fail 4.5:1 as text on these cards.
