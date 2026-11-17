@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TransitSwap Poster</title>
+<link rel="stylesheet" href="poster.css">
+<script src="assets/icons.js"></script>
+</head>
+<body>
+<div id="app"></div>
+
+<!--
+  Every piece of the poster, once. layout.js places copies of them on the A3 page (?mode=a3), on A4 cut-out sheets
+  (?mode=a4) or alone (?mode=piece&id=...). Sizes live in layout.js (SIZE), in millimetres.
+-->
+<template id="lib">
+
+<!-- 1 · TransitSwap logo tile (header row, left) -->
+<div class="side-tile brand-tile" data-id="brand">
+  <div class="brand-row">
+    <div class="brand-mark"><span class="ico" data-icon="bus"></span></div>
+    <div class="brand-word">TransitSwap</div>
+  </div>
+  <div class="brand-tag">Accessibility-first multimodal<br>journey planner for Bengaluru</div>
+  <div class="mode-dots">
+    <span class="mode-dot" style="background:#7e3fb3"><span class="ico" data-icon="train-front"></span></span>
+    <span class="mode-dot" style="background:#0f766e"><span class="ico" data-icon="bus"></span></span>
+    <span class="mode-dot" style="background:#b97f00"><span class="ico" data-icon="car-taxi-front"></span></span>
+    <span class="mode-dot" style="background:#64748b"><span class="ico" data-icon="footprints"></span></span>
+    <span class="mode-dot" style="background:#1f5bd8"><span class="ico" data-icon="accessibility"></span></span>
+  </div>
+</div>
+
+<!-- 2 · College banner (header row, centre): the department template's own header -->
+<div class="college" data-id="college"><img src="assets/college-header.png" alt="Don Bosco Institute of Technology"></div>
+
+<!-- 3 · Live demo QR tile (header row, right) -->
+<div class="side-tile qr-tile" data-id="qr">
+  <img src="assets/qr-live.svg" alt="QR code: transit-swap.vercel.app">
+  <div class="qr-text">
+    <div class="k">Scan to try</div>
+    <div class="t">Live demo</div>
+    <div class="u">transit-swap<br>.vercel.app</div>
+  </div>
+</div>
+
+<!-- 4 · Title -->
+<div class="title-block" data-id="title">
+  <div class="dept">DEPARTMENT OF INFORMATION SCIENCE &amp; ENGINEERING</div>
+  <h1>TRANSITSWAP: INCLUSIVE MULTIMODAL JOURNEY PLANNING</h1>
+  <div class="sub">Major Project (BCS786) &nbsp;|&nbsp; Under the guidance of Ms. Swathi B Patil, Assistant Professor, Dept. of ISE &nbsp;|&nbsp; 2026-2027</div>
+</div>
+
+<!-- 5 · Problem statement -->
+<section class="panel" data-id="problem">
+  <h2>Problem Statement</h2>
+  <p>Journey planners such as Google Maps optimise travel time and treat accessibility, at best, as a single flag or a weighted
+  preference. A rider who cannot climb stairs &mdash; a wheelchair user, a senior citizen, a parent with a stroller &mdash; can still be
+  shown a journey that is physically impossible for them, and when no usable route exists the planner silently returns an
+  unusable one. Bengaluru commuters, who mix metro, BMTC buses, autos and walking every day, also need to know about crowding,
+  weather and missed connections before they set off.</p>
+</section>
+
+<!-- 6 · Objectives -->
+<section class="panel" data-id="objectives">
+  <h2>Objectives</h2>
+  <ul>
+    <li>Plan journeys that combine metro, bus, auto-rickshaw and walking.</li>
+    <li>Enforce accessibility as hard rules for 7 mobility profiles, never as a soft score.</li>
+    <li>Explain every recommendation, and every excluded route, in plain language.</li>
+    <li>Personalise the ranking from each rider's own choices (TransitDNA learning).</li>
+    <li>Predict arrival intervals and missed-connection risk, aware of weather and crowds.</li>
+    <li>Guide the trip live with voice turn-by-turn navigation and automatic rerouting.</li>
+  </ul>
+</section>
+
+<!-- 7 · Methodology -->
+<section class="panel" data-id="method">
+  <h2>Methodology</h2>
+  <ul>
+    <li><b>Data:</b> synthetic Bengaluru network &mdash; 3 metro lines (41 stations), 10 bus routes (24 stops), 65 accessibility
+      records, 16 crowd readings; live weather; street paths from OpenStreetMap.</li>
+    <li><b>Candidate search:</b> bounded graph search (&le; 6 hops, &le; 3 transfers) over all four modes; Pareto filter on time,
+      fare, walking and transfers.</li>
+    <li><b>Hard constraints first:</b> lift, ramp and step-free rules, a 1.2 km walking cap and a peak-crowd rule remove unusable
+      routes <i>before</i> ranking; each exclusion gets a typed reason; missing data is a warning, never an assumption.</li>
+    <li><b>Ranking:</b> 9 normalised features, profile weights and TransitDNA personalisation.</li>
+    <li><b>Reliability:</b> 90 % / 95 % arrival intervals; Monte Carlo connection risk (500 trials).</li>
+    <li><b>Evaluation:</b> 520 origin&ndash;destination pairs &times; 7 profiles at 08:30 and 14:30, against shortest-time and
+      soft-scoring planners.</li>
+    <li><b>Stack:</b> React 19, TypeScript, Node.js / Express, MongoDB, Leaflet; Vercel + Render.</li>
+  </ul>
+  <div class="profiles">
+    <span class="chip"><span class="ico" data-icon="user"></span>Standard</span>
+    <span class="chip hl"><span class="ico" data-icon="accessibility"></span>Wheelchair</span>
+    <span class="chip hl"><span class="ico" data-icon="person-standing"></span>Senior</span>
+    <span class="chip hl"><span class="ico" data-icon="heart-pulse"></span>Pregnant</span>
+    <span class="chip hl"><span class="ico" data-icon="baby"></span>Stroller</span>
+    <span class="chip hl"><span class="ico" data-icon="luggage"></span>Heavy luggage</span>
+    <span class="chip hl"><span class="ico" data-icon="footprints"></span>Reduced mobility</span>
+  </div>
+  <div class="photos">
+    <figure><img src="../../public/images/photos/green-line-train-640.webp" alt=""><figcaption>Namma Metro</figcaption></figure>
+    <figure><img src="../../public/images/photos/bmtc-bus-640.webp" alt=""><figcaption>BMTC bus</figcaption></figure>
+    <figure><img src="../../public/images/photos/autos-vidhana-soudha-640.webp" alt=""><figcaption>Auto-rickshaws</figcaption></figure>
+    <figure><img src="../../public/images/photos/tactile-platform-640.webp" alt=""><figcaption>Tactile guide strip</figcaption></figure>
+  </div>
+  <div class="cap">Fig: The seven mobility profiles and the modes and stations the planner reasons about</div>
+  <div class="fine" style="text-align:center;margin-top:0.4mm">Photos: Asif Ahmed, Letian Zhang, Deepak Thakur (Unsplash); Ramesh NG (CC BY-SA 2.0, Wikimedia Commons)</div>
+</section>
+
+<!-- 8 · System architecture -->
+<section class="panel" data-id="arch">
+  <h2>System Architecture</h2>
+  <div class="figure grow">
+    <svg viewBox="0 0 122 53" style="width:121.6mm;height:52.8mm" font-family="Inter">
+      <!-- client -->
+      <rect x="0.15" y="0.15" width="121.4" height="10.4" rx="1.6" fill="#eef3fe" stroke="#1f5bd8" stroke-width="0.3"/>
+      <text x="2" y="3.3" font-size="2.35" font-weight="700" fill="#1a4fbf" letter-spacing="0.05">CLIENT &#8212; React 19 web app (Vercel)</text>
+      <g transform="translate(2 4.4)">
+        <rect width="28.3" height="4.9" rx="1" fill="#fff" stroke="#9db7f0" stroke-width="0.22"/>
+        <g data-icon="map" transform="translate(1.1 0.95) scale(0.125)" stroke="#1f5bd8"></g>
+        <text x="5" y="3.25" font-size="2.15" fill="#1f2937">Trip planner + map</text>
+        <rect x="29.6" width="28.3" height="4.9" rx="1" fill="#fff" stroke="#9db7f0" stroke-width="0.22"/>
+        <g data-icon="navigation" transform="translate(30.7 0.95) scale(0.125)" stroke="#1f5bd8"></g>
+        <text x="34.6" y="3.25" font-size="2.15" fill="#1f2937">Live navigation</text>
+        <rect x="59.2" width="28.3" height="4.9" rx="1" fill="#fff" stroke="#9db7f0" stroke-width="0.22"/>
+        <g data-icon="star" transform="translate(60.3 0.95) scale(0.125)" stroke="#1f5bd8"></g>
+        <text x="64.2" y="3.25" font-size="2.15" fill="#1f2937">History, feedback</text>
+        <rect x="88.8" width="28.9" height="4.9" rx="1" fill="#fff" stroke="#9db7f0" stroke-width="0.22"/>
+        <g data-icon="shield-check" transform="translate(89.9 0.95) scale(0.125)" stroke="#1f5bd8"></g>
+        <text x="93.8" y="3.25" font-size="2.15" fill="#1f2937">Admin console</text>
+      </g>
+      <!-- arrow -->
+      <path d="M60.8 10.9 V13.2" stroke="#475569" stroke-width="0.35"/><path d="M59.9 12.6 L60.8 13.9 L61.7 12.6 Z" fill="#475569"/>
+      <text x="63" y="13.1" font-size="1.95" fill="#475569">HTTPS &#183; JSON &#183; JWT</text>
+      <!-- api -->
+      <rect x="0.15" y="14.2" width="121.4" height="10.4" rx="1.6" fill="#e8f5f2" stroke="#0f766e" stroke-width="0.3"/>
+      <text x="2" y="17.35" font-size="2.35" font-weight="700" fill="#0b5f58" letter-spacing="0.05">REST API &#8212; Node.js + Express + TypeScript (Render)</text>
+      <g transform="translate(2 18.45)">
+        <rect width="38.4" height="4.9" rx="1" fill="#fff" stroke="#8fd0c6" stroke-width="0.22"/>
+        <g data-icon="lock" transform="translate(1.1 0.95) scale(0.125)" stroke="#0f766e"></g>
+        <text x="5" y="3.25" font-size="2.15" fill="#1f2937">JWT auth &amp; validation</text>
+        <rect x="39.7" width="38.4" height="4.9" rx="1" fill="#fff" stroke="#8fd0c6" stroke-width="0.22"/>
+        <g data-icon="route" transform="translate(40.8 0.95) scale(0.125)" stroke="#0f766e"></g>
+        <text x="44.7" y="3.25" font-size="2.15" fill="#1f2937">Route, journey, admin APIs</text>
+        <rect x="79.4" width="38.3" height="4.9" rx="1" fill="#fff" stroke="#8fd0c6" stroke-width="0.22"/>
+        <g data-icon="gauge" transform="translate(80.5 0.95) scale(0.125)" stroke="#0f766e"></g>
+        <text x="84.4" y="3.25" font-size="2.15" fill="#1f2937">Rate limiting, helmet</text>
+      </g>
+      <path d="M60.8 24.9 V27.2" stroke="#475569" stroke-width="0.35"/><path d="M59.9 26.6 L60.8 27.9 L61.7 26.6 Z" fill="#475569"/>
+      <!-- engine -->
+      <rect x="0.15" y="28.2" width="121.4" height="11.9" rx="1.6" fill="#f5f0fd" stroke="#7e3fb3" stroke-width="0.3"/>
+      <text x="2" y="31.35" font-size="2.35" font-weight="700" fill="#6a2f9c" letter-spacing="0.05">INTELLIGENCE ENGINE (per search)</text>
+      <g transform="translate(2 32.5)" font-size="2.05" fill="#1f2937">
+        <rect width="20.6" height="6.4" rx="1" fill="#fff" stroke="#c6a8e6" stroke-width="0.22"/>
+        <text x="10.3" y="2.7" text-anchor="middle" font-weight="700">Candidate</text><text x="10.3" y="5.15" text-anchor="middle">graph search</text>
+        <rect x="24.2" width="20.6" height="6.4" rx="1" fill="#fff" stroke="#e39a9a" stroke-width="0.32"/>
+        <text x="34.5" y="2.7" text-anchor="middle" font-weight="700" fill="#a12b2b">Hard</text><text x="34.5" y="5.15" text-anchor="middle">constraints</text>
+        <rect x="48.4" width="20.6" height="6.4" rx="1" fill="#fff" stroke="#c6a8e6" stroke-width="0.22"/>
+        <text x="58.7" y="2.7" text-anchor="middle" font-weight="700">Enrichment</text><text x="58.7" y="5.15" text-anchor="middle">weather, crowd</text>
+        <rect x="72.6" width="20.6" height="6.4" rx="1" fill="#fff" stroke="#c6a8e6" stroke-width="0.22"/>
+        <text x="82.9" y="2.7" text-anchor="middle" font-weight="700">Ranking</text><text x="82.9" y="5.15" text-anchor="middle">+ TransitDNA</text>
+        <rect x="96.8" width="20.9" height="6.4" rx="1" fill="#fff" stroke="#c6a8e6" stroke-width="0.22"/>
+        <text x="107.25" y="2.7" text-anchor="middle" font-weight="700">Explanations</text><text x="107.25" y="5.15" text-anchor="middle">why / why not</text>
+        <g stroke="#7e3fb3" stroke-width="0.32" fill="#7e3fb3">
+          <path d="M20.9 3.2 H23.4" fill="none"/><path d="M23 2.5 L24 3.2 L23 3.9 Z"/>
+          <path d="M45.1 3.2 H47.6" fill="none"/><path d="M47.2 2.5 L48.2 3.2 L47.2 3.9 Z"/>
+          <path d="M69.3 3.2 H71.8" fill="none"/><path d="M71.4 2.5 L72.4 3.2 L71.4 3.9 Z"/>
+          <path d="M93.5 3.2 H96" fill="none"/><path d="M95.6 2.5 L96.6 3.2 L95.6 3.9 Z"/>
+        </g>
+      </g>
+      <path d="M60.8 40.4 V42.4" stroke="#475569" stroke-width="0.35"/><path d="M59.9 41.8 L60.8 43.1 L61.7 41.8 Z" fill="#475569"/>
+      <!-- data -->
+      <rect x="0.15" y="42.45" width="121.4" height="10.4" rx="1.6" fill="#fdf5e6" stroke="#b97f00" stroke-width="0.3"/>
+      <text x="2" y="45.6" font-size="2.35" font-weight="700" fill="#7a5300" letter-spacing="0.05">DATA &amp; EXTERNAL SERVICES</text>
+      <g transform="translate(2 46.7)" font-size="2.05" fill="#1f2937">
+        <rect width="18.6" height="4.9" rx="1" fill="#fff" stroke="#e2c27e" stroke-width="0.22"/><text x="9.3" y="3.2" text-anchor="middle">MongoDB Atlas</text>
+        <rect x="19.85" width="18.6" height="4.9" rx="1" fill="#fff" stroke="#e2c27e" stroke-width="0.22"/><text x="29.15" y="3.2" text-anchor="middle">Transit network</text>
+        <rect x="39.7" width="18.6" height="4.9" rx="1" fill="#fff" stroke="#e2c27e" stroke-width="0.22"/><text x="49" y="3.2" text-anchor="middle">OSRM streets</text>
+        <rect x="59.55" width="18.6" height="4.9" rx="1" fill="#fff" stroke="#e2c27e" stroke-width="0.22"/><text x="68.85" y="3.2" text-anchor="middle">Open-Meteo</text>
+        <rect x="79.4" width="18.6" height="4.9" rx="1" fill="#fff" stroke="#e2c27e" stroke-width="0.22"/><text x="88.7" y="3.2" text-anchor="middle">Nominatim</text>
+        <rect x="99.25" width="18.45" height="4.9" rx="1" fill="#fff" stroke="#e2c27e" stroke-width="0.22"/><text x="108.5" y="3.2" text-anchor="middle">OSM map tiles</text>
+      </g>
+    </svg>
+  </div>
+  <div class="cap">Fig 1: Layered architecture of TransitSwap</div>
+</section>
+
+<!-- 9 · Workflow -->
+<section class="panel" data-id="workflow">
+  <h2>Workflow</h2>
+  <div class="figure grow">
+    <svg viewBox="0 0 122 46" style="width:121.6mm;height:45.8mm" font-family="Inter" id="wf"></svg>
+  </div>
+  <div class="cap">Fig 2: End-to-end journey workflow</div>
+</section>
+
+<!-- 10 · AI & algorithms -->
+<section class="panel" data-id="models">
+  <h2>AI &amp; Algorithms</h2>
+  <div class="figure">
+    <svg viewBox="0 0 122 25" style="width:121.6mm;height:24.9mm" font-family="Inter" id="pipeline"></svg>
+  </div>
+  <div class="grow" style="display:grid;grid-template-columns:1fr 1fr;gap:2mm;margin-top:1.2mm">
+    <svg viewBox="0 0 59.8 21" style="width:59.8mm;height:21mm" font-family="Inter" id="dna"></svg>
+    <svg viewBox="0 0 59.8 21" style="width:59.8mm;height:21mm" font-family="Inter" id="reliability"></svg>
+  </div>
+  <div class="cap">Fig 3: Constraint layer, personalised TransitDNA ranker and reliability models</div>
+</section>
+
+<!-- 11 · Results -->
+<section class="panel" data-id="results">
+  <h2>Results</h2>
+  <div class="figure">
+    <svg viewBox="0 0 122 41" style="width:121.6mm;height:40.9mm" font-family="Inter" id="chart"></svg>
+  </div>
+  <div class="cap" style="margin-top:0.3mm">Fig 4: Unusable route recommendations by mobility profile (520 trips, weekday 14:30)</div>
+  <div class="tiles">
+    <div class="tile good"><div class="n">0</div><div class="l">unusable routes recommended by TransitSwap, for any profile</div></div>
+    <div class="tile bad"><div class="n">35.6<small> %</small></div><div class="l">of wheelchair trips get an impossible route from a fastest-route planner</div></div>
+    <div class="tile"><div class="n">5.7<small> min</small></div><div class="l">median detour, only for the 17.4 % of trips that need one</div></div>
+    <div class="tile"><div class="n">19.2<small> %</small></div><div class="l">of wheelchair trips have no step-free route; the app says so plainly</div></div>
+    <div class="tile"><div class="n">15.7<small> %</small></div><div class="l">of wheelchair-feasible trips cut by one lift outage at Majestic</div></div>
+    <div class="tile good"><div class="n">100<small> %</small></div><div class="l">of 1,189 excluded routes carry a typed, readable reason</div></div>
+  </div>
+  <div class="honest">Synthetic demonstration network and simulated evaluation; no user study yet.</div>
+</section>
+
+<!-- 12 · Application -->
+<section class="panel" data-id="app">
+  <h2>Application</h2>
+  <div class="shots grow">
+    <div class="shot" style="width:93mm;height:44mm"><img src="assets/shot-plan-desktop.png" alt="" style="width:136mm;height:auto;object-fit:initial"></div>
+    <div class="phone" style="width:22.4mm;height:44mm"><img src="assets/shot-nav-phone.png" alt="" style="object-position:center top"></div>
+  </div>
+  <div class="cap">Fig 5: Ranked routes with reasons (laptop) &nbsp;&middot;&nbsp; Fig 6: Live navigation following GPS (phone)</div>
+  <div class="badges">
+    <span class="badge"><span class="ico" data-icon="circle-check"></span>WCAG 2.1 AA scan: 0 issues, 87 screens</span>
+    <span class="badge"><span class="ico" data-icon="circle-check"></span>Lighthouse accessibility 100</span>
+    <span class="badge"><span class="ico" data-icon="circle-check"></span>Keyboard-only tested</span>
+  </div>
+</section>
+
+<!-- 13 · Conclusion -->
+<section class="panel" data-id="conclusion">
+  <h2>Conclusion</h2>
+  <div class="concl grow">
+    <p>TransitSwap separates feasibility from preference: routes a rider cannot use are removed before ranking, every exclusion
+    explains itself, and the rest are ranked and personalised. On 520 simulated trips it never recommended an unusable route.
+    Future work: real GTFS and surveyed station data, live lift-outage feeds, a user study with disability organisations,
+    Kannada / Hindi support and a mobile app.</p>
+    <div class="qr"><img src="assets/qr-github.svg" alt="QR code: github.com/Srujan-017/TransitSwap"><div>Source code</div></div>
+  </div>
+</section>
+
+<!-- 14, 15 · Team -->
+<div class="footer-box" data-id="footer-a"><span>Srujan V [1DB23IS156]</span><span>Shreyas M [1DB23IS144]</span></div>
+<div class="footer-box" data-id="footer-b"><span>B Anand [1DB23IS025]</span><span>A L Abhishek [1DB23IS001]</span></div>
+
+</template>
+
+<script src="layout.js"></script>
+</body>
+</html>

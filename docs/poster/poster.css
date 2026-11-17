@@ -1,0 +1,195 @@
+/* TransitSwap competition poster. Every size is in millimetres so the same pieces print at the same size on the A3 page
+   and on the A4 cut-out sheets. Style follows the department's poster template: serif type, navy section headings,
+   rounded navy-bordered boxes. */
+
+@font-face {
+  font-family: "Inter";
+  src: url("../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 900;
+}
+@font-face {
+  font-family: "Jakarta";
+  src: url("../../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2");
+  font-weight: 200 800;
+}
+
+:root {
+  --navy: #1f3a6e;
+  --navy-2: #2d4f8f;
+  --ink: #111111;
+  --ink-2: #334155;
+  --muted: #5b6475;
+  --hair: #d5dbe5;
+  --teal-frame: #4a8a92;
+  --brand: #1f5bd8;
+  --go: #087a41;
+  --bus: #0f766e;
+  --auto: #b97f00;
+  --metro: #7e3fb3;
+  --danger: #b42318;
+  --s-time: #c2410c;
+  --s-soft: #e9a23b;
+  --s-ts: #1f5bd8;
+  --serif: "Times New Roman", "Liberation Serif", Times, serif;
+  --sans: "Inter", "Segoe UI", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #e5e7eb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@media print { html, body { background: #fff; } }
+
+.page { position: relative; overflow: hidden; background: #fff; margin: 0 auto 6mm; break-after: page; }
+.page:last-child { break-after: auto; margin-bottom: 0; }
+.page.a3 { width: 420mm; height: 297mm; }
+.page.a4 { width: 297mm; height: 210mm; }
+@media print { .page { margin: 0; } }
+
+.piece { position: absolute; }
+
+/* ── Section boxes ─────────────────────────────────────────────── */
+.panel {
+  border: 0.5mm solid var(--navy);
+  border-radius: 2.8mm;
+  padding: 2.3mm 3.3mm 2.4mm;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.panel h2 {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 12.8pt;
+  letter-spacing: 0.04em;
+  color: var(--navy);
+  margin: 0 0 1.1mm;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.panel p, .panel li {
+  font-family: var(--serif);
+  font-size: 9.6pt;
+  line-height: 1.27;
+  color: var(--ink);
+  margin: 0;
+}
+.panel p + p { margin-top: 1.2mm; }
+.panel ul { margin: 0; padding-left: 4.1mm; }
+.panel li { margin: 0 0 0.5mm; }
+.panel li::marker { color: var(--navy); }
+.panel b { font-weight: 700; }
+.grow { flex: 1 1 auto; min-height: 0; }
+.cap {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 8.2pt;
+  color: #1f2937;
+  text-align: center;
+  margin-top: 0.8mm;
+  line-height: 1.2;
+}
+.fine { font-family: var(--sans); font-size: 5.6pt; color: var(--muted); line-height: 1.25; }
+.figure { display: flex; justify-content: center; }
+svg text { font-family: var(--sans); }
+
+/* inline icons (Lucide) */
+.ico { display: inline-flex; width: 1em; height: 1em; vertical-align: -0.14em; }
+.ico svg { width: 100%; height: 100%; }
+
+/* ── Header row: the college banner and its two side tiles ─────── */
+.college img { width: 100%; height: 100%; display: block; }
+.side-tile {
+  border: 0.55mm solid var(--teal-frame);
+  border-radius: 2.2mm;
+  background: #fff;
+  overflow: hidden;
+}
+.brand-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2mm; padding: 1.6mm 2mm; }
+.brand-row { display: flex; align-items: center; gap: 1.8mm; }
+.brand-mark { width: 9.5mm; height: 9.5mm; border-radius: 50%; background: #0b1220; color: #fff; display: flex; align-items: center; justify-content: center; }
+.brand-mark .ico { width: 5.6mm; height: 5.6mm; }
+.brand-word { font-family: "Jakarta", var(--sans); font-weight: 750; font-size: 17pt; letter-spacing: -0.02em; color: #0b1220; }
+.brand-tag { font-family: var(--sans); font-size: 6.8pt; line-height: 1.3; text-align: center; color: var(--ink-2); font-weight: 500; }
+.mode-dots { display: flex; gap: 1.6mm; }
+.mode-dot { width: 5.4mm; height: 5.4mm; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; }
+.mode-dot .ico { width: 3.2mm; height: 3.2mm; }
+
+.qr-tile { display: flex; align-items: center; justify-content: center; gap: 3mm; padding: 2mm 2.6mm; }
+.qr-tile img { width: 25.5mm; height: 25.5mm; display: block; }
+.qr-text { font-family: var(--sans); color: var(--ink); }
+.qr-text .k { font-size: 6.6pt; font-weight: 700; letter-spacing: 0.08em; color: var(--navy); text-transform: uppercase; }
+.qr-text .t { font-family: var(--serif); font-size: 13pt; font-weight: 700; line-height: 1.1; margin: 0.8mm 0; color: var(--ink); }
+.qr-text .u { font-size: 6.4pt; color: var(--muted); word-break: break-all; line-height: 1.25; }
+
+/* ── Title block ───────────────────────────────────────────────── */
+.title-block { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; border-top: 0.5mm solid var(--navy); padding-top: 1.2mm; }
+.title-block .dept { font-family: var(--serif); font-weight: 700; font-size: 12.6pt; letter-spacing: 0.03em; color: var(--ink); }
+.title-block h1 { font-family: var(--serif); font-weight: 700; font-size: 25pt; letter-spacing: 0.01em; color: var(--navy); margin: 0.6mm 0 0.8mm; line-height: 1.04; white-space: nowrap; }
+.title-block .sub { font-family: var(--serif); font-size: 11.2pt; color: var(--ink); }
+
+/* ── Footer ────────────────────────────────────────────────────── */
+.footer-box { border: 0.5mm solid var(--navy); border-radius: 2.4mm; display: flex; align-items: center; justify-content: space-around; background: #fff; }
+.footer-box span { font-family: var(--serif); font-weight: 700; font-size: 11.6pt; color: var(--ink); }
+
+/* ── Methodology extras ────────────────────────────────────────── */
+.profiles { display: flex; flex-wrap: nowrap; gap: 0.75mm; margin: 1.3mm 0 1.3mm; justify-content: space-between; }
+.chip { display: inline-flex; align-items: center; gap: 0.6mm; border-radius: 99mm; padding: 0.5mm 1.45mm 0.5mm 1mm; white-space: nowrap; font-family: var(--sans); font-size: 6.05pt; font-weight: 600; color: var(--ink-2); background: #eef2f8; }
+.chip .ico { width: 2.7mm; height: 2.7mm; color: var(--navy); }
+.chip.hl { background: #e6f4ea; color: #0b5d33; }
+.chip.hl .ico { color: var(--go); }
+.photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.6mm; }
+.photos figure { margin: 0; position: relative; }
+.photos img { width: 100%; height: 25mm; object-fit: cover; border-radius: 1.2mm; display: block; }
+.photos figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 2.6mm 1.2mm 0.8mm; border-radius: 0 0 1.2mm 1.2mm; background: linear-gradient(transparent, rgba(11, 18, 32, 0.78)); font-family: var(--sans); font-size: 6.2pt; color: #fff; text-align: center; font-weight: 600; }
+
+/* ── Results extras ────────────────────────────────────────────── */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6mm; margin-top: 1.6mm; }
+.tile { border-radius: 1.6mm; background: #f3f6fb; padding: 1.4mm 1.8mm 1.5mm; }
+.tile .n { font-family: var(--sans); font-weight: 800; font-size: 14pt; color: var(--navy); letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.tile .n small { font-size: 9pt; font-weight: 700; }
+.tile .l { font-family: var(--sans); font-size: 6.2pt; line-height: 1.25; color: var(--ink-2); margin-top: 0.7mm; }
+.tile.good { background: #e8f5ec; }
+.tile.good .n { color: var(--go); }
+.tile.bad .n { color: var(--s-time); }
+.honest { font-family: var(--serif); font-style: italic; font-size: 7.8pt; color: var(--ink-2); margin-top: 1mm; text-align: center; }
+
+/* ── Application screenshots ───────────────────────────────────── */
+.shots { display: flex; gap: 2mm; align-items: flex-start; justify-content: center; }
+.shot { border-radius: 1.6mm; overflow: hidden; border: 0.25mm solid #cfd6e2; box-shadow: 0 0.5mm 1.6mm rgba(15, 23, 42, 0.18); background: #fff; }
+.shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.phone { border-radius: 3.6mm; border: 1.1mm solid #0b1220; overflow: hidden; background: #0b1220; box-shadow: 0 0.6mm 1.8mm rgba(15, 23, 42, 0.25); }
+.phone img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 2.6mm; }
+.badges { display: flex; flex-wrap: nowrap; gap: 1.1mm; justify-content: center; margin-top: 1.2mm; }
+.badge { display: inline-flex; align-items: center; gap: 0.7mm; font-family: var(--sans); font-size: 6pt; white-space: nowrap; font-weight: 600; color: var(--ink-2); background: #eef2f8; border-radius: 99mm; padding: 0.6mm 2mm 0.6mm 1.4mm; }
+.badge .ico { width: 3mm; height: 3mm; color: var(--go); }
+
+/* ── Conclusion ────────────────────────────────────────────────── */
+.concl { display: flex; gap: 2.6mm; align-items: center; }
+.concl .qr { flex: 0 0 auto; text-align: center; }
+.concl .qr img { width: 17mm; height: 17mm; display: block; }
+.concl .qr div { font-family: var(--sans); font-size: 5.4pt; color: var(--muted); margin-top: 0.6mm; }
+
+/* ── A4 cut sheets ─────────────────────────────────────────────── */
+.cutline { position: absolute; border: 0.22mm dashed #9aa3b2; border-radius: 3.6mm; pointer-events: none; }
+.cutline.square { border-radius: 0.6mm; }
+.cut-label { position: absolute; font-family: var(--sans); font-size: 6.4pt; color: #6b7280; white-space: nowrap; }
+.cut-label b { color: #1f3a6e; }
+.sheet-head { position: absolute; left: 8mm; right: 8mm; top: 2.6mm; display: flex; justify-content: space-between; font-family: var(--sans); font-size: 6.2pt; color: #9aa3b2; }
+.scissors { display: inline-block; transform: rotate(-90deg); }
+
+/* ── Assembly guide ────────────────────────────────────────────── */
+.guide h1 { font-family: var(--serif); color: var(--navy); font-size: 20pt; margin: 0; }
+.guide .lead { font-family: var(--sans); font-size: 8.6pt; color: var(--ink-2); margin-top: 1mm; }
+.mini { position: absolute; border: 0.3mm solid #94a3b8; background: #fff; }
+.mini .slot { position: absolute; border: 0.25mm solid var(--navy); border-radius: 0.9mm; background: #f1f5fb; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-family: var(--sans); color: var(--navy); }
+.mini .slot.frame { border-color: var(--teal-frame); background: #eef6f7; }
+.mini .slot.bare { border-style: dashed; background: #fafbfd; }
+.mini .slot .no { font-weight: 800; font-size: 11pt; line-height: 1; }
+.mini .slot .nm { font-size: 5.6pt; font-weight: 600; margin-top: 0.4mm; color: var(--ink-2); }
+.steps { position: absolute; font-family: var(--sans); color: var(--ink); font-size: 8pt; line-height: 1.38; }
+.steps ol { margin: 1.2mm 0 0; padding-left: 4.4mm; }
+.steps li { margin-bottom: 1.5mm; }
+.steps h3 { font-family: var(--serif); font-size: 12pt; color: var(--navy); margin: 0; }
+.ruler { position: absolute; height: 5mm; display: flex; align-items: flex-end; }
+.ruler .bar { width: 100mm; height: 2.2mm; background: repeating-linear-gradient(90deg, #1f3a6e 0 10mm, #fff 10mm 20mm); border: 0.25mm solid #1f3a6e; }
+.ruler .t { font-family: var(--sans); font-size: 6.6pt; color: var(--ink-2); margin-left: 2mm; }
