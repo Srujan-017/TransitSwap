@@ -1,7 +1,7 @@
 import { Suspense, lazy, useCallback, useState, type ReactNode } from "react"
 import {
   ArrowUp, ArrowUpLeft, ArrowUpRight, Bus, Car, CornerDownLeft, CornerDownRight, CornerUpLeft, CornerUpRight, Flag, FlaskConical,
-  Footprints, Loader2, LocateFixed, Pause, PartyPopper, Play, RotateCw, TrainFront, Undo2, Volume2, VolumeX, X, ChevronRight, Zap,
+  Footprints, Loader2, LocateFixed, Pause, PartyPopper, Play, RotateCw, TrainFront, Undo2, Volume2, VolumeX, X, ChevronRight, Zap, Check,
 } from "lucide-react"
 import Button from "../ui/Button"
 import ModeIcon from "../ui/ModeIcon"
@@ -17,6 +17,8 @@ import type { GeoLocation } from "../../types/map"
 import type { LatLng } from "../../navigation/geo"
 
 const LiveNavMap = lazy(() => import("./LiveNavMap"))
+
+const STEP_WORD: Record<string, string> = { walking: "Walk", metro: "Metro", bus: "Bus", auto: "Auto" }
 
 const ICONS: Record<GuidanceIcon, ReactNode> = {
   straight: <ArrowUp aria-hidden="true" />,
@@ -93,10 +95,12 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
             ? "Finding your location…"
             : "GPS is not available here. Use Next step or Simulate journey."
 
+  // A phone stacks banner, map and card. On a laptop the banner and card form a side panel and the map takes the rest of
+  // the screen, so it stays large however short the window is.
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-navy-50" role="dialog" aria-label="Live navigation">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-navy-50 lg:grid lg:grid-cols-[minmax(22rem,27rem)_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)]" role="dialog" aria-label="Live navigation">
       {/* What to do now. It turns green on arrival. */}
-      <section aria-label="Next instruction" className={`px-4 pb-3 pt-3 text-white shadow-float transition-colors lg:px-[max(1rem,calc((100vw_-_48rem)/2))] ${state.done ? "bg-go-700" : "bg-navy-900"}`}>
+      <section aria-label="Next instruction" className={`px-4 pb-3 pt-3 text-white shadow-float transition-colors lg:col-start-1 lg:row-start-1 lg:px-5 lg:pt-5 lg:pb-4 ${state.done ? "bg-go-700" : "bg-navy-900"}`}>
         <div className="flex items-center gap-4">
           <div
             className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-panel bg-white/12 [&>svg]:h-10 [&>svg]:w-10"
@@ -128,7 +132,7 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
       <p role="status" className="sr-only">{announcement}</p>
 
       {/* Map */}
-      <div className={`relative min-h-[200px] flex-1 ${simulation.running && !state.done ? "nav-tray-up" : ""}`}>
+      <div className={`relative min-h-[200px] flex-1 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:min-h-0 ${simulation.running && !state.done ? "nav-tray-up" : ""}`}>
         <Suspense fallback={<div className="flex h-full items-center justify-center bg-navy-100 text-sm text-navy-600">Loading map…</div>}>
           <LiveNavMap legs={session.legs} state={state} fix={fix} follow={follow} onUserMove={() => setFollow(false)} />
         </Suspense>
@@ -154,7 +158,7 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
         {/* The demo controls float over the bottom of the map, so running the demo does not shrink it. */}
         {simulation.running && !state.done && (
           <div
-            className="absolute inset-x-3 bottom-3 z-[1000] flex flex-wrap lg:inset-x-auto lg:left-1/2 lg:w-[42rem] lg:-translate-x-1/2 items-center gap-2 rounded-panel border border-amber-200 bg-amber-50/95 px-3 py-2 shadow-float backdrop-blur"
+            className="absolute inset-x-3 bottom-3 z-[1000] flex flex-wrap lg:inset-x-auto lg:left-1/2 lg:w-[34rem] lg:-translate-x-1/2 items-center gap-2 rounded-panel border border-amber-200 bg-amber-50/95 px-3 py-2 shadow-float backdrop-blur"
             role="group"
             aria-label="Simulation controls"
           >
@@ -190,7 +194,7 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
       </div>
 
       {/* Journey card */}
-      <section aria-label="Journey progress" className="space-y-2.5 rounded-t-sheet bg-white px-4 pt-3 shadow-pop pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:px-[max(1rem,calc((100vw_-_42rem)/2))]">
+      <section aria-label="Journey progress" className="space-y-2.5 rounded-t-sheet bg-white px-4 pt-3 shadow-pop pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:col-start-1 lg:row-start-2 lg:space-y-4 lg:overflow-y-auto lg:rounded-none lg:px-5 lg:pt-5 lg:shadow-none">
         {state.done ? (
           <div className="space-y-3 text-center">
             <p className="font-display text-xl font-bold text-navy-900">You have arrived at {destination.name}</p>
@@ -239,6 +243,23 @@ export default function ActiveNavigationView({ route, destination, profile, onEx
                 <Button variant="secondary" size="sm" className="min-h-11" onClick={simulation.start} icon={<Play className="h-4 w-4" />}>Simulate journey{" "}<span className="sr-only">(demo)</span></Button>
               )}
             </div>
+
+            {/* The whole trip at a glance, on a laptop where the side panel has the room. */}
+            <ol aria-label="All steps of this journey" className="hidden space-y-1 border-t border-navy-100 pt-3 lg:block">
+              {session.legs.map((l, i) => {
+                const done = i < state.legIndex
+                const current = i === state.legIndex
+                return (
+                  <li key={i} aria-current={current ? "step" : undefined} className={`flex items-center gap-2.5 rounded-control px-2 py-1.5 text-sm ${current ? "bg-brand-50 font-semibold text-navy-900" : done ? "text-navy-500" : "text-navy-700"}`}>
+                    <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${current ? "bg-brand-600 text-white" : done ? "bg-go-50 text-go-700" : "bg-navy-100 text-navy-600"}`}>
+                      {done ? <Check className="h-4 w-4" aria-hidden="true" /> : <ModeIcon mode={l.mode} className="h-4 w-4" />}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{STEP_WORD[l.mode] ?? "Go"} to {l.segment.to.name}</span>
+                    <span className="flex-shrink-0 text-xs tabular-nums text-navy-600">{formatDuration(Math.max(1, Math.round(l.segment.durationSeconds / 60)))}</span>
+                  </li>
+                )
+              })}
+            </ol>
 
             <details className="text-xs leading-snug text-navy-700">
               <summary className="min-h-6 cursor-pointer font-semibold">About live tracking</summary>

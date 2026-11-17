@@ -388,6 +388,23 @@ describe("Dashboard", () => {
     expect(screen.getAllByRole("link", { name: /View all/ }).map((l) => l.getAttribute("href"))).toEqual(["/history", "/saved-routes"])
   })
 
+  it("a demo hub opens Plan Trip with that place already chosen as the destination", async () => {
+    renderAt("/dashboard", <DashboardPage />)
+    await userEvent.click(screen.getByRole("link", { name: /Majestic Metro Station/ }))
+    const where = await screen.findByTestId("where")
+    expect(where).toHaveTextContent("/plan")
+    expect(where.textContent).toContain("useRouteDestination")
+    expect(where.textContent).toContain("Majestic Metro Station")
+    expect(where.textContent).toContain("12.9767")
+  })
+
+  it("a saved destination opens Plan Trip the same way", async () => {
+    vi.mocked(tripService.getDestinations).mockResolvedValue([destination])
+    renderAt("/dashboard", <DashboardPage />)
+    await userEvent.click(await screen.findByRole("link", { name: /Cubbon Park/ }))
+    expect((await screen.findByTestId("where")).textContent).toContain("Cubbon Park")
+  })
+
   it("the three demo hubs and the profile link are still there", async () => {
     renderAt("/dashboard", <DashboardPage />)
     for (const hub of ["MG Road Metro Station", "Majestic Metro Station", "Shivajinagar Bus Stand"]) expect(screen.getByText(hub)).toBeInTheDocument()

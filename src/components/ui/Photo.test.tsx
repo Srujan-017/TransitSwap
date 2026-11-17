@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { render, screen } from "@testing-library/react"
 import Photo from "./Photo"
-import { PHOTOS } from "../../data/photoCredits"
+import { PHOTOS, PHOTO_VERSION } from "../../data/photoCredits"
 
 describe("Photo", () => {
   it("shows the photo's own description as its alt text", () => {
@@ -26,7 +26,7 @@ describe("Photo", () => {
     const { container } = render(<Photo id="green-line-train" sizes="50vw" />)
     const img = container.querySelector("img")!
     const photo = PHOTOS["green-line-train"]
-    for (const s of photo.sizes) expect(img.getAttribute("srcset")).toContain(`/images/photos/green-line-train-${s.width}.webp ${s.width}w`)
+    for (const s of photo.sizes) expect(img.getAttribute("srcset")).toContain(`/images/photos/green-line-train-${s.width}.webp?v=${PHOTO_VERSION} ${s.width}w`)
     expect(img.getAttribute("src")).toMatch(/^\/images\/photos\//)
     expect(img.getAttribute("sizes")).toBe("50vw")
     expect(Number(img.getAttribute("width"))).toBe(photo.sizes[photo.sizes.length - 1].width)

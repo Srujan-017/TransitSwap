@@ -24,10 +24,11 @@ import { ModeChips } from "../components/ui/ModeStrip"
 import { RadialGauge } from "../components/dashboard/DashboardIllustrations"
 import { formatDate, formatTime } from "../utils/formatters"
 
+// Each hub carries its own coordinates, so a tap opens Plan Trip with it already chosen as the destination.
 const QUICK_DESTINATIONS = [
-  { label: "MG Road Metro Station", address: "MG Road, Bengaluru", mode: "metro" },
-  { label: "Majestic Metro Station", address: "Kempegowda Bus Station, Bengaluru", mode: "metro" },
-  { label: "Shivajinagar Bus Stand", address: "Shivajinagar, Bengaluru", mode: "bus" },
+  { label: "MG Road Metro Station", address: "MG Road, Bengaluru", mode: "metro", latitude: 12.9757, longitude: 77.6079 },
+  { label: "Majestic Metro Station", address: "Kempegowda Bus Station, Bengaluru", mode: "metro", latitude: 12.9767, longitude: 77.5713 },
+  { label: "Shivajinagar Bus Stand", address: "Shivajinagar, Bengaluru", mode: "bus", latitude: 12.9868, longitude: 77.6047 },
 ]
 
 // The words (and icons) shown in the Mobility Profile card.
@@ -446,7 +447,11 @@ export default function DashboardPage() {
             <ul className="-mx-2 space-y-1">
               {QUICK_DESTINATIONS.map((d) => (
                 <li key={d.label}>
-                  <Link to="/plan" className="group flex min-h-14 items-center gap-3 rounded-panel px-2 py-2 transition-colors hover:bg-navy-50">
+                  <Link
+                    to="/plan"
+                    state={{ useRouteDestination: { name: d.label, address: d.address, latitude: d.latitude, longitude: d.longitude } }}
+                    className="group flex min-h-14 items-center gap-3 rounded-panel px-2 py-2 transition-colors hover:bg-navy-50"
+                  >
                     <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-control bg-brand-50 text-brand-700">
                       <ModeIcon mode={d.mode} className="h-5 w-5" />
                     </span>
@@ -560,7 +565,11 @@ export default function DashboardPage() {
               <ul className="-mx-2 space-y-1">
                 {destinations.slice(0, 4).map((d) => (
                   <li key={d._id}>
-                    <Link to="/plan" className="flex min-h-12 items-center justify-between gap-2 rounded-control px-2 py-1.5 transition-colors hover:bg-navy-50">
+                    <Link
+                      to="/plan"
+                      state={{ useRouteDestination: { name: d.name, address: d.address, latitude: d.latitude, longitude: d.longitude } }}
+                      className="flex min-h-12 items-center justify-between gap-2 rounded-control px-2 py-1.5 transition-colors hover:bg-navy-50"
+                    >
                       <span className="flex min-w-0 items-center gap-2.5">
                         <MapPin className="h-4 w-4 flex-shrink-0 text-brand-600" aria-hidden="true" />
                         <span className="min-w-0">

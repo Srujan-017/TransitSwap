@@ -44,13 +44,13 @@ describe("photo register", () => {
       const widths = p.sizes.map((s) => s.width)
       expect(widths, p.id).toEqual([...widths].sort((a, b) => a - b))
       for (const s of p.sizes) {
-        const file = path.join(ROOT, "public", photoUrl(p.id, s.width))
+        const file = path.join(ROOT, "public", photoUrl(p.id, s.width).split("?")[0])
         expect(fs.existsSync(file), `${p.id} ${s.width}w exists`).toBe(true)
         expect(s.height).toBeGreaterThan(0)
       }
     }
     const hero = PHOTOS["metro-sunset"]
-    const heroBytes = fs.statSync(path.join(ROOT, "public", photoUrl(hero.id, hero.sizes[hero.sizes.length - 1].width))).size
+    const heroBytes = fs.statSync(path.join(ROOT, "public", photoUrl(hero.id, hero.sizes[hero.sizes.length - 1].width).split("?")[0])).size
     expect(heroBytes).toBeLessThan(200 * 1024)
   })
 

@@ -84,6 +84,9 @@ async function capture(page: Page, vp: string, screen: string, reveal = false, e
     await page.evaluate(() => window.scrollTo(0, 0))
     await page.waitForTimeout(900) // let the last fade-in finish
   }
+  // Landing sections below the fold use content-visibility, which a full-page capture and an axe scan would otherwise skip
+  // (blank pictures, unchecked text). Render everything for the capture.
+  await page.addStyleTag({ content: "[class*='content-visibility']{content-visibility:visible !important}" })
   await settle(page)
   fs.mkdirSync(OUT, { recursive: true })
   await page.screenshot({ path: path.join(OUT, `${vp}-${screen}.png`), fullPage: true })

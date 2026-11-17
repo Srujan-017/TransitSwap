@@ -241,6 +241,10 @@ export const PHOTOS: Record<PhotoId, PhotoEntry> = {
 export const PHOTO_LIST: PhotoEntry[] = Object.values(PHOTOS)
 
 /** The URL of one size of a photo. */
+// Bumped when the picture files change on the server. (The first deploy served Git LFS pointer text for these URLs, and
+// browsers and CDNs kept that broken answer; a new query string makes every visitor fetch the real file.)
+export const PHOTO_VERSION = 2
+
 export function photoUrl(id: PhotoId, width: number): string {
-  return `/images/photos/${id}-${width}.webp`
+  return `/images/photos/${id}-${width}.webp?v=${PHOTO_VERSION}`
 }

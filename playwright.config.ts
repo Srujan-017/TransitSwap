@@ -10,6 +10,8 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 45_000,
   fullyParallel: false,
+  // One at a time: the specs share one backend and one database, and running three browsers at once starves the dev servers.
+  workers: 1,
   retries: 0,
   reporter: "list",
   use: {

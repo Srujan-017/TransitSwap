@@ -10,6 +10,7 @@ import SegmentedControl from "../components/ui/SegmentedControl"
 import PlannerSheet, { atLeast, type SheetSnap } from "../components/planner/PlannerSheet"
 import ProfilePicker from "../components/planner/ProfilePicker"
 import DepartureControl from "../components/planner/DepartureControl"
+import DemoTrips from "../components/planner/DemoTrips"
 import DemoOptions from "../components/planner/DemoOptions"
 import ResultsSkeleton from "../components/planner/ResultsSkeleton"
 import LocationSearch from "../components/routing/LocationSearch"
@@ -174,6 +175,10 @@ export default function PlanTripPage() {
       setOrigin(state.useRouteOrigin)
       setDestination(state.useRouteDestination)
       setRoutingMode("multimodal")
+    } else if (state?.useRouteDestination) {
+      // A place chosen elsewhere (a saved destination or a transit hub on the dashboard): just the destination; the start is
+      // the visitor's own location or a search.
+      setDestination(state.useRouteDestination)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -493,6 +498,17 @@ export default function PlanTripPage() {
                 <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
+
+            {/* With nothing chosen yet: one-tap demo trips (they also make a demonstration independent of the place-search service). */}
+            {!origin && !destination && (
+              <DemoTrips
+                onPick={(trip) => {
+                  setOrigin(trip.origin)
+                  setDestination(trip.destination)
+                  clearResults()
+                }}
+              />
+            )}
 
             <DepartureControl date={date} time={time} onChange={({ date: d, time: t }) => { setDate(d); setTime(t) }} />
 
