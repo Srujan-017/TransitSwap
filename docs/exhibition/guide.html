@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TransitSwap Exhibition Guide</title>
+<style>
+@font-face { font-family: "Inter"; src: url("../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+@page { size: A4; margin: 16mm 15mm 17mm 15mm; }
+:root { --navy: #1d3557; --blue: #2b6cb0; --teal: #0f766e; --ink: #1f2937; --muted: #5b6472; --line: #d9dee7; --soft: #f3f6fa; --amber: #b45309; --amber-bg: #fff7e6; --green-bg: #ecfdf5; --red: #b91c1c; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #fff; }
+body { font-family: "Inter", system-ui, sans-serif; color: var(--ink); font-size: 10pt; line-height: 1.5; }
+h1, h2, h3 { color: var(--navy); line-height: 1.2; margin: 0; }
+h2 { font-size: 17pt; font-weight: 750; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid var(--navy); break-after: avoid; }
+h3 { font-size: 11.5pt; font-weight: 700; margin: 5mm 0 2mm; break-after: avoid; }
+p { margin: 0 0 2.4mm; }
+ul, ol { margin: 0 0 2.4mm; padding-left: 5.5mm; }
+li { margin: 0 0 1mm; }
+b, strong { font-weight: 650; }
+.page-break { break-before: page; }
+.part { font-size: 9pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--blue); margin-bottom: 1mm; }
+.section { margin-bottom: 6mm; }
+
+/* cover */
+.cover { height: 262mm; display: flex; flex-direction: column; justify-content: space-between; }
+.cover .band { background: var(--navy); color: #fff; border-radius: 5mm; padding: 14mm 12mm 12mm; }
+.cover .kicker { font-size: 10pt; letter-spacing: .16em; text-transform: uppercase; opacity: .8; font-weight: 600; }
+.cover h1 { color: #fff; font-size: 40pt; font-weight: 800; margin: 3mm 0 2mm; letter-spacing: -.01em; }
+.cover .sub { font-size: 15pt; font-weight: 500; opacity: .95; }
+.cover .tag { margin-top: 7mm; font-size: 11pt; line-height: 1.55; opacity: .92; max-width: 150mm; }
+.cover .inside { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.cover .inside div { background: var(--soft); border-radius: 3mm; padding: 4mm 5mm; }
+.cover .inside b { color: var(--navy); display: block; margin-bottom: .5mm; }
+.cover .inside span { color: var(--muted); font-size: 9.2pt; }
+.cover .meta { border-top: 1px solid var(--line); padding-top: 4mm; font-size: 9.5pt; color: var(--muted); display: grid; grid-template-columns: 1.25fr 1fr; gap: 4mm; }
+.cover .meta b { color: var(--ink); }
+
+/* boxes */
+.pitch { background: var(--navy); color: #fff; border-radius: 3mm; padding: 5mm 6mm; font-size: 11.5pt; line-height: 1.55; margin-bottom: 4mm; }
+.pitch .lbl { font-size: 8.5pt; letter-spacing: .12em; text-transform: uppercase; opacity: .75; font-weight: 700; display: block; margin-bottom: 1.5mm; }
+.note { background: var(--amber-bg); border-left: 3px solid var(--amber); border-radius: 0 2mm 2mm 0; padding: 3mm 4mm; margin: 3mm 0; font-size: 9.5pt; break-inside: avoid; }
+.note b:first-child { color: var(--amber); }
+.good { background: var(--green-bg); border-left: 3px solid var(--teal); border-radius: 0 2mm 2mm 0; padding: 3mm 4mm; margin: 3mm 0; font-size: 9.5pt; break-inside: avoid; }
+.good b:first-child { color: var(--teal); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; }
+.card { border: 1px solid var(--line); border-radius: 2.5mm; padding: 3.2mm 4mm; break-inside: avoid; }
+.card h4 { margin: 0 0 1.2mm; color: var(--navy); font-size: 10pt; }
+.card p, .card ul { margin-bottom: 0; font-size: 9.4pt; }
+
+/* pipeline */
+.pipe { break-inside: avoid; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2mm; margin: 3mm 0 2mm; }
+.pipe div { background: var(--soft); border-top: 3px solid var(--blue); border-radius: 2mm; padding: 2.5mm 2.5mm; font-size: 8.6pt; line-height: 1.35; position: relative; }
+.pipe div b { display: block; color: var(--navy); font-size: 9pt; margin-bottom: .8mm; }
+.pipe div .n { display: inline-block; width: 5mm; height: 5mm; border-radius: 50%; background: var(--blue); color: #fff; font-size: 7.5pt; text-align: center; line-height: 5mm; font-weight: 700; margin-bottom: 1mm; }
+.pipe div.key { border-top-color: var(--red); }
+.pipe div.key .n { background: var(--red); }
+
+/* architecture */
+.arch { break-inside: avoid; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; margin: 2mm 0 3mm; align-items: stretch; }
+.arch .tier { border: 1.5px solid var(--navy); border-radius: 2.5mm; padding: 3mm; font-size: 8.8pt; }
+.arch .tier > b:first-child { display: block; color: var(--navy); font-size: 9.6pt; margin-bottom: 1mm; }
+.arch .ext { grid-column: 1 / -1; background: var(--soft); border-radius: 2.5mm; padding: 2.5mm 3.5mm; font-size: 8.8pt; }
+
+/* tables */
+table { width: 100%; border-collapse: collapse; font-size: 9.2pt; margin: 1mm 0 3mm; break-inside: auto; }
+th { background: var(--navy); color: #fff; text-align: left; font-weight: 650; padding: 1.8mm 2.5mm; }
+td { padding: 1.7mm 2.5mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr { break-inside: avoid; }
+tr:nth-child(even) td { background: #fafbfd; }
+.gloss td { padding: 1.05mm 2.5mm; font-size: 8.8pt; }
+td.num { font-weight: 700; color: var(--navy); white-space: nowrap; }
+
+/* numbers */
+.stats { break-inside: avoid; display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.5mm; margin: 2mm 0 3mm; }
+.stat { background: var(--soft); border-radius: 2.5mm; padding: 3mm; break-inside: avoid; }
+.stat .v { font-size: 17pt; font-weight: 800; color: var(--navy); line-height: 1.1; }
+.stat .k { font-size: 8.4pt; color: var(--muted); line-height: 1.35; margin-top: 1mm; }
+
+/* Q&A */
+.qgroup { margin-bottom: 5mm; }
+.qgroup > h3 { background: var(--soft); border-radius: 2mm; padding: 2mm 3mm; margin: 4mm 0 2.5mm; font-size: 11pt; }
+.qa { break-inside: avoid; padding: 2.2mm 0 2.4mm; border-bottom: 1px dashed var(--line); }
+.qa:last-child { border-bottom: 0; }
+.q { font-weight: 680; color: var(--navy); display: flex; gap: 2.5mm; margin-bottom: 1mm; }
+.q .no { flex: 0 0 auto; min-width: 8mm; height: 5.2mm; border-radius: 1.2mm; background: var(--navy); color: #fff; font-size: 7.8pt; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-top: .3mm; }
+.a { padding-left: 10.5mm; }
+.a p:last-child, .a ul:last-child { margin-bottom: 0; }
+.tip { color: var(--amber); font-size: 9pt; font-style: normal; display: block; margin-top: 1mm; }
+.tip::before { content: "Tip: "; font-weight: 700; }
+.tough .q .no { background: var(--red); }
+
+.check li { list-style: none; position: relative; padding-left: 1mm; }
+.check li::before { content: ""; position: absolute; left: -5mm; top: 1.1mm; width: 3mm; height: 3mm; border: 1.3px solid var(--navy); border-radius: .6mm; }
+.small { font-size: 8.8pt; color: var(--muted); }
+.toc { columns: 2; column-gap: 8mm; font-size: 10pt; }
+.toc div { break-inside: avoid; padding: 1mm 0; border-bottom: 1px dotted var(--line); }
+.toc div span { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ============================ COVER ============================ -->
+<section class="cover">
+  <div class="band">
+    <div class="kicker">Project exhibition · preparation guide</div>
+    <h1>TransitSwap</h1>
+    <div class="sub">Accessibility-aware multimodal journey planning for Bengaluru</div>
+    <p class="tag">Everything you need to explain the project with confidence: the complete overview, the numbers to remember, a three-minute demo plan, and about 85 questions judges are likely to ask, each with a short, simple answer.</p>
+  </div>
+
+  <div class="inside">
+    <div><b>Part A · Know the project</b><span>Pitch, problem, solution, how it works, architecture, the 7 profiles, key numbers, what is real and what is demo, limitations.</span></div>
+    <div><b>Part B · Show the project</b><span>A three-minute exhibition demo, a ten-second answer for each screen, and what to do when something goes wrong.</span></div>
+    <div><b>Part C · Answer the judges</b><span>About 85 likely questions in nine groups, from "what is it?" to the tough ones, with short answers in plain words.</span></div>
+    <div><b>Part D · Last page</b><span>The one-page cheat sheet, golden rules for answering, a glossary and a checklist for the morning of the exhibition.</span></div>
+  </div>
+
+  <div class="meta">
+    <div>
+      <b>Team:</b> Srujan V (1DB23IS156) · Shreyas M (1DB23IS144) · B Anand (1DB23IS025) · A L Abhishek (1DB23IS001)<br>
+      <b>Guide:</b> Ms. Swathi B Patil · <b>Course:</b> Major Project (BCS786) · 2026-2027<br>
+      Department of Information Science and Engineering, Don Bosco Institute of Technology, Bengaluru
+    </div>
+    <div>
+      <b>Live demo:</b> transit-swap.vercel.app<br>
+      <b>Code:</b> github.com/Srujan-017/TransitSwap<br>
+      <b>Demo login:</b> press "Fill in the demo account" on the sign-in page
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PART A ============================ -->
+<section class="page-break section">
+  <div class="part">Part A · Know the project</div>
+  <h2>1. The pitch (learn this by heart)</h2>
+  <div class="pitch"><span class="lbl">30-second pitch</span>
+    "Map apps find the fastest route. But for a wheelchair user, an elderly person, a pregnant woman or a parent with a stroller, the fastest route often has stairs, a broken lift or a packed bus, and they only find out at the station. <b>TransitSwap</b> plans metro, bus, auto and walking journeys in Bengaluru and checks every route against the rider's needs <b>before</b> ranking it. A route the rider cannot use is never recommended, and the app explains why each route was removed. It also learns each rider's preferences from their choices. In our tests on 520 simulated trips, a normal fastest-route planner gave wheelchair users an unusable route on 35.6 % of trips. TransitSwap: zero."
+  </div>
+  <div class="pitch" style="background:#24476f"><span class="lbl">10-second version</span>
+    "It's a Bengaluru journey planner that never recommends a route you physically can't use, and tells you why."
+  </div>
+
+  <h3>The one big idea</h3>
+  <p><b>Constraints first, ranking second.</b> First remove every route the rider cannot use (hard rules). Then rank only the routes that are left (preferences). Normal planners do it the other way round, or only give accessibility a "bonus point", so an unusable route can still win.</p>
+  <div class="good"><b>Easy analogy:</b> a waiter serving a customer with a peanut allergy does not just "rank peanut dishes lower". He removes them from the menu, then recommends the best of what is left. TransitSwap does the same with stairs, lifts and crowds.</div>
+
+  <h2 style="margin-top:6mm">2. The problem</h2>
+  <ul>
+    <li>Normal navigation apps optimise <b>one thing, usually travel time</b>.</li>
+    <li>Riders with mobility needs care about <b>other things first</b>: is there a lift, how many stairs, how far is the walk, is the bus too crowded to board?</li>
+    <li>When an app gives them an unusable route, they <b>discover it only on arrival</b>: a staircase with no lift, a crowded platform. The trip fails.</li>
+    <li>Even apps with a "wheelchair" option usually have one switch for everyone. A senior, a pregnant rider and a parent with a stroller have <b>different</b> limits.</li>
+    <li>Apps rarely <b>explain</b> why a route was chosen or removed, so riders cannot trust them.</li>
+  </ul>
+  <p class="small">Background fact you may quote: India's 2011 Census counted about 2.68 crore people with disabilities (about 2.2 % of the population), and the elderly population is growing. UN Sustainable Development Goal 11.2 asks for accessible transport for all, "with special attention to" persons with disabilities and older persons.</p>
+</section>
+
+<section class="section">
+  <h2>3. The solution: what TransitSwap does</h2>
+  <div class="grid2">
+    <div class="card"><h4>Plans multimodal journeys</h4><p>Combines Namma Metro, BMTC buses, autos and walking in one trip, with fare, time, walking distance and transfers for each option.</p></div>
+    <div class="card"><h4>Seven travel profiles</h4><p>Standard, wheelchair, senior, pregnant, stroller, heavy luggage and reduced mobility. Each profile has its own rules.</p></div>
+    <div class="card"><h4>Removes unusable routes, with reasons</h4><p>Every removed route gets a typed reason: <i>station</i> (not accessible, stairs, no lift), <i>walking distance</i>, or <i>crowd</i>. Shown as "N other routes were excluded, see why".</p></div>
+    <div class="card"><h4>Ranks what is left</h4><p>Scores the remaining routes on 9 factors: time, cost, walking, reliability, accessibility, crowd, weather, missed-connection risk and transfers.</p></div>
+    <div class="card"><h4>Learns you (TransitDNA)</h4><p>Learns which factors <i>you</i> care about from the routes you pick. After 5 choices it trains a personal model. You can see and reset your weights.</p></div>
+    <div class="card"><h4>Tells you how sure it is</h4><p>Arrival time range (90 % / 95 %), a 0 to 100 reliability score, and the chance of missing a connection (Monte Carlo simulation, 1,000 trials).</p></div>
+    <div class="card"><h4>Real conditions</h4><p>Live weather forecast for the hour you travel (Open-Meteo), crowd estimates by time of day, walking paths along real streets (OpenStreetMap).</p></div>
+    <div class="card"><h4>Live navigation</h4><p>Turn-by-turn guidance with GPS and voice, reroutes when you go off route, and a simulation mode for demos. Bus and metro positions are not live-tracked (honest label).</p></div>
+    <div class="card"><h4>Explains itself</h4><p>"Why recommended" tags that are checked to be true against the other routes, plus a step-by-step journey with bus numbers, direction and next departures.</p></div>
+    <div class="card"><h4>Full product around it</h4><p>Sign-in, dashboard, history with ratings, saved routes, profile, a Research page with the benchmark, and an admin console for lifts, stations and crowd reports.</p></div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>4. How it works (the pipeline)</h2>
+  <p>Every time a rider presses <b>Find Routes</b>, the engine runs these six steps:</p>
+  <div class="pipe">
+    <div><span class="n">1</span><b>Find stops</b>Nearest metro stations and bus stops to the start and the destination.</div>
+    <div><span class="n">2</span><b>Search</b>Graph search joining walk, metro, bus and auto: at most 6 legs and 3 transfers.</div>
+    <div><span class="n">3</span><b>Keep good options</b>Pareto filter: drop a route if another is better or equal in time, fare, walking <i>and</i> transfers.</div>
+    <div class="key"><span class="n">4</span><b>Apply rules</b>Hard accessibility rules for the profile. Unusable routes are removed with a typed reason.</div>
+    <div><span class="n">5</span><b>Rank</b>Score the survivors on 9 factors, with profile or learned (TransitDNA) weights.</div>
+    <div><span class="n">6</span><b>Explain</b>Why-recommended tags, exclusion reasons, arrival range, connection risk.</div>
+  </div>
+  <p class="small">Step 4 (red) is the heart of the project: it happens <b>before</b> ranking, so no score can bring an unusable route back.</p>
+
+  <h3>The three kinds of "intelligence", said honestly</h3>
+  <table>
+    <tr><th style="width:26%">Part</th><th style="width:22%">Type</th><th>What it does</th></tr>
+    <tr><td><b>TransitDNA</b></td><td>Machine learning</td><td>Pairwise logistic regression. Learns how much a rider values time vs cost vs walking etc. from "chose route A over route B" examples.</td></tr>
+    <tr><td><b>Monte Carlo risk, arrival range</b></td><td>Statistics</td><td>Monte Carlo replays the journey 1,000 times with real past delays to estimate the chance of missing a transfer. The arrival range uses the mean and standard deviation of past prediction errors.</td></tr>
+    <tr><td><b>Accessibility, crowd, reliability</b></td><td>Rules</td><td>Clear, explainable rules (stairs, lifts, walking caps, crowd level). Rules are the right tool here: safety limits should not be "learned".</td></tr>
+  </table>
+  <div class="note"><b>Never say</b> "the whole thing is AI" or "deep learning". Say: "One part learns (TransitDNA); the safety part is rules on purpose; the uncertainty part is statistics." Judges respect this.</div>
+
+  <h2 style="margin-top:6mm">5. Architecture and tech stack</h2>
+  <div class="arch">
+    <div class="tier"><b>Frontend (what you see)</b>React 19, TypeScript, Vite, Tailwind CSS, Leaflet maps. Hosted on <b>Vercel</b>. Works in any browser, phone or laptop.</div>
+    <div class="tier"><b>Backend (the engine)</b>Node.js, Express, TypeScript. About 50 REST API endpoints. Route search, rules, ranking, learning, statistics. Hosted on <b>Render</b>.</div>
+    <div class="tier"><b>Database</b>MongoDB Atlas (cloud) with Mongoose. Users, journeys, saved routes, feedback, choices, accessibility and crowd records.</div>
+    <div class="ext"><b>Free outside services:</b> Open-Meteo (weather) · Nominatim (place search) · OpenStreetMap (map tiles) · OSRM (walking and road paths on real streets) · the browser's GPS and speech (navigation and voice).</div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h4>Security</h4><p>Passwords hashed with bcrypt; JWT sign-in tokens; helmet security headers; rate limiting (150 requests per 15 min); every input validated; users can only see their own data; admin accounts only created by a server script.</p></div>
+    <div class="card"><h4>Quality</h4><p>360 frontend tests, 34 backend test suites, 7 end-to-end browser tests; GitHub Actions CI on every push. Accessibility scan of 87 screens: 0 problems. Lighthouse: accessibility 100, SEO 100.</p></div>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="page-break">6. The seven travel profiles</h2>
+  <table>
+    <tr><th style="width:21%">Profile</th><th>Rule in plain words (as shown in the app)</th><th style="width:31%">Station rule</th></tr>
+    <tr><td><b>Standard</b></td><td>No restrictions. Ranked by preferences only.</td><td>None (soft scoring only)</td></tr>
+    <tr><td><b>Wheelchair</b></td><td>Autos and metro only, with at most 150 m of walking/rolling in a stretch. Buses avoided.</td><td>Blocked if station not accessible, stairs with no lift and no ramp, or platform not step-free</td></tr>
+    <tr><td><b>Senior</b></td><td>Short walks, and a bus only when it is quiet.</td><td>Blocked only in extreme cases (not accessible and more than 35 stairs)</td></tr>
+    <tr><td><b>Pregnant</b></td><td>No buses, and only quiet metro trains.</td><td>Same as senior</td></tr>
+    <tr><td><b>Stroller</b></td><td>No buses, only quiet metro trains, short walks.</td><td>Blocked if not accessible, or more than 20 stairs with no lift or ramp</td></tr>
+    <tr><td><b>Heavy luggage</b></td><td>Autos first, short walks, a bus only when it is quiet.</td><td>Same as senior</td></tr>
+    <tr><td><b>Reduced mobility</b></td><td>Short walks, and buses only when they are quiet.</td><td>Blocked if not accessible, or more than 15 stairs with no step-free option</td></tr>
+  </table>
+  <h3>Two extra hard rules</h3>
+  <ul>
+    <li><b>Walking cap:</b> wheelchair, stroller and reduced-mobility routes with more than <b>1.2 km</b> of total walking or rolling are removed.</li>
+    <li><b>Crowd rule:</b> for wheelchair, senior, pregnant, stroller and luggage, a route through a station with a <b>HIGH</b> crowd at that time is removed. A crowd reading is only used within <b>2 hours</b> of the travel time on the same kind of day (weekday or weekend). If there is no reading, the crowd is "unavailable" and never blocks a route.</li>
+    <li><b>Missing data never blocks</b> a route; it shows a warning instead ("open-world" policy).</li>
+  </ul>
+  <div class="note"><b>Be ready:</b> the limits (150 m, 1.2 km, 15 / 20 / 35 stairs) are <b>design assumptions</b>, not medical standards. Say: "They are configurable, and in a real deployment they should be set with disability organisations and, ideally, by each rider."</div>
+
+  <h2 class="page-break">7. Numbers to remember</h2>
+  <p class="small">From the evaluation on the simulated Bengaluru network: 520 start-to-destination pairs, 7 profiles, weekday 14:30. Three planners compared: shortest time, "soft" accessibility scoring, and TransitSwap.</p>
+  <div class="stats">
+    <div class="stat"><div class="v">35.6 %</div><div class="k">wheelchair trips where a fastest-route planner gives an <b>unusable</b> route (95 % CI 31.6 to 39.8 %)</div></div>
+    <div class="stat"><div class="v">19.2 %</div><div class="k">still unusable with "soft" scoring (accessibility as a bonus)</div></div>
+    <div class="stat"><div class="v">0 %</div><div class="k">TransitSwap, for <b>every</b> profile</div></div>
+    <div class="stat"><div class="v">5.7 min</div><div class="k">median extra time, only for the 17.4 % of trips that need a detour</div></div>
+    <div class="stat"><div class="v">19.2 %</div><div class="k">wheelchair trips with <b>no</b> step-free route at all (we say so instead of faking one)</div></div>
+    <div class="stat"><div class="v">66 / 420</div><div class="k">trips cut off by one lift outage at Majestic (15.7 %); 56 more rerouted</div></div>
+    <div class="stat"><div class="v">100 %</div><div class="k">of the 1,189 removed routes have a typed, readable reason</div></div>
+    <div class="stat"><div class="v">&lt; 0.3 ms</div><div class="k">time to check one route against the rules (90th percentile)</div></div>
+  </div>
+  <table>
+    <tr><th>Other facts</th><th style="width:42%">Value</th></tr>
+    <tr><td>Unusable-route rate, fastest planner: stroller / reduced mobility</td><td class="num">17.3 % / 9.0 %</td></tr>
+    <tr><td>Senior, pregnant, heavy luggage (fastest planner)</td><td class="num">3.7 % each</td></tr>
+    <tr><td>Crowd rule at 08:30: wheelchair "no route" goes from 19.2 % to</td><td class="num">41.5 %</td></tr>
+    <tr><td>TransitDNA held-out accuracy vs the rule baseline</td><td class="num">87.5 % vs 91.7 % (lower, reported)</td></tr>
+    <tr><td>Ranking benchmark: agreement with the fastest route (standard rider)</td><td class="num">95 % of 22 scenarios</td></tr>
+    <tr><td>Starting weights before learning</td><td class="num">Speed 25, Reliability 25, Walking 20, Cost 15, Access 15</td></tr>
+  </table>
+</section>
+
+<section class="section">
+  <h2>8. What is real and what is demo</h2>
+  <div class="grid2">
+    <div class="card" style="border-color:#99d5c9"><h4 style="color:var(--teal)">Real</h4><ul>
+      <li>The whole software: engine, rules, ranking, learning, statistics, app, database</li>
+      <li>Station and stop <b>names</b> (Namma Metro, BMTC)</li>
+      <li>Weather forecast (Open-Meteo), place search (Nominatim)</li>
+      <li>Map tiles and street walking paths (OpenStreetMap, OSRM)</li>
+      <li>Your GPS position in live navigation</li>
+      <li>The live website, sign-in and saved data</li>
+    </ul></div>
+    <div class="card" style="border-color:#f3c98b"><h4 style="color:var(--amber)">Demo (synthetic)</h4><ul>
+      <li>Station coordinates are approximate</li>
+      <li>Accessibility data (lifts, stairs, ramps): no station was surveyed</li>
+      <li>Crowd readings, fares and the bus timetable</li>
+      <li>Delay history used for arrival ranges and Monte Carlo</li>
+      <li>The benchmark results: simulated, not real riders</li>
+      <li>No user study has been done yet</li>
+    </ul></div>
+  </div>
+  <div class="good"><b>How to say it:</b> "The engine is real; the data is demonstration data. We built it so real GTFS timetables and surveyed station data can plug in without changing the engine. The app labels demo data everywhere, so nobody is misled."</div>
+
+  <h2 style="margin-top:6mm">9. Limitations and future work</h2>
+  <div class="grid2">
+    <div class="card"><h4>Limitations (say them before they are asked)</h4><ul>
+      <li>Synthetic data; one corridor of Bengaluru, not the whole city</li>
+      <li>No study with real riders yet</li>
+      <li>No live bus or metro positions, no live lift-outage feed</li>
+      <li>Learned model does not beat the rules on the synthetic test</li>
+      <li>Thresholds are assumptions, not clinically validated</li>
+      <li>Not yet tested on real phones, Safari/Firefox, or with screen readers</li>
+      <li>Free hosting sleeps: first request can take about 30 seconds</li>
+    </ul></div>
+    <div class="card"><h4>Future work</h4><ul>
+      <li>User study with wheelchair users, older adults and caregivers</li>
+      <li>Real GTFS feeds and surveyed station accessibility data</li>
+      <li>Live lift status and crowd data from the operator or sensors</li>
+      <li>Thresholds set with disability organisations, per rider</li>
+      <li>Kannada and Hindi, screen-reader testing, a mobile app</li>
+      <li>A faster public-transit algorithm (e.g. RAPTOR) for the full city</li>
+      <li>More cities; offer the accessibility check as an API to other apps</li>
+    </ul></div>
+  </div>
+
+  <h2 style="margin-top:6mm">10. Glossary in one line each</h2>
+  <table class="gloss">
+    <tr><td style="width:30%"><b>Hard vs soft constraint</b></td><td>Hard = a rule that removes a route. Soft = a penalty that only lowers its score.</td></tr>
+    <tr><td><b>Pareto filter</b></td><td>Keep a route only if no other route is at least as good in every way and better in one.</td></tr>
+    <tr><td><b>Graph search</b></td><td>Stations are dots, connections are lines; the computer explores paths between dots.</td></tr>
+    <tr><td><b>Logistic regression</b></td><td>A simple model that turns a weighted sum into a probability between 0 and 1.</td></tr>
+    <tr><td><b>Pairwise learning</b></td><td>Learning from comparisons ("A was preferred over B") instead of from scores.</td></tr>
+    <tr><td><b>Monte Carlo</b></td><td>Estimate a chance by simulating something many times with random inputs and counting.</td></tr>
+    <tr><td><b>Prediction interval</b></td><td>A time range the arrival should fall in, e.g. 90 % of the time.</td></tr>
+    <tr><td><b>Open-world policy</b></td><td>Unknown is not the same as "no": missing data gives a warning, not a block.</td></tr>
+    <tr><td><b>GTFS</b></td><td>The standard file format transit agencies use to publish timetables and stops.</td></tr>
+    <tr><td><b>OSRM / OSM</b></td><td>Open Source Routing Machine, which finds street paths on OpenStreetMap, the free world map.</td></tr>
+    <tr><td><b>JWT</b></td><td>JSON Web Token: a signed pass the browser shows to prove who is signed in.</td></tr>
+    <tr><td><b>WCAG / axe-core</b></td><td>The web accessibility standard, and the tool that scans pages for violations of it.</td></tr>
+    <tr><td><b>CI</b></td><td>Continuous integration: tests run automatically on every code change.</td></tr>
+  </table>
+</section>
+
+<!-- ============================ PART B ============================ -->
+<section class="page-break section">
+  <div class="part">Part B · Show the project</div>
+  <h2>11. The three-minute exhibition demo</h2>
+  <p>At an exhibition judges move fast. Keep the laptop on the live site, already signed in, with Plan Trip open. Show; don't read slides.</p>
+  <table>
+    <tr><th style="width:6%">#</th><th style="width:38%">Do</th><th>Say (short)</th></tr>
+    <tr><td class="num">1</td><td>Plan Trip. Press demo trip <b>Hoodi → MG Road</b>, then <b>Find Routes</b>.</td><td>"Here are the ranked routes: time, fare, the coloured legs, why each is recommended, the arrival range and the chance of missing a connection."</td></tr>
+    <tr><td class="num">2</td><td>Choose the <b>Wheelchair</b> profile. Find Routes again. Open "other routes were excluded, see why".</td><td>"Same trip for a wheelchair user. Routes through Indiranagar and Trinity were removed: those stations are not accessible. Buses are avoided. Every removal has a reason. <b>This is our main idea.</b>"</td></tr>
+    <tr><td class="num">3</td><td>Date and time: a weekday at <b>08:30</b>, search again. Then <b>14:30</b>.</td><td>"At 8:30 MG Road is very crowded, so no safe route exists and we say so honestly. At 2:30 the route comes back."</td></tr>
+    <tr><td class="num">4</td><td><b>Silk Board → Majestic</b>, open the step-by-step journey.</td><td>"Bus 356, direction, next departures, and where to change to the Green Line."</td></tr>
+    <tr><td class="num">5</td><td><b>Start Journey</b> → <b>Simulate</b> at 10× → <b>Go off route</b>.</td><td>"Turn-by-turn navigation with voice. If you go off route, it reroutes from where you are."</td></tr>
+    <tr><td class="num">6</td><td><b>Profile</b> (TransitDNA weights) or <b>Research</b> page.</td><td>"It learns what you value from your choices. And here is our evaluation: 35.6 % vs zero unusable routes."</td></tr>
+  </table>
+  <div class="note"><b>Golden opener:</b> say the 10-second version, then press the Wheelchair button within the first minute. That moment (routes removed, with reasons) is what judges will remember.</div>
+
+  <h3>One line for each screen, if a judge points at it</h3>
+  <div class="grid2">
+    <div class="card"><h4>Home page</h4><p>What the app does, the 7 profiles and their rules, real credited photographs.</p></div>
+    <div class="card"><h4>Dashboard</h4><p>Your TransitDNA weights, recent journeys and travel statistics, quick search.</p></div>
+    <div class="card"><h4>Plan Trip</h4><p>Map plus journey panel; profile, date and time; ranked route cards; exclusion reasons.</p></div>
+    <div class="card"><h4>Live navigation</h4><p>Instruction banner, voice, arrival time, every step; simulate and reroute.</p></div>
+    <div class="card"><h4>History</h4><p>Journeys grouped by day; star rating feedback feeds the learning.</p></div>
+    <div class="card"><h4>Saved routes</h4><p>Favourite trips that open Plan Trip already filled in.</p></div>
+    <div class="card"><h4>Profile</h4><p>Mobility profile, preferences, learned weights and a reset button.</p></div>
+    <div class="card"><h4>Research</h4><p>Benchmark against 5 simpler planners, which factor changes the decision, speed, honesty notes.</p></div>
+    <div class="card"><h4>Admin console</h4><p>Mark a lift broken or fixed, edit station accessibility, moderate crowd reports.</p></div>
+    <div class="card"><h4>Credits</h4><p>Every photograph and data source credited.</p></div>
+  </div>
+
+  <h3>Before judges arrive, and if something goes wrong</h3>
+  <table>
+    <tr><th style="width:36%">Situation</th><th>What to do</th></tr>
+    <tr><td>Morning of the exhibition</td><td>Open transitswap-backend.onrender.com/api/health and wait for "database: connected" (wakes the server). Run each demo trip once (warms the street paths for 6 hours). Zoom 100 %, charger plugged in, hotspot ready.</td></tr>
+    <tr><td>First search is very slow</td><td>The free server was asleep. Say "free hosting wakes up in about 30 seconds", wait, retry once.</td></tr>
+    <tr><td>Walking leg says "Approximate path"</td><td>The free street-routing server was busy. Search again in a minute. Explain: "the app tells you honestly when the path is approximate."</td></tr>
+    <tr><td>Wheelchair search finds no route</td><td>Likely a weekday morning: that's the crowd rule working. Open the reasons, then change the time to 14:30.</td></tr>
+    <tr><td>Demo trip buttons not visible</td><td>They show only while no start or destination is chosen: reload the Plan Trip page.</td></tr>
+    <tr><td>Images look grey or blurry</td><td>Hard reload: Ctrl + Shift + R.</td></tr>
+    <tr><td>Voice is silent</td><td>Browser muted or speech blocked; the same instruction is on screen.</td></tr>
+    <tr><td>No internet at all</td><td>Use the poster, screenshots and the presentation; explain the flow. (The app needs internet.)</td></tr>
+  </table>
+</section>
+
+<!-- ============================ PART C ============================ -->
+<section class="page-break">
+  <div class="part">Part C · Answer the judges</div>
+  <h2>12. Likely questions with short answers</h2>
+  <p class="small">Answer in two or three sentences, then offer to show it. Red numbers mark the tough questions: practise those out loud.</p>
+
+  <div class="qgroup">
+    <h3>A. The idea</h3>
+    <div class="qa"><div class="q"><span class="no">1</span>What is your project, in one line?</div><div class="a"><p>A journey planner for Bengaluru that combines metro, bus, auto and walking, and never recommends a route that a rider with a mobility need cannot actually use, and it explains why.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">2</span>What problem does it solve?</div><div class="a"><p>Map apps choose the fastest route. For a wheelchair user, senior, pregnant rider or parent with a stroller, that route may have stairs, no lift or a packed bus, and they find out only at the station. We check those things first.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">3</span>Who is it for?</div><div class="a"><p>Everyone, but especially seven kinds of riders: standard, wheelchair, senior, pregnant, stroller, heavy luggage and reduced mobility. Each has its own rules.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">4</span>Google Maps already exists. How are you different?</div><div class="a"><p>Google Maps is mainly about the fastest route and, in some cities, a single "wheelchair accessible" switch. We have seven profiles with different rules, remove unusable routes <b>before</b> ranking and say why each was removed, learn each rider's preferences, and show how reliable the arrival time is. Google has far better data; our contribution is the method, which could sit on top of real data.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">5</span>What is new or innovative here?</div><div class="a"><p>Three things: (1) constraints are applied before ranking, so no score can bring back an unusable route; (2) every removed route has a typed, readable reason; (3) a reproducible test that measures how often simpler planners give unusable routes (35.6 % for wheelchair users).</p></div></div>
+    <div class="qa"><div class="q"><span class="no">6</span>Why Bengaluru?</div><div class="a"><p>It's our city, it has a growing metro with mixed accessibility, a large bus network and autos, so it is a realistic multimodal test case. We used real station names.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">7</span>Why the name "TransitSwap"?</div><div class="a"><p>A journey here swaps between modes (walk, metro, bus, auto), and the app swaps an unusable route for one you can actually take.</p><span class="tip">This is a suggested answer; use your team's own reason if you had one.</span></div></div>
+    <div class="qa"><div class="q"><span class="no">8</span>Is it a mobile app or a website?</div><div class="a"><p>A responsive web app. It works in the browser on a phone or laptop with nothing to install. It can be turned into an installable app later.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">9</span>Is it actually working and deployed?</div><div class="a"><p>Yes. It is live at transit-swap.vercel.app, with the backend on Render and the database on MongoDB Atlas. You can try it now.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">10</span>What motivated you?</div><div class="a"><p>Watching elderly people and people with disabilities struggle with stairs, broken lifts and crowded buses. Apps tell you the fastest way, not a way you can actually use.</p><span class="tip">Add a real personal story if a team member has one: it lands well.</span></div></div>
+  </div>
+
+  <div class="qgroup">
+    <h3>B. Accessibility</h3>
+    <div class="qa"><div class="q"><span class="no">11</span>What makes a route "accessible" in your system?</div><div class="a"><p>Every station on it has step-free access for that profile (lift or ramp, not too many stairs), the walking is short enough, the transport type suits the profile (for example no buses for wheelchair), and no station is very crowded at that time.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">12</span>What is the difference between a hard and a soft constraint?</div><div class="a"><p>Hard: a rule, the route is removed. Soft: a penalty, the route just scores lower and can still win. Safety needs hard rules; taste can be soft.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">13</span>Why not just give accessibility a very high weight in the score?</div><div class="a"><p>Because a weight can be outvoted: a much faster route can still win. And if no accessible route exists, a ranker still shows its "best" one, which is unusable. Our test shows it: soft scoring still gave wheelchair users an unusable route on 19.2 % of trips; hard rules give 0 %.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">14</span>What happens if no accessible route exists?</div><div class="a"><p>We say so honestly and list the routes that existed and why each was ruled out. The rider can change the time (crowds change) or take an auto or cab. We never fake a route.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">15</span>Why are buses avoided for wheelchair users?</div><div class="a"><p>Our data can't confirm that a bus is low-floor or has a ramp, and boarding a regular bus in a wheelchair is usually not possible. So we use metro plus autos or accessible cabs.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">16</span>How do you know which stations are accessible?</div><div class="a"><p>Each station has a record: lift, ramp, escalator, number of stairs, step-free platform, tactile paving, accessible toilet. In this prototype the records are synthetic. In real use they'd come from the metro operator, surveys and community reports, which the admin console already supports.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">17</span>What if information about a station is missing?</div><div class="a"><p>Missing never blocks a route; it shows a warning ("open-world" policy). Otherwise most routes would vanish because real data is incomplete. The trade-off: a station with a wrongly missing record could be allowed, so we warn the rider.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">18</span>What if a lift breaks down?</div><div class="a"><p>An admin marks it out of service and the very next search avoids that station. Our test: one lift outage at Majestic cut off 66 of 420 wheelchair trips and rerouted 56 more, so the system reacts correctly.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">19</span>How does the crowd rule work?</div><div class="a"><p>If a station is estimated HIGH crowd at your travel time, routes through it are removed for wheelchair, senior, pregnant, stroller and luggage riders. A reading is used only within 2 hours of your time on the same kind of day; otherwise the crowd is "unavailable" and doesn't block.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">20</span>Who decided 1.2 km, 150 m and the stair counts?</div><div class="a"><p>We did, as design assumptions, and we say so in the report. They are configurable. In a real deployment they should be set with disability organisations and, ideally, by each rider.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">21</span>Why seven separate profiles and not one "accessible" switch?</div><div class="a"><p>Needs are different. A wheelchair user needs a lift; a pregnant rider can climb stairs but should avoid packed buses; heavy luggage means an auto is best. One switch is either too strict or too loose.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">22</span>What about visually or hearing-impaired users?</div><div class="a"><p>They aren't separate routing profiles yet. The app supports keyboard-only use and voice guidance, and passes automated accessibility checks, but we haven't tested with screen-reader users. That is future work.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">23</span>Is your own app accessible?</div><div class="a"><p>Yes, as far as automated testing goes: skip links, full keyboard use, labelled controls. An axe-core scan of 87 screens at phone, tablet and laptop widths found 0 problems, and Lighthouse accessibility is 100. Not yet tested with real screen-reader users.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">24</span>Can a rider change profile any time?</div><div class="a"><p>Yes. Pick a profile on Plan Trip for that search, or set a default in Profile. The rules change instantly.</p></div></div>
+  </div>
+
+  <div class="qgroup">
+    <h3>C. Algorithms and AI</h3>
+    <div class="qa"><div class="q"><span class="no">25</span>How does the app find routes?</div><div class="a"><p>Find the nearest stations, search the network for combinations of walk, metro, bus and auto (at most 6 legs and 3 transfers), keep only the good options (Pareto filter), remove the ones the rider cannot use, rank the rest on 9 factors, and explain the result.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">26</span>Which algorithm do you use? Dijkstra? A*?</div><div class="a"><p>A bounded multi-criteria graph search. Dijkstra and A* optimise one cost (like time); we have several (time, fare, walking, transfers), so we keep a set of best trade-offs. The limits (6 legs, 3 transfers) guarantee it finishes quickly. It isn't RAPTOR, the algorithm big apps use; that would be the upgrade for a full city.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">27</span>What is a Pareto filter?</div><div class="a"><p>We drop a route if another one is as good or better in every way (time, fare, walking, transfers). What is left are honest trade-offs: maybe one is faster and another cheaper.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">28</span>How are routes ranked?</div><div class="a"><p>Each route gets 9 scores between 0 and 1: time, cost, walking, reliability, accessibility, crowd, weather, missed-connection risk and transfers. They are combined with weights into one score out of 100. The weights come from the profile, or from your learned TransitDNA.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">29</span>Where exactly is the AI or machine learning?</div><div class="a"><p>In TransitDNA: a pairwise logistic regression that learns your personal weights from your route choices. The safety part is rules on purpose, and the uncertainty part is statistics (Monte Carlo and prediction intervals). We label each one honestly; we don't claim deep learning.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">30</span>How does TransitDNA learn?</div><div class="a"><p>Each time you choose route A when B was also offered, that's one example: "A beat B". The model learns which differences (faster, cheaper, less walking...) explain your choices. After 5 choices it trains your personal weights. You can see them on your profile and reset them.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">31</span>Explain logistic regression simply.</div><div class="a"><p>It takes the differences between two routes, multiplies each by a weight, adds them up, and turns the total into a probability between 0 and 1: "how likely you prefer A over B". Training adjusts the weights until those probabilities match your real choices.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">32</span>Why not deep learning or a neural network?</div><div class="a"><p>One rider gives tens of choices, not millions. A neural network would overfit and be a black box. Logistic regression learns from little data, is fast, and its weights are readable ("you care about walking twice as much as cost").</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">33</span>How accurate is your model?</div><div class="a"><p>87.5 % on held-out test choices, against 91.7 % for the simple rule baseline. So on our synthetic test it does <b>not</b> beat the rules, and we report that. The synthetic choices were generated by rules, so rules naturally win there; the model's value is personalisation for real riders, which needs a real user study to measure.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">34</span>What about a new user with no history (cold start)?</div><div class="a"><p>They get sensible starting weights (Speed 25, Reliability 25, Walking 20, Cost 15, Access 15) or the preset for their profile. Learning starts after 5 choices.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">35</span>What is the Monte Carlo simulation?</div><div class="a"><p>For a route with a transfer we replay the journey 1,000 times, each time picking real past delays at random, and count how often the delay is longer than the transfer buffer. That count becomes the "chance of missing your connection".</p></div></div>
+    <div class="qa"><div class="q"><span class="no">36</span>How do you give an arrival time range?</div><div class="a"><p>From past prediction errors: the average error and how spread out it is (standard deviation). 90 % range = average ± 1.645 × spread. With fewer than 5 past observations we show it as a rough estimate, not a confidence level.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">37</span>What is the reliability score?</div><div class="a"><p>A simple rule-based score from 0 to 100. It starts at 90 and goes up or down for transfers, bus vs metro, bad weather and crowds. It is labelled as an estimate, not a trained model.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">38</span>How is weather used?</div><div class="a"><p>We fetch the Open-Meteo forecast for the hour you travel. Rain or heat increases the walking penalty and shows a warning, so a route with less walking can move up.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">39</span>How do you explain the recommendation?</div><div class="a"><p>"Why recommended" tags like "least walking" are only shown if they are true compared with the other routes. Removed routes show the exact reason, such as "Trinity Metro is marked not accessible".</p></div></div>
+    <div class="qa"><div class="q"><span class="no">40</span>How do you draw walking paths on real streets?</div><div class="a"><p>We ask OSRM, an open routing engine on OpenStreetMap, for the walking path and cache it for 6 hours. If the free server is busy, we show a straight line labelled "Approximate path", never a fake street path.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">41</span>How does live navigation work?</div><div class="a"><p>It follows your phone's GPS, speaks each instruction with the browser's speech feature, and when you go off route it plans again from your current position. A simulation mode replays the trip for demos. Bus and metro positions are not live-tracked, and the screen says so.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">42</span>How fast is it?</div><div class="a"><p>Checking one route against the rules takes under 0.3 ms. A whole search takes a few seconds, mostly waiting for the free street-routing server; repeats are instant because of caching.</p></div></div>
+  </div>
+
+  <div class="qgroup">
+    <h3>D. Data</h3>
+    <div class="qa tough"><div class="q"><span class="no">43</span>Is your data real?</div><div class="a"><p>The station names are real; coordinates are approximate. Accessibility, crowd, fare and timetable data are synthetic: no station was surveyed. We say this in the app, the README, the report and the paper. Weather, maps, place search and walking paths are real.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">44</span>Why didn't you use real data?</div><div class="a"><p>There is no open, complete, surveyed accessibility dataset for Bengaluru stations, and real accessibility needs a physical survey that's beyond a student project. We designed the engine so real timetables (GTFS) and surveyed data plug in without changing the code.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">45</span>How big is your network?</div><div class="a"><p>3 metro lines with 41 stations, 10 bus routes with 24 stops, 65 accessibility records and 16 crowd readings. It covers one corridor; trips outside it get an "outside the demo network" message.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">46</span>How would you get real data?</div><div class="a"><p>Metro and bus timetables from the operators in GTFS format; station surveys with NGOs or volunteers; operator lift status; and community reports from riders, which our admin console can already moderate.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">47</span>Where does crowd information come from?</div><div class="a"><p>Synthetic station readings by time of day, plus reports riders submit in the app (used for 90 minutes, only for trips happening now). In future: ticket gate counts or sensors.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">48</span>What do you store about users?</div><div class="a"><p>Name, email, a hashed (unreadable) password, profile and preferences, learned weights, and the journeys, ratings and choices they save. Passwords are never stored in plain text.</p></div></div>
+  </div>
+
+  <div class="qgroup">
+    <h3>E. Results and evaluation</h3>
+    <div class="qa"><div class="q"><span class="no">49</span>What is your main result?</div><div class="a"><p>On 520 simulated trips, a fastest-route planner gave wheelchair users an unusable route on 35.6 % of trips; soft scoring 19.2 %; TransitSwap 0 % for every profile. The cost: a median 5.7 minutes extra, only for the 17.4 % of trips that need a detour.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">50</span>How did you test that?</div><div class="a"><p>We took 520 start-to-destination pairs across the network, planned each for all 7 profiles with three planners (fastest, soft scoring, ours), and checked every recommended route against the profile's rules. The test is a script anyone can rerun and get the same numbers.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">51</span>What does "95 % CI 31.6 to 39.8 %" mean?</div><div class="a"><p>The true rate is very likely between 31.6 % and 39.8 %; 35.6 % is our best estimate from 520 trips. It shows the result isn't luck.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">52</span>Doesn't removing routes make journeys much longer?</div><div class="a"><p>Usually not. Most trips need no change at all; for the 17.4 % that do, the median extra time is 5.7 minutes. A slightly longer route you can use is better than a fast one you can't.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">53</span>What does "19.2 % have no step-free route" mean?</div><div class="a"><p>For about one wheelchair trip in five, there is no step-free route at all in the (synthetic) network. A normal planner hides that by showing an unusable route; we say it clearly, which is also useful to planners and the city.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">54</span>Did you test with real users?</div><div class="a"><p>Not yet, and we say so. A study with wheelchair users, older adults and caregivers is the first next step. What we did measure: correctness of the rules, the simulated benchmark, automated accessibility audits, and many automated tests.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">55</span>How do you compare with other planners?</div><div class="a"><p>The Research page compares our top route with 5 simpler planners (fastest, cheapest, least walking, fewest transfers, random). For a standard rider we agree with the fastest route 95 % of the time, as expected; the big differences appear for accessibility profiles.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">56</span>What is "1,680 route checks, 0 violations" on the home page?</div><div class="a"><p>An automated check: 7 profiles × 12 trips × 5 times of day × 4 kinds of weather = 1,680 searches. Every route TransitSwap recommended was checked against that profile's rules, and none broke a rule.</p></div></div>
+  </div>
+
+  <div class="qgroup">
+    <h3>F. Technology and engineering</h3>
+    <div class="qa"><div class="q"><span class="no">57</span>What is your tech stack?</div><div class="a"><p>Frontend: React 19, TypeScript, Vite, Tailwind CSS and Leaflet maps. Backend: Node.js, Express, TypeScript. Database: MongoDB Atlas with Mongoose. Hosting: Vercel and Render. Tests: Vitest, Playwright, GitHub Actions.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">58</span>Why this stack?</div><div class="a"><p>One language (TypeScript) for the whole system, type safety catches mistakes early, it's widely used in industry, and it has free hosting, which matters for a student project.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">59</span>Explain the architecture.</div><div class="a"><p>Three tiers: the React app in the browser calls a REST API on the Express server; the server runs the engine and reads and writes MongoDB; it also calls free services for weather, places and street paths.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">60</span>Why MongoDB and not MySQL?</div><div class="a"><p>Our records, such as journeys with legs and station accessibility attributes, are nested documents, which fit MongoDB naturally. Atlas also gives a free cloud database.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">61</span>How is it secured?</div><div class="a"><p>Passwords hashed with bcrypt, JWT tokens for sign-in, helmet security headers, rate limiting (150 requests per 15 minutes), validation of every input, users see only their own data, and admin accounts can only be created on the server.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">62</span>How did you test the software?</div><div class="a"><p>360 frontend tests, 34 backend test suites (unit tests plus API tests on an in-memory database) and 7 end-to-end tests that drive the real app in a browser, including a keyboard-only journey. GitHub Actions runs them on every push.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">63</span>Why is it slow the first time?</div><div class="a"><p>The free Render server sleeps when idle and takes about 30 seconds to wake. The site sends a wake-up request as soon as it opens. A paid server wouldn't sleep.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">64</span>What if an outside service fails?</div><div class="a"><p>The app degrades gracefully: demo data is used and labelled, walking legs become "Approximate path", and the demo trips work without place search. It never crashes or pretends.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">65</span>Can it scale to the whole city or more users?</div><div class="a"><p>The API is stateless, so more servers can be added behind a load balancer, and results are cached. For the full city we'd load real GTFS, use a faster transit algorithm like RAPTOR, and run our own routing server instead of free public ones.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">66</span>Does it work offline?</div><div class="a"><p>No, it needs internet for planning, maps and weather. Offline saved routes could be added later.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">67</span>Does it work on phones?</div><div class="a"><p>Yes. The design is responsive and was checked automatically at phone, tablet and laptop sizes. It hasn't been tested on many physical phones yet.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">68</span>What does the admin console do?</div><div class="a"><p>Operators can mark lifts broken or fixed, edit station accessibility, and approve or reject crowd and accessibility reports. Changes take effect on the next search.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">69</span>How much does it cost to run?</div><div class="a"><p>Nothing now: all on free tiers. A real service would need a paid server that doesn't sleep, a paid database tier and its own routing server, roughly a few thousand rupees a month to start.</p></div></div>
+  </div>
+
+  <div class="qgroup">
+    <h3>G. Impact, privacy and future</h3>
+    <div class="qa"><div class="q"><span class="no">70</span>What is the social impact?</div><div class="a"><p>People with disabilities, seniors and caregivers can trust the route before leaving home. That means fewer failed trips and more independence. It supports UN SDG 11.2, accessible transport for all.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">71</span>Who could use or adopt this?</div><div class="a"><p>Riders directly; metro and bus operators, to show accessible routes and find stations that most need lifts; NGOs; and other map apps, through the accessibility check as an API.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">72</span>Is there a business model?</div><div class="a"><p>Free for riders. Possible paths: partnership with transit operators or smart-city programmes, CSR funding, or licensing the accessibility engine to other apps.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">73</span>What about privacy of location?</div><div class="a"><p>Location is used in the browser for navigation and sent to the server only to plan or reroute. Journeys are stored only when you save them, passwords are hashed, data isn't shared or sold, and learned weights can be reset.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">74</span>What is next for the project?</div><div class="a"><p>A user study with real riders, real GTFS and surveyed station data, live lift and crowd feeds, thresholds set with disability groups, Kannada and Hindi, screen-reader testing, and a mobile app.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">75</span>What challenges did you face?</div><div class="a"><ul>
+      <li>Free street-routing servers limiting requests: solved with caching, retries and honest "approximate" labels.</li>
+      <li>A crowd-data bug that blocked wheelchair routes at night: fixed with the 2-hour, same-day-type rule and tests.</li>
+      <li>Keeping the ML honest: a proper held-out test showed it doesn't beat the rules, and we report that.</li>
+      <li>Making our own app accessible: 87-screen audit, keyboard support, skip links.</li>
+    </ul></div></div>
+    <div class="qa"><div class="q"><span class="no">76</span>What did you learn?</div><div class="a"><p>Full-stack development and deployment, graph search and multi-criteria ranking, simple ML done properly with a held-out test, statistics for uncertainty, accessibility standards, and most of all being honest about what is measured and what isn't.</p></div></div>
+    <div class="qa"><div class="q"><span class="no">77</span>Who did what in the team?</div><div class="a"><p>Give each member one clear area (for example engine and algorithms; frontend and design; backend, database and deployment; testing, evaluation and documentation) and let that person answer questions on it.</p><span class="tip">Agree on this as a team before the exhibition; every member should still be able to give the pitch.</span></div></div>
+  </div>
+
+  <div class="qgroup">
+    <h3>H. The tough ones (practise these)</h3>
+    <div class="qa tough"><div class="q"><span class="no">78</span>Isn't this just a filter? What is so special?</div><div class="a"><p>Yes, the core is a filter, and that is the point: safety should be a simple rule, not a hidden score. What's new is where it sits (before ranking), that every removal explains itself, how missing data is handled, and that we measured how often normal planners fail (35.6 %). Simple and proven beats complex and unproven.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">79</span>Your ML is worse than plain rules. Why keep it?</div><div class="a"><p>On synthetic data generated by rules, rules will always win. The model is there to personalise for real people whose preferences don't follow our rules. We kept the honest number instead of tuning the test to look good, and the safety rules never depend on the model.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">80</span>Synthetic data means your results mean nothing?</div><div class="a"><p>The exact percentages will change with real data, but the conclusion won't: a ranker can still recommend an unusable route, and a hard filter can't, by design. The synthetic network shows how big the difference can be and gives a test we can rerun on real data.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">81</span>If a lift breaks while I'm travelling, does the app know?</div><div class="a"><p>Only if an operator or rider reports it; we don't have a live feed from the metro yet. Once it is marked, the next search or reroute avoids that station. A live operator feed is planned future work.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">82</span>Why can't I see where my bus is right now?</div><div class="a"><p>Live bus and metro positions need the operators' real-time feeds, which we don't have. We use a demonstration timetable and the screen says clearly that vehicles aren't live-tracked.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">83</span>What if the rules are too strict and remove everything?</div><div class="a"><p>Then the app says no route fits and shows why. The rider can change the time or profile. Being told "no safe route" is better than being sent to a staircase. The limits are configurable.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">84</span>What did you build yourselves, and what did you use?</div><div class="a"><p>We built the routing engine, the accessibility rules, the ranking and learning, the statistics, the evaluation, the backend API and the whole interface. We used libraries for the UI framework, maps, database access and testing, and free services for weather, places and street paths.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">85</span>Did you use AI tools to write the code?</div><div class="a"><p>Answer honestly. For example: "We used AI coding assistants as a tool, as most developers do now, but the design decisions, the testing and the evaluation are ours, and we can explain any part of the code." Then offer to walk through a part.</p></div></div>
+    <div class="qa tough"><div class="q"><span class="no">86</span>Why should a judge pick this project?</div><div class="a"><p>It solves a real problem for people often left out by navigation apps, it is fully working and deployed, it is backed by a measured result (35.6 % to 0 %), and it is honest about its limits.</p></div></div>
+  </div>
+</section>
+
+<!-- ============================ PART D ============================ -->
+<section class="page-break section">
+  <div class="part">Part D · Last page</div>
+  <h2>13. One-page cheat sheet</h2>
+  <div class="grid2">
+    <div class="card"><h4>What</h4><p>Bengaluru journey planner (metro, bus, auto, walk) that never recommends a route you can't use, and explains why.</p></div>
+    <div class="card"><h4>Big idea</h4><p>Constraints first, ranking second. Hard rules remove unusable routes before any scoring.</p></div>
+    <div class="card"><h4>For whom</h4><p>7 profiles: standard, wheelchair, senior, pregnant, stroller, heavy luggage, reduced mobility.</p></div>
+    <div class="card"><h4>How</h4><p>Find stops → graph search (6 legs, 3 transfers) → Pareto filter → hard rules → rank on 9 factors → explain.</p></div>
+    <div class="card"><h4>AI, honestly</h4><p>TransitDNA = pairwise logistic regression (learns your weights after 5 choices). Rules for safety. Statistics for uncertainty (Monte Carlo 1,000 trials, 90/95 % arrival range).</p></div>
+    <div class="card"><h4>Result</h4><p>Unusable routes for wheelchair users: fastest 35.6 % · soft scoring 19.2 % · TransitSwap 0 %. Cost: 5.7 min median, for 17.4 % of trips.</p></div>
+    <div class="card"><h4>Stack</h4><p>React 19 + TypeScript + Tailwind + Leaflet · Node/Express · MongoDB Atlas · Vercel + Render · OSM, OSRM, Open-Meteo.</p></div>
+    <div class="card"><h4>Honest limits</h4><p>Synthetic data, simulated benchmark, no user study yet, no live vehicle tracking, ML 87.5 % vs rules 91.7 %.</p></div>
+  </div>
+
+  <h3>Golden rules for answering</h3>
+  <ol>
+    <li><b>Short first, detail if asked.</b> Two or three sentences, then stop. Let the judge pull more.</li>
+    <li><b>Show, don't tell.</b> "Let me show you" and press the button. The Wheelchair demo is your strongest moment.</li>
+    <li><b>Never overclaim.</b> Say "synthetic data", "simulated benchmark", "no user study yet" before a judge says it. Honesty scores points.</li>
+    <li><b>If you don't know:</b> "We haven't measured that yet. Here's how we would." Never guess a number.</li>
+    <li><b>Use the analogy:</b> the allergy menu: remove what is unsafe, then recommend the best of the rest.</li>
+    <li><b>One voice at a time.</b> Whoever owns the topic answers; others add only if needed. Look at the judge and thank them for each question.</li>
+  </ol>
+
+  <h3>Checklist for the morning</h3>
+  <ul class="check">
+    <li>Laptop charged, charger and extension board, phone hotspot as backup internet</li>
+    <li>Backend woken (open /api/health, wait for "connected"); each demo trip run once</li>
+    <li>Signed in with the demo account, Plan Trip open, browser zoom 100 %, other tabs closed</li>
+    <li>Poster up; QR codes scanned with a phone and working</li>
+    <li>Presentation and screenshots ready offline in case the internet fails</li>
+    <li>Everyone can say the pitch and the main result (35.6 % → 0 %); team roles agreed</li>
+  </ul>
+</section>
+
+</body>
+</html>
